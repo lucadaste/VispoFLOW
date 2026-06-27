@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if git remote get-url origin >/dev/null 2>&1; then
+  echo "Pushing ${branch} to origin..."
+  git push --quiet origin "$branch"
+else
+  echo "No GitHub remote configured yet; skipping push."
+fi
