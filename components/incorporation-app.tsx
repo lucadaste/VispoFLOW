@@ -43,19 +43,26 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [view, setView] = useState<"landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding">(() => {
-    const VALID = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"]
-    try {
-      const saved = sessionStorage.getItem("vispo-view")
-      if (saved && VALID.includes(saved)) return saved as "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding"
-    } catch {}
-    return "landing"
-  })
+  type View = "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding"
+  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"]
+
+  const [view, setView] = useState<View | "loading">("loading")
   const [formationComplete, setFormationComplete] = useState(false)
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
+  const [homeChatKey, setHomeChatKey] = useState(0)
+
+  // Restore saved view after mount so there is no SSR flash
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("vispo-view") as View | null
+      if (saved && VALID_VIEWS.includes(saved)) { setView(saved); return }
+    } catch {}
+    setView("landing")
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
-    sessionStorage.setItem("vispo-view", view)
+    if (view !== "loading") sessionStorage.setItem("vispo-view", view)
   }, [view])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance") => {
@@ -225,7 +232,7 @@ export function IncorporationApp() {
     [activeStepIndex, animateDocs, playStep, pushBot],
   )
 
-  const reset = () => {
+  const restartFormation = () => {
     startedRef.current = false
     idRef.current = 0
     setMessages([])
@@ -241,13 +248,21 @@ export function IncorporationApp() {
     })
   }
 
+  const handleRestart = () => {
+    if (view === "chat") { restartFormation(); return }
+    if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
+    if (view === "compliance" || view === "compliance-onboarding") { setView("compliance-onboarding"); return }
+  }
+
   const hasDocs = Object.keys(docStatuses).length > 0
+
+  if (view === "loading") return <div className="h-dvh bg-background" />
 
   return (
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
         phase={view === "landing" || view === "home-chat" ? "home" : view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
-        onReset={() => { reset(); setView("landing") }}
+        onReset={handleRestart}
         onPhaseClick={handlePhaseClick}
       />
 
@@ -255,6 +270,7 @@ export function IncorporationApp() {
         <Landing onSelect={handleLandingSelect} />
       ) : view === "home-chat" ? (
         <HomeChat
+          key={homeChatKey}
           initialMessage={homeChatSeed}
           onStartFormation={() => setView("chat")}
         />
