@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VispoFLOW | AI-powered creative workflow studio",
+  title: "Vispo | Incorporation Studio",
   description:
-    "VispoFLOW helps teams turn ideas into polished visual flows with AI-assisted planning, storyboards, and collaborative review loops.",
+    "Vispo Incorporation Studio — AI-powered business formation and compliance workflows.",
 };
 
 export default function RootLayout({
