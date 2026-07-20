@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 export function BotMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex animate-message-in items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neutral-800 to-neutral-950 text-white shadow-sm">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
         <Scale className="h-4 w-4" />
       </div>
       <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm leading-relaxed text-card-foreground shadow-sm ring-1 ring-border">
@@ -19,7 +19,7 @@ export function BotMessage({ children }: { children: React.ReactNode }) {
 export function UserMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex animate-message-in items-start justify-end gap-3">
-      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-gradient-to-br from-neutral-800 to-neutral-950 px-4 py-3 text-sm leading-relaxed text-white shadow-sm">
+      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-900 to-slate-900 px-4 py-3 text-sm leading-relaxed text-white shadow-sm">
         {children}
       </div>
     </div>
@@ -57,7 +57,7 @@ export function SystemNote({
 export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neutral-800 to-neutral-950 text-white shadow-sm">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
         <Scale className="h-4 w-4" />
       </div>
       <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-white px-4 py-3.5 shadow-sm ring-1 ring-border">

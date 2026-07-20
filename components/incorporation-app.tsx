@@ -215,7 +215,7 @@ export function IncorporationApp() {
             </div>
 
             {activeInput && (
-              <div className="border-t border-border bg-white/70 backdrop-blur px-4 py-4 sm:px-6">
+              <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-6">
                 <div className="mx-auto max-w-2xl">
                   <ChatInput input={activeInput} answers={answers} onSubmit={handleSubmit} />
                 </div>
