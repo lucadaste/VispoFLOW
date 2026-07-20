@@ -1,32 +1,10 @@
-# Dependencies
-node_modules/
+# v0 runtime files
+__v0_runtime_loader.js
+__v0_devtools.tsx
+__v0_jsx-dev-runtime.ts
+
+# Common ignores
+node_modules
 .next/
-out/
-build/
-dist/
-coverage/
-
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.venv/
-venv/
-env/
-.python-version
-.pytest_cache/
-.mypy_cache/
-.pytype/
-
-# OS/editor files
+.env*.local
 .DS_Store
-.vscode/
-*.log
