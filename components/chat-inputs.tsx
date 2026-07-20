@@ -5,7 +5,6 @@ import {
   Send,
   Building2,
   Lock,
-  CreditCard,
   Loader2,
   CheckCircle2,
   Minus,
@@ -232,7 +231,7 @@ function PaywallInput({ onSubmit }: { onSubmit: SubmitFn }) {
     setState("processing")
     setTimeout(() => {
       setState("done")
-      setTimeout(() => onSubmit("Payment completed · Delaware Formation Package ($499.00)", {}), 700)
+      setTimeout(() => onSubmit("Confirmed · Delaware Formation Package (Free)", {}), 700)
     }, 1600)
   }
   return (
@@ -247,12 +246,7 @@ function PaywallInput({ onSubmit }: { onSubmit: SubmitFn }) {
             <p className="text-sm font-medium text-foreground">Delaware Formation Package</p>
             <p className="text-xs text-muted-foreground">COI filing + full document set</p>
           </div>
-          <p className="text-lg font-semibold text-foreground">$499.00</p>
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border border-input bg-muted px-3 py-2 text-sm text-muted-foreground">
-          <CreditCard className="h-4 w-4" />
-          <span>•••• •••• •••• 4242</span>
-          <span className="ml-auto text-xs">12/28</span>
+          <p className="text-lg font-semibold text-foreground">Free</p>
         </div>
         <button
           onClick={pay}
@@ -265,7 +259,7 @@ function PaywallInput({ onSubmit }: { onSubmit: SubmitFn }) {
             state !== "idle" && "cursor-not-allowed",
           )}
         >
-          {state === "idle" && <>Pay $499.00</>}
+          {state === "idle" && <>Continue for Free</>}
           {state === "processing" && (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Processing…
