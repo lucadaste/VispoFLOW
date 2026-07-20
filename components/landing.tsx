@@ -15,7 +15,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-between bg-background px-4 py-10 sm:px-6 overflow-y-auto">
+    <div className="flex flex-1 flex-col items-center bg-background px-4 py-10 sm:px-6 overflow-y-auto">
       {/* Center content */}
       <div className="w-full max-w-2xl space-y-5 pt-4">
         {/* Formation → Compliance progression */}
@@ -56,9 +56,8 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
         </div>
       </div>
 
-      {/* Bottom: greeting + input */}
-      <div className="w-full max-w-2xl space-y-6 pb-8">
-        {/* Bot greeting */}
+      {/* Middle: greeting — vertically centered in remaining space */}
+      <div className="flex flex-1 items-center w-full max-w-2xl">
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
             <Scale className="h-4 w-4" />
@@ -67,8 +66,10 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
             I help guide founders through automated incorporation and legal compliance. Choose a path above, or ask me any questions you have about the process.
           </div>
         </div>
+      </div>
 
-        {/* Text input */}
+      {/* Bottom: input */}
+      <div className="w-full max-w-2xl space-y-3 pb-8">
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
           <input
             value={value}
