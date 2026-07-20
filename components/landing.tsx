@@ -56,6 +56,13 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="w-full max-w-2xl flex items-center gap-3 mt-8">
+        <div className="flex-1 border-t border-border/60" />
+        <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">or ask a question</span>
+        <div className="flex-1 border-t border-border/60" />
+      </div>
+
       {/* Middle: greeting — vertically centered in remaining space */}
       <div className="flex flex-1 items-center w-full max-w-2xl">
         <div className="flex items-start gap-3">
