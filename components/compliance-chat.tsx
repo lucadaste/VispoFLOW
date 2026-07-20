@@ -133,9 +133,9 @@ export function ComplianceChat() {
             <button
               onClick={() => send(value)}
               disabled={!value.trim()}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
             >
-              <Send className="h-4 w-4" />
+              Send <Send className="h-3.5 w-3.5" />
             </button>
           </div>
         </div>
