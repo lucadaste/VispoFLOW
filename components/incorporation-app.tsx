@@ -50,6 +50,7 @@ export function IncorporationApp() {
   const [formationComplete, setFormationComplete] = useState(false)
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
   const [homeChatKey, setHomeChatKey] = useState(0)
+  const [complianceKey, setComplianceKey] = useState(0)
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -251,7 +252,7 @@ export function IncorporationApp() {
   const handleRestart = () => {
     if (view === "chat") { restartFormation(); return }
     if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
-    if (view === "compliance" || view === "compliance-onboarding") { setView("compliance-onboarding"); return }
+    if (view === "compliance" || view === "compliance-onboarding") { setComplianceKey((k) => k + 1); setView("compliance-onboarding"); return }
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0
@@ -317,7 +318,7 @@ export function IncorporationApp() {
           </aside>
         </div>
       ) : view === "compliance-onboarding" ? (
-        <ComplianceOnboarding onComplete={(a) => { setAnswers(a); setFormationComplete(true); setView("compliance") }} />
+        <ComplianceOnboarding key={complianceKey} onComplete={(a) => { setAnswers(a); setFormationComplete(true); setView("compliance") }} />
       ) : (
         <ComplianceCenter answers={answers} onBack={() => setView("chat")} />
       )}
