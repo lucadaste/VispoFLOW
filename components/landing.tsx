@@ -57,14 +57,14 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
       </div>
 
       {/* Bottom: greeting + input */}
-      <div className="w-full max-w-2xl space-y-3">
+      <div className="w-full max-w-2xl space-y-4 pb-2">
         {/* Bot greeting */}
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
             <Scale className="h-4 w-4" />
           </div>
-          <div className="rounded-2xl rounded-tl-sm bg-white px-4 py-2.5 text-sm leading-relaxed text-foreground shadow-sm ring-1 ring-border">
-            I guide founders through incorporation and compliance. Choose a path above, or ask me anything below.
+          <div className="rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm leading-relaxed text-foreground shadow-sm ring-1 ring-border">
+            I help guide founders through automated incorporation and legal compliance. Choose a path above, or ask me any questions you have about the process.
           </div>
         </div>
 
