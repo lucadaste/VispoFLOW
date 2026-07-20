@@ -85,6 +85,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
   const [isTyping, setIsTyping] = useState(false)
   const [value, setValue] = useState("")
   const chatRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" })
@@ -143,7 +144,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
             icon={<MessageCircle className="h-5 w-5" />}
             title="I have questions"
             description="Not sure where to start? Ask anything."
-            onClick={() => onSelect("questions")}
+            onClick={() => inputRef.current?.focus()}
           />
         </div>
       </div>
@@ -174,6 +175,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
       <div className="w-full max-w-2xl pb-8 shrink-0">
         <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
           <input
+            ref={inputRef}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
