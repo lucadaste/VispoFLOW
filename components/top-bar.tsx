@@ -4,7 +4,8 @@ import { Scale, RotateCcw } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 
 function AuthControls() {
-  const { isSignedIn } = useAuth()
+  const { isSignedIn, isLoaded } = useAuth()
+  if (!isLoaded) return <div className="h-8 w-8" />
   if (isSignedIn) {
     return (
       <UserButton
