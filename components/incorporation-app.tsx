@@ -51,6 +51,7 @@ export function IncorporationApp() {
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
   const [homeChatKey, setHomeChatKey] = useState(0)
   const [complianceKey, setComplianceKey] = useState(0)
+  const [landingKey, setLandingKey] = useState(0)
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -252,6 +253,7 @@ export function IncorporationApp() {
   const handleRestart = () => {
     if (view === "chat") { restartFormation(); return }
     if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
+    if (view === "landing") { setLandingKey((k) => k + 1); return }
     if (view === "compliance" || view === "compliance-onboarding") { setComplianceKey((k) => k + 1); setView("compliance-onboarding"); return }
   }
 
@@ -273,7 +275,7 @@ export function IncorporationApp() {
       />
 
       {view === "loading" ? null : view === "landing" ? (
-        <Landing onSelect={handleLandingSelect} />
+        <Landing key={landingKey} onSelect={handleLandingSelect} />
       ) : view === "home-chat" ? (
         <HomeChat
           key={homeChatKey}

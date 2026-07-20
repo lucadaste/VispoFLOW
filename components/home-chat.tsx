@@ -175,9 +175,9 @@ export function HomeChat({
             <button
               onClick={handleSubmit}
               disabled={!input.trim() || isTyping}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" />
             </button>
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
