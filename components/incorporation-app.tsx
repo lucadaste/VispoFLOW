@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
 import {
   BotMessage,
@@ -32,6 +33,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 16))
 
 export function IncorporationApp() {
+  const { user } = useUser()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [docStatuses, setDocStatuses] = useState<Record<string, DocStatus>>({})
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
@@ -39,6 +41,15 @@ export function IncorporationApp() {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
   const [view, setView] = useState<"chat" | "compliance">("chat")
+
+  const resolveMessage = useCallback((text: string) => {
+    if (text === "__GREETING__") {
+      return user?.firstName
+        ? `Hello ${user.firstName}, how can I help you today?`
+        : "Hello, how can I help you today?"
+    }
+    return text
+  }, [user])
 
   const idRef = useRef(0)
   const startedRef = useRef(false)
@@ -49,12 +60,13 @@ export function IncorporationApp() {
   const nextId = () => ++idRef.current
 
   const pushBot = useCallback(async (text: string) => {
+    const resolved = resolveMessage(text)
     setIsTyping(true)
-    await delay(typingTime(text))
+    await delay(typingTime(resolved))
     setIsTyping(false)
-    setMessages((m) => [...m, { id: nextId(), role: "bot", text }])
+    setMessages((m) => [...m, { id: nextId(), role: "bot", text: resolved }])
     await delay(260)
-  }, [])
+  }, [resolveMessage])
 
   const animateDocs = useCallback(async (ids: string[]) => {
     setDocStatuses((s) => {

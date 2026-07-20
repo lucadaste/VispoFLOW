@@ -1,6 +1,27 @@
 "use client"
 
 import { Scale, RotateCcw } from "lucide-react"
+import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
+
+function AuthControls() {
+  const { isSignedIn } = useAuth()
+  if (isSignedIn) {
+    return (
+      <UserButton
+        appearance={{
+          elements: { avatarBox: "h-8 w-8" },
+        }}
+      />
+    )
+  }
+  return (
+    <SignInButton mode="modal">
+      <button className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90">
+        Sign in
+      </button>
+    </SignInButton>
+  )
+}
 
 export function TopBar({
   phase,
@@ -28,13 +49,17 @@ export function TopBar({
           <PhasePill active={phase === "compliance"} label="Compliance" />
         </div>
 
-        <button
-          onClick={onReset}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          New session
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onReset}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            New session
+          </button>
+
+          <AuthControls />
+        </div>
       </div>
     </header>
   )

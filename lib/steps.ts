@@ -27,7 +27,7 @@ export type Step = {
 export const STEPS: Step[] = [
   {
     id: "welcome",
-    messages: ["Hello, how can I help you today?"],
+    messages: ["__GREETING__"],
     input: { kind: "start" },
   },
   {
