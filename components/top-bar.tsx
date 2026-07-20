@@ -35,15 +35,18 @@ export function TopBar({
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
-        <div className="flex items-center gap-2.5">
+        <button
+          onClick={() => onPhaseClick("home")}
+          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Scale className="h-4.5 w-4.5" strokeWidth={2} />
           </div>
-          <div className="leading-tight">
+          <div className="leading-tight text-left">
             <p className="text-sm font-semibold tracking-tight">Vispo</p>
             <p className="text-[11px] text-muted-foreground">Incorporation Studio</p>
           </div>
-        </div>
+        </button>
 
         <div className="hidden items-center gap-2 sm:flex">
           <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />

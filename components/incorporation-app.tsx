@@ -5,6 +5,7 @@ import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceOnboarding } from "@/components/compliance-onboarding"
 import { Landing } from "@/components/landing"
+import { HomeChat } from "@/components/home-chat"
 import {
   BotMessage,
   UserMessage,
@@ -42,8 +43,21 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [view, setView] = useState<"landing" | "chat" | "compliance" | "compliance-onboarding">("landing")
+  const [view, setView] = useState<"landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding">("landing")
   const [formationComplete, setFormationComplete] = useState(false)
+  const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
+
+  useEffect(() => {
+    const VALID = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"] as const
+    const saved = sessionStorage.getItem("vispo-view")
+    if (saved && (VALID as readonly string[]).includes(saved)) {
+      setView(saved as typeof view)
+    }
+  }, [])
+
+  useEffect(() => {
+    sessionStorage.setItem("vispo-view", view)
+  }, [view])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance") => {
     if (phase === "home") { setView("landing"); return }
@@ -53,8 +67,13 @@ export function IncorporationApp() {
     }
   }
 
-  const handleLandingSelect = (path: "formation" | "compliance" | "questions") => {
+  const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
     if (path === "compliance") { setView("compliance-onboarding"); return }
+    if (path === "questions") {
+      setHomeChatSeed(message)
+      setView("home-chat")
+      return
+    }
     setView("chat")
   }
 
@@ -228,13 +247,18 @@ export function IncorporationApp() {
   return (
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
-        phase={view === "landing" ? "home" : view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
+        phase={view === "landing" || view === "home-chat" ? "home" : view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
         onReset={() => { reset(); setView("landing") }}
         onPhaseClick={handlePhaseClick}
       />
 
       {view === "landing" ? (
         <Landing onSelect={handleLandingSelect} />
+      ) : view === "home-chat" ? (
+        <HomeChat
+          initialMessage={homeChatSeed}
+          onStartFormation={() => setView("chat")}
+        />
       ) : view === "chat" ? (
         <div className="flex w-full flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
