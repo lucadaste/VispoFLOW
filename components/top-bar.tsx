@@ -11,7 +11,7 @@ export function TopBar({
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Scale className="h-4.5 w-4.5" strokeWidth={2} />

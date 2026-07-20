@@ -190,10 +190,10 @@ export function IncorporationApp() {
       <TopBar phase={view} onReset={reset} />
 
       {view === "chat" ? (
-        <div className="mx-auto flex w-full max-w-7xl flex-1 overflow-hidden">
+        <div className="flex w-full flex-1 overflow-hidden">
           {/* Chat column */}
           <div className="flex min-w-0 flex-1 flex-col">
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-6">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
               <div className="mx-auto max-w-2xl space-y-4">
                 {messages.map((m) => {
                   if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
@@ -215,7 +215,7 @@ export function IncorporationApp() {
             </div>
 
             {activeInput && (
-              <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-6">
+              <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl">
                   <ChatInput input={activeInput} answers={answers} onSubmit={handleSubmit} />
                 </div>
@@ -224,7 +224,7 @@ export function IncorporationApp() {
           </div>
 
           {/* Document tracker */}
-          <aside className="hidden w-80 shrink-0 border-l border-border bg-card/40 lg:block">
+          <aside className="hidden w-72 shrink-0 border-l border-border bg-card/40 xl:block 2xl:w-80">
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
         </div>
