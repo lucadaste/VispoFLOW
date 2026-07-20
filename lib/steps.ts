@@ -27,7 +27,7 @@ export type Step = {
 export const STEPS: Step[] = [
   {
     id: "welcome",
-    messages: ["Hello Matteo, how can I help you today?"],
+    messages: ["Hello, how can I help you today?"],
     input: { kind: "start" },
   },
   {
@@ -41,7 +41,7 @@ export const STEPS: Step[] = [
   {
     id: "company-name",
     messages: ["First, what is the name of your company?"],
-    input: { kind: "text", field: "companyName", placeholder: "Acme Inc.", prefill: "Cloud3legal Inc." },
+    input: { kind: "text", field: "companyName", placeholder: "Acme Inc." },
   },
   {
     id: "verify-name",

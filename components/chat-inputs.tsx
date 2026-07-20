@@ -22,7 +22,7 @@ import {
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
 
-const KNOWN_FOUNDERS = ["Matteo Daste", "Filippo Murroni", "Daniel Scheiner"]
+const KNOWN_FOUNDERS: string[] = []
 
 type SubmitFn = (displayText: string, patch: Partial<FlowAnswers>) => void
 
@@ -163,8 +163,8 @@ function TextInput({
 /* ---------- incorporator ---------- */
 
 function IncorporatorInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [name, setName] = useState("Matteo Daste")
-  const [address, setAddress] = useState("25 Silk Oak Circle, San Rafael, CA 94901 USA")
+  const [name, setName] = useState("")
+  const [address, setAddress] = useState("")
   const submit = () => {
     if (!name.trim() || !address.trim()) return
     onSubmit(`${name}\n${address}`, {
@@ -199,7 +199,7 @@ function IncorporatorInput({ onSubmit }: { onSubmit: SubmitFn }) {
 /* ---------- corp address ---------- */
 
 function CorpAddressInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [address, setAddress] = useState("25 Silk Oak Circle, San Rafael, CA 94901 USA")
+  const [address, setAddress] = useState("")
   return (
     <Shell>
       <div className="space-y-3">
@@ -363,9 +363,9 @@ function DirectorNamesInput({ answers, onSubmit }: { answers: FlowAnswers; onSub
 
 function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
   const defaults: Record<string, string> = {
-    CEO: answers.directors[1] ?? "Filippo Murroni",
-    CFO: answers.directors[0] ?? "Matteo Daste",
-    Secretary: "Daniel Scheiner",
+    CEO: answers.directors[1] ?? "",
+    CFO: answers.directors[0] ?? "",
+    Secretary: "",
   }
   const [officers, setOfficers] = useState<Officer[]>([
     { title: "CEO", name: defaults.CEO },
@@ -420,7 +420,7 @@ function FragmentRow({
 /* ---------- allocations ---------- */
 
 function AllocationsInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
-  const founders = answers.directors.length ? answers.directors : ["Matteo Daste", "Filippo Murroni"]
+  const founders = answers.directors.length ? answers.directors : ["Founder"]
   const founderDefault = Math.floor((AUTHORIZED_SHARES * 0.8) / founders.length)
   const [rows, setRows] = useState<Allocation[]>(() => {
     const f = founders.map((name) => ({ name, shares: founderDefault }))
