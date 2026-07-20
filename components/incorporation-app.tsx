@@ -256,17 +256,22 @@ export function IncorporationApp() {
 
   const hasDocs = Object.keys(docStatuses).length > 0
 
-  if (view === "loading") return <div className="h-dvh bg-background" />
+  const phase =
+    view === "loading" || view === "landing" || view === "home-chat"
+      ? "home"
+      : view === "compliance-onboarding" || view === "compliance"
+      ? "compliance"
+      : "chat"
 
   return (
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
-        phase={view === "landing" || view === "home-chat" ? "home" : view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
+        phase={phase}
         onReset={handleRestart}
         onPhaseClick={handlePhaseClick}
       />
 
-      {view === "landing" ? (
+      {view === "loading" ? null : view === "landing" ? (
         <Landing onSelect={handleLandingSelect} />
       ) : view === "home-chat" ? (
         <HomeChat
