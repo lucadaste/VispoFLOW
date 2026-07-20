@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceOnboarding } from "@/components/compliance-onboarding"
+import { Landing } from "@/components/landing"
 import {
   BotMessage,
   UserMessage,
@@ -41,13 +42,23 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [view, setView] = useState<"chat" | "compliance" | "compliance-onboarding">("chat")
+  const [view, setView] = useState<"landing" | "chat" | "compliance" | "compliance-onboarding">("landing")
   const [formationComplete, setFormationComplete] = useState(false)
 
   const handlePhaseClick = (phase: "chat" | "compliance") => {
     if (phase === "chat") { setView("chat"); return }
     if (phase === "compliance") {
       setView(formationComplete ? "compliance" : "compliance-onboarding")
+    }
+  }
+
+  const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
+    if (path === "compliance") { setView("compliance-onboarding"); return }
+    setView("chat")
+    if (path === "questions" && message) {
+      requestAnimationFrame(() => {
+        startedRef.current = false
+      })
     }
   }
 
@@ -218,13 +229,20 @@ export function IncorporationApp() {
 
   const hasDocs = Object.keys(docStatuses).length > 0
 
+  if (view === "landing") {
+    return <Landing onSelect={handleLandingSelect} />
+  }
+
   return (
     <div className="flex h-dvh flex-col bg-background">
-      <TopBar phase={view === "compliance-onboarding" ? "compliance" : view} onReset={reset} onPhaseClick={handlePhaseClick} />
+      <TopBar
+        phase={view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
+        onReset={() => { reset(); setView("landing") }}
+        onPhaseClick={handlePhaseClick}
+      />
 
       {view === "chat" ? (
         <div className="flex w-full flex-1 overflow-hidden">
-          {/* Chat column */}
           <div className="flex min-w-0 flex-1 flex-col">
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
               <div className="mx-auto max-w-2xl space-y-4">
@@ -256,7 +274,6 @@ export function IncorporationApp() {
             )}
           </div>
 
-          {/* Document tracker */}
           <aside className="hidden w-72 shrink-0 border-l border-border bg-card/40 xl:block 2xl:w-80">
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
