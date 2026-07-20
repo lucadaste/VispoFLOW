@@ -57,7 +57,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
       </div>
 
       {/* Bottom: greeting + input */}
-      <div className="w-full max-w-2xl space-y-4 pb-2">
+      <div className="w-full max-w-2xl space-y-6 pb-8">
         {/* Bot greeting */}
         <div className="flex items-start gap-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
