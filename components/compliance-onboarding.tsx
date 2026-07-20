@@ -3,13 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { type FlowAnswers, initialAnswers } from "@/lib/flow"
-import { cn } from "@/lib/utils"
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-const fieldClass =
-  "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
-
 
 type Step = {
   id: string
@@ -45,13 +40,16 @@ type ChatMessage =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
 
+const fieldClass =
+  "flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60 resize-none"
+
 export function ComplianceOnboarding({
   onComplete,
 }: {
   onComplete: (answers: FlowAnswers) => void
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isTyping, setIsTyping] = useState(false)
+  const [isTyping, setIsTyping] = useState(true)
   const [stepIndex, setStepIndex] = useState(0)
   const [value, setValue] = useState("")
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
@@ -107,6 +105,7 @@ export function ComplianceOnboarding({
   }, [value, stepIndex, answers, pushBot, onComplete])
 
   const currentStep = STEPS[stepIndex]
+  const showInput = !isTyping && stepIndex < STEPS.length && messages.length > 0
 
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
@@ -123,40 +122,39 @@ export function ComplianceOnboarding({
         </div>
       </div>
 
-      {!isTyping && stepIndex < STEPS.length && messages.length > 0 && (
+      {showInput && (
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            <div className="rounded-xl border border-border bg-card p-3 shadow-sm space-y-3">
-              <div>
-                {currentStep.multiline ? (
-                  <textarea
-                    rows={2}
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder={currentStep.placeholder}
-                    className={cn(fieldClass, "resize-none")}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit() } }}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder={currentStep.placeholder}
-                    className={fieldClass}
-                    onKeyDown={(e) => { if (e.key === "Enter") submit() }}
-                  />
-                )}
-              </div>
-              <div className="flex justify-end">
-                <button
-                  onClick={submit}
-                  disabled={!value.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-                >
-                  Send
-                </button>
-              </div>
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              {currentStep.multiline ? (
+                <textarea
+                  rows={2}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={currentStep.placeholder}
+                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit() } }}
+                  className={fieldClass}
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  placeholder={currentStep.placeholder}
+                  onKeyDown={(e) => { if (e.key === "Enter") submit() }}
+                  className={fieldClass}
+                  autoFocus
+                />
+              )}
+              <button
+                onClick={submit}
+                disabled={!value.trim()}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
