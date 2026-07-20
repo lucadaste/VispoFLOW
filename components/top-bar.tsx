@@ -10,7 +10,7 @@ export function TopBar({
   onReset: () => void
 }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -33,7 +33,7 @@ export function TopBar({
           className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Restart demo
+          New session
         </button>
       </div>
     </header>
