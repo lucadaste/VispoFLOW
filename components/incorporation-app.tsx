@@ -43,17 +43,16 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [view, setView] = useState<"landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding">("landing")
+  const [view, setView] = useState<"landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding">(() => {
+    const VALID = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"]
+    try {
+      const saved = sessionStorage.getItem("vispo-view")
+      if (saved && VALID.includes(saved)) return saved as "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding"
+    } catch {}
+    return "landing"
+  })
   const [formationComplete, setFormationComplete] = useState(false)
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
-
-  useEffect(() => {
-    const VALID = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"] as const
-    const saved = sessionStorage.getItem("vispo-view")
-    if (saved && (VALID as readonly string[]).includes(saved)) {
-      setView(saved as typeof view)
-    }
-  }, [])
 
   useEffect(() => {
     sessionStorage.setItem("vispo-view", view)
