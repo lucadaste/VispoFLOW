@@ -26,9 +26,11 @@ function AuthControls() {
 export function TopBar({
   phase,
   onReset,
+  onPhaseClick,
 }: {
   phase: "chat" | "compliance"
   onReset: () => void
+  onPhaseClick: (phase: "chat" | "compliance") => void
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
@@ -44,9 +46,9 @@ export function TopBar({
         </div>
 
         <div className="hidden items-center gap-2 sm:flex">
-          <PhasePill active={phase === "chat"} label="Formation" />
+          <PhasePill active={phase === "chat"} label="Formation" onClick={() => onPhaseClick("chat")} />
           <div className="h-px w-6 bg-border" />
-          <PhasePill active={phase === "compliance"} label="Compliance" />
+          <PhasePill active={phase === "compliance"} label="Compliance" onClick={() => onPhaseClick("compliance")} />
         </div>
 
         <div className="flex items-center gap-3">
@@ -65,17 +67,18 @@ export function TopBar({
   )
 }
 
-function PhasePill({ active, label }: { active: boolean; label: string }) {
+function PhasePill({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
-    <span
+    <button
+      onClick={onClick}
       className={
         "rounded-full px-2.5 py-1 text-xs font-medium transition-colors " +
         (active
           ? "bg-primary text-primary-foreground"
-          : "bg-secondary text-muted-foreground")
+          : "bg-secondary text-muted-foreground hover:bg-secondary/80")
       }
     >
       {label}
-    </span>
+    </button>
   )
 }

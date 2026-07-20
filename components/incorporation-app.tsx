@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
+import { ComplianceOnboarding } from "@/components/compliance-onboarding"
 import {
   BotMessage,
   UserMessage,
@@ -40,7 +41,15 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  const [view, setView] = useState<"chat" | "compliance">("chat")
+  const [view, setView] = useState<"chat" | "compliance" | "compliance-onboarding">("chat")
+  const [formationComplete, setFormationComplete] = useState(false)
+
+  const handlePhaseClick = (phase: "chat" | "compliance") => {
+    if (phase === "chat") { setView("chat"); return }
+    if (phase === "compliance") {
+      setView(formationComplete ? "compliance" : "compliance-onboarding")
+    }
+  }
 
   const resolveMessage = useCallback((text: string) => {
     if (text === "__GREETING__") {
@@ -170,6 +179,7 @@ export function IncorporationApp() {
       if (step.input?.kind === "continue" && step.input.action === "compliance") {
         await pushBot("Now let's head to the Compliance Center to complete the regulatory filings required for your incorporation.")
         await delay(300)
+        setFormationComplete(true)
         setView("compliance")
         return
       }
@@ -199,7 +209,7 @@ export function IncorporationApp() {
 
   return (
     <div className="flex h-dvh flex-col bg-background">
-      <TopBar phase={view} onReset={reset} />
+      <TopBar phase={view === "compliance-onboarding" ? "compliance" : view} onReset={reset} onPhaseClick={handlePhaseClick} />
 
       {view === "chat" ? (
         <div className="flex w-full flex-1 overflow-hidden">
@@ -240,6 +250,8 @@ export function IncorporationApp() {
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
         </div>
+      ) : view === "compliance-onboarding" ? (
+        <ComplianceOnboarding onComplete={(a) => { setAnswers(a); setFormationComplete(true); setView("compliance") }} />
       ) : (
         <ComplianceCenter answers={answers} onBack={() => setView("chat")} />
       )}
