@@ -168,6 +168,17 @@ export function IncorporationApp() {
         await delay(350)
       }
 
+      if (displayText === "I have questions" && step.id === "welcome") {
+        await pushBot("Ask me whatever you'd like about the process of legally incorporating your company. When you're ready to begin, click the button below.")
+        setActiveInput({ kind: "questions" })
+        return
+      }
+
+      if (displayText === "I'm ready to begin my incorporation") {
+        await playStep(activeStepIndex + 1)
+        return
+      }
+
       if (step.completes?.length) {
         await animateDocs(step.completes)
       }

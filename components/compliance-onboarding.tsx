@@ -10,7 +10,6 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const fieldClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
 
-const labelClass = "mb-1 block text-xs font-medium text-muted-foreground"
 
 type Step = {
   id: string
@@ -25,19 +24,19 @@ const STEPS: Step[] = [
     id: "company-name",
     message: "What is the legal name of your corporation?",
     field: "companyName",
-    placeholder: "Acme Inc.",
+    placeholder: "Full legal company name",
   },
   {
     id: "incorporator",
     message: "What is your full name?",
     field: "incorporatorName",
-    placeholder: "Jane Smith",
+    placeholder: "Full legal name",
   },
   {
     id: "address",
     message: "What is the corporation's principal address?",
     field: "corpAddress",
-    placeholder: "123 Main St, San Francisco, CA 94105",
+    placeholder: "Full mailing address including city, state and zip",
     multiline: true,
   },
 ]
@@ -129,7 +128,6 @@ export function ComplianceOnboarding({
           <div className="mx-auto max-w-2xl">
             <div className="rounded-xl border border-border bg-card p-3 shadow-sm space-y-3">
               <div>
-                <label className={labelClass}>{currentStep.placeholder}</label>
                 {currentStep.multiline ? (
                   <textarea
                     rows={2}

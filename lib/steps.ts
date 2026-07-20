@@ -1,6 +1,7 @@
 export type StepInput =
   | { kind: "start" }
   | { kind: "text"; field: string; placeholder?: string; prefill?: string; submitLabel?: string }
+  | { kind: "questions" }
   | { kind: "incorporator" }
   | { kind: "paywall" }
   | { kind: "corpAddress" }

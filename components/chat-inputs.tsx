@@ -37,6 +37,8 @@ export function ChatInput({
   switch (input.kind) {
     case "start":
       return <StartInput onSubmit={onSubmit} />
+    case "questions":
+      return <QuestionsInput onSubmit={onSubmit} />
     case "text":
       return <TextInput input={input} onSubmit={onSubmit} />
     case "incorporator":
@@ -94,6 +96,32 @@ const fieldClass =
 
 const labelClass = "mb-1 block text-xs font-medium text-muted-foreground"
 
+/* ---------- questions ---------- */
+
+function QuestionsInput({ onSubmit }: { onSubmit: SubmitFn }) {
+  const [value, setValue] = useState("")
+  return (
+    <div className="space-y-2.5">
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && value.trim() && onSubmit(value.trim(), {})}
+          placeholder="Ask me anything…"
+          className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+        />
+        <SubmitButton onClick={() => onSubmit(value.trim(), {})} disabled={!value.trim()} />
+      </div>
+      <button
+        onClick={() => onSubmit("I'm ready to begin my incorporation", {})}
+        className="w-full rounded-lg border border-primary/30 bg-primary/5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+      >
+        I'm ready to begin my incorporation →
+      </button>
+    </div>
+  )
+}
+
 /* ---------- start ---------- */
 
 function StartInput({ onSubmit }: { onSubmit: SubmitFn }) {
@@ -106,7 +134,7 @@ function StartInput({ onSubmit }: { onSubmit: SubmitFn }) {
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap gap-2">
-        {["I'd like to do an incorporation", "I need to issue stock options"].map((s) => (
+        {["I'd like to do an incorporation", "I need to issue stock options", "I have questions"].map((s) => (
           <button
             key={s}
             onClick={() => submit(s)}
