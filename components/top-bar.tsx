@@ -28,9 +28,9 @@ export function TopBar({
   onReset,
   onPhaseClick,
 }: {
-  phase: "chat" | "compliance"
+  phase: "home" | "chat" | "compliance"
   onReset: () => void
-  onPhaseClick: (phase: "chat" | "compliance") => void
+  onPhaseClick: (phase: "home" | "chat" | "compliance") => void
 }) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
@@ -46,6 +46,8 @@ export function TopBar({
         </div>
 
         <div className="hidden items-center gap-2 sm:flex">
+          <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />
+          <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "chat"} label="Formation" onClick={() => onPhaseClick("chat")} />
           <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "compliance"} label="Compliance" onClick={() => onPhaseClick("compliance")} />

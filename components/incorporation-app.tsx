@@ -45,21 +45,17 @@ export function IncorporationApp() {
   const [view, setView] = useState<"landing" | "chat" | "compliance" | "compliance-onboarding">("landing")
   const [formationComplete, setFormationComplete] = useState(false)
 
-  const handlePhaseClick = (phase: "chat" | "compliance") => {
+  const handlePhaseClick = (phase: "home" | "chat" | "compliance") => {
+    if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
     if (phase === "compliance") {
       setView(formationComplete ? "compliance" : "compliance-onboarding")
     }
   }
 
-  const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
+  const handleLandingSelect = (path: "formation" | "compliance" | "questions") => {
     if (path === "compliance") { setView("compliance-onboarding"); return }
     setView("chat")
-    if (path === "questions" && message) {
-      requestAnimationFrame(() => {
-        startedRef.current = false
-      })
-    }
   }
 
   const resolveMessage = useCallback((text: string) => {
@@ -229,19 +225,17 @@ export function IncorporationApp() {
 
   const hasDocs = Object.keys(docStatuses).length > 0
 
-  if (view === "landing") {
-    return <Landing onSelect={handleLandingSelect} />
-  }
-
   return (
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
-        phase={view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
+        phase={view === "landing" ? "home" : view === "compliance-onboarding" || view === "compliance" ? "compliance" : "chat"}
         onReset={() => { reset(); setView("landing") }}
         onPhaseClick={handlePhaseClick}
       />
 
-      {view === "chat" ? (
+      {view === "landing" ? (
+        <Landing onSelect={handleLandingSelect} />
+      ) : view === "chat" ? (
         <div className="flex w-full flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
