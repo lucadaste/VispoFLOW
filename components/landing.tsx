@@ -114,10 +114,18 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
       {/* Cards — fixed at top */}
       <div className="w-full max-w-2xl space-y-5 shrink-0">
-        <div className="rounded-xl bg-primary px-6 py-4 flex items-center justify-center gap-3">
-          <span className="text-sm font-semibold text-white">Entity Incorporation</span>
-          <ArrowRight className="h-4 w-4 shrink-0 text-white/40" />
-          <span className="text-sm font-semibold text-white">Legal Compliance</span>
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
+          <div className="flex flex-1 flex-col items-center gap-1 text-center">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
+            <p className="text-xs font-semibold text-foreground">Formation</p>
+            <p className="text-[11px] text-muted-foreground">Incorporate · File · Document</p>
+          </div>
+          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+          <div className="flex flex-1 flex-col items-center gap-1 text-center">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-primary text-xs font-bold text-primary">2</span>
+            <p className="text-xs font-semibold text-foreground">Compliance</p>
+            <p className="text-[11px] text-muted-foreground">EIN · 83(b) · State filings</p>
+          </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
