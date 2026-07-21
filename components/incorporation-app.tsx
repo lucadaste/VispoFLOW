@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
-import { ComplianceOnboarding } from "@/components/compliance-onboarding"
+import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
 import { Landing } from "@/components/landing"
 import { HomeChat } from "@/components/home-chat"
@@ -17,7 +17,6 @@ import { NameCheckCard } from "@/components/name-check-card"
 import { FormedCard } from "@/components/formed-card"
 import { ChatInput } from "@/components/chat-inputs"
 import { DocumentTracker, DocumentTrackerEmpty } from "@/components/document-tracker"
-import { ComplianceCenter } from "@/components/compliance-center"
 import { STEPS, type StepInput } from "@/lib/steps"
 import {
   type DocStatus,
@@ -44,11 +43,10 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  type View = "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding" | "transactions"
-  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding", "transactions"]
+  type View = "landing" | "home-chat" | "chat" | "compliance" | "transactions"
+  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "transactions"]
 
   const [view, setView] = useState<View | "loading">("loading")
-  const [formationComplete, setFormationComplete] = useState(false)
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
   const [homeChatKey, setHomeChatKey] = useState(0)
   const [complianceKey, setComplianceKey] = useState(0)
@@ -73,13 +71,11 @@ export function IncorporationApp() {
     if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
     if (phase === "transactions") { setView("transactions"); return }
-    if (phase === "compliance") {
-      setView(formationComplete ? "compliance" : "compliance-onboarding")
-    }
+    if (phase === "compliance") { setView("compliance"); return }
   }
 
   const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
-    if (path === "compliance") { setView("compliance-onboarding"); return }
+    if (path === "compliance") { setView("compliance"); return }
     if (path === "questions") {
       setHomeChatSeed(message)
       setView("home-chat")
@@ -227,7 +223,6 @@ export function IncorporationApp() {
       if (step.input?.kind === "continue" && step.input.action === "compliance") {
         await pushBot("Now let's head to the Compliance Center to complete the regulatory filings required for your incorporation.")
         await delay(300)
-        setFormationComplete(true)
         setView("compliance")
         return
       }
@@ -257,7 +252,7 @@ export function IncorporationApp() {
     if (view === "chat") { restartFormation(); return }
     if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
-    if (view === "compliance" || view === "compliance-onboarding") { setComplianceKey((k) => k + 1); setView("compliance-onboarding"); return }
+    if (view === "compliance") { setComplianceKey((k) => k + 1); return }
     if (view === "transactions") { setTransactionsKey((k) => k + 1); return }
   }
 
@@ -266,7 +261,7 @@ export function IncorporationApp() {
   const phase =
     view === "loading" || view === "landing" || view === "home-chat"
       ? "home"
-      : view === "compliance-onboarding" || view === "compliance"
+      : view === "compliance"
       ? "compliance"
       : view === "transactions"
       ? "transactions"
@@ -325,12 +320,10 @@ export function IncorporationApp() {
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
         </div>
-      ) : view === "compliance-onboarding" ? (
-        <ComplianceOnboarding key={complianceKey} onComplete={(a) => { setAnswers(a); setFormationComplete(true); setView("compliance") }} />
-      ) : view === "transactions" ? (
-        <TransactionsOnboarding key={transactionsKey} />
+      ) : view === "compliance" ? (
+        <ComplianceView key={complianceKey} answers={answers} />
       ) : (
-        <ComplianceCenter answers={answers} onBack={() => setView("chat")} />
+        <TransactionsOnboarding key={transactionsKey} />
       )}
     </div>
   )
