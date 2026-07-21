@@ -154,7 +154,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
       {/* Chat area — scrollable, grows with messages */}
       <div ref={chatRef} className="flex-1 overflow-y-auto w-full max-w-2xl py-5 space-y-4">
         <BotMessage>
-          I help guide founders through automated incorporation and legal compliance. Choose a path above, or ask me any questions you have about the process.
+          Hi, I help guide founders through automated incorporation and legal compliance. Choose your desired path above, or feel free to ask me any questions you have before we begin.
         </BotMessage>
 
         {messages.map((m, i) =>
