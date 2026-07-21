@@ -113,8 +113,8 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
       {/* Cards — fixed at top */}
-      <div className="w-full max-w-2xl space-y-5 shrink-0">
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
+      <div className="w-full max-w-2xl shrink-0">
+        <div className="flex items-center gap-3 rounded-xl bg-muted/70 px-5 py-4">
           <div className="flex flex-1 flex-col items-center gap-1 text-center">
             <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
             <p className="text-xs font-semibold text-foreground">Formation</p>
@@ -127,6 +127,8 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
             <p className="text-[11px] text-muted-foreground">EIN · 83(b) · State filings</p>
           </div>
         </div>
+
+        <div className="my-5 border-t border-border" />
 
         <div className="grid gap-3 sm:grid-cols-2">
           <PathCard
