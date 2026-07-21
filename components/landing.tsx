@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { ArrowRight, Building2, ShieldCheck, MessageCircle, Send } from "lucide-react"
+import { ArrowRight, Building2, ShieldCheck, Send } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 
 type Path = "formation" | "compliance" | "questions"
@@ -128,7 +128,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <PathCard
             icon={<Building2 className="h-5 w-5" />}
             title="Start a new incorporation"
@@ -140,12 +140,6 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
             title="Manage compliance"
             description="Already incorporated? Handle your required filings."
             onClick={() => onSelect("compliance")}
-          />
-          <PathCard
-            icon={<MessageCircle className="h-5 w-5" />}
-            title="I have questions"
-            description="Not sure where to start? Ask anything."
-            onClick={() => { setHighlighted(true); inputRef.current?.focus() }}
           />
         </div>
       </div>
