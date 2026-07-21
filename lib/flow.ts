@@ -256,11 +256,12 @@ const CA_AGENT_RENEWAL: ComplianceItem = {
   id: "ca-agent-renewal",
   title: "CA Registered Agent Renewal",
   short: "CA Agent Renewal",
-  description: "Renew your California registered agent appointment to remain in good standing.",
+  description: "Renew the California agent for service of process.",
   deadline: "Annually",
   fields: [
-    { name: "agentName", label: "Registered agent name", prefillKey: "incorporatorName" },
-    { name: "renewalDate", label: "Renewal date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "California agent name" },
+    { name: "renewalPeriod", label: "Renewal period", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
   ],
 }
 
