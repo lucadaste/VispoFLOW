@@ -18,6 +18,7 @@ const SUGGESTIONS = [
   "I need to get an EIN",
   "I need to file an 83(b) election",
   "I need to qualify in my state",
+  "I have questions",
 ]
 
 const START_RESPONSES: Record<string, string> = {
@@ -29,6 +30,8 @@ const START_RESPONSES: Record<string, string> = {
     "The 83(b) is time-sensitive, so let's move quickly. What is the legal name of your corporation?",
   "I need to qualify in my state":
     "State qualification is important if you're operating outside Delaware. Let me set up your dashboard first — what is the legal name of your corporation?",
+  "I have questions":
+    "Happy to help with any questions you have. Let me set up your compliance dashboard so I have your details on hand — what is the legal name of your corporation?",
 }
 
 const fieldClass =
