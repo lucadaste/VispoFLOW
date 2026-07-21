@@ -295,7 +295,7 @@ export const COMPLIANCE_CATEGORIES: ComplianceCategory[] = [
   {
     id: "post-incorporation",
     label: "Post-Incorporation",
-    chatResponse: "Here are the filings you'll need to complete right after incorporating. These cover your federal tax ID, registered agents, California qualification, and securities exemptions.",
+    chatResponse: "Here are the filings you'll need to complete right after incorporating. These cover your federal tax ID, registered agents, California qualification, and securities exemptions. Select which filing you'd like to begin with by clicking it on the right — I'll guide you through each one.",
     groups: [
       { id: "federal-tax", title: "Federal Tax Filings", items: [EIN, EIGHTY_THREE_B] },
       { id: "de-corporate", title: "Delaware Corporate Filings", items: [DE_REGISTERED_AGENT] },
@@ -306,7 +306,7 @@ export const COMPLIANCE_CATEGORIES: ComplianceCategory[] = [
   {
     id: "annual-filings",
     label: "Annual State Filings",
-    chatResponse: "Here are your recurring annual filings. These keep your corporation in good standing with Delaware and California each year.",
+    chatResponse: "Here are your recurring annual filings. These keep your corporation in good standing with Delaware and California each year. Select which filing you'd like to begin with by clicking it on the right — I'll guide you through each one.",
     groups: [
       { id: "de-annual", title: "Delaware Corporate and Tax Filings", items: [DE_ANNUAL_REPORT, DE_AGENT_RENEWAL] },
       { id: "ca-annual", title: "California Corporate Filings", items: [CA_SOI, CA_AGENT_RENEWAL] },
@@ -315,7 +315,7 @@ export const COMPLIANCE_CATEGORIES: ComplianceCategory[] = [
   {
     id: "corporate-governance",
     label: "Corporate Governance",
-    chatResponse: "These are your governance documents — annual and special consents required to authorize corporate actions and maintain proper records.",
+    chatResponse: "These are your governance documents — annual and special consents required to authorize corporate actions and maintain proper records. Select which document you'd like to begin with by clicking it on the right — I'll guide you through each one.",
     groups: [
       { id: "governance", title: "Corporate Governance Documents", items: [ANNUAL_STOCKHOLDERS_CONSENT, ANNUAL_BOARD_CONSENT, SPECIAL_STOCKHOLDERS_CONSENT, SPECIAL_BOARD_CONSENT] },
     ],
