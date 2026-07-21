@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { ArrowRight, Building2, ShieldCheck, Send } from "lucide-react"
+import { Building2, ShieldCheck, Send } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 
 type Path = "formation" | "compliance" | "questions"
@@ -114,26 +114,21 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
       {/* Cards — fixed at top */}
       <div className="w-full max-w-2xl space-y-5 shrink-0">
-        <div className="bg-foreground px-6 py-5">
-          <p className="mb-3.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">Process overview</p>
-          <div className="flex items-center">
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-foreground">1</span>
+        <div className="rounded-xl bg-foreground px-6 py-5">
+          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-white/35">Process overview</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-foreground">1</span>
               <div>
                 <p className="text-sm font-semibold text-white">Formation</p>
-                <p className="text-[11px] text-white/45">Incorporate · File · Document</p>
+                <p className="text-[11px] text-white/50">Incorporate · File · Document</p>
               </div>
             </div>
-            <div className="mx-5 flex-1 flex items-center gap-1.5">
-              <div className="flex-1 h-px bg-white/15" />
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-white/25" />
-              <div className="flex-1 h-px bg-white/15" />
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/25 text-xs font-bold text-white/40">2</span>
+            <div className="flex items-center gap-3 border-l border-white/10 pl-4">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-foreground">2</span>
               <div>
-                <p className="text-sm font-semibold text-white/50">Compliance</p>
-                <p className="text-[11px] text-white/30">EIN · 83(b) · State filings</p>
+                <p className="text-sm font-semibold text-white">Compliance</p>
+                <p className="text-[11px] text-white/50">EIN · 83(b) · State filings</p>
               </div>
             </div>
           </div>
