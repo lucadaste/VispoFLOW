@@ -114,17 +114,28 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
       {/* Cards — fixed at top */}
       <div className="w-full max-w-2xl space-y-5 shrink-0">
-        <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4 shadow-sm">
-          <div className="flex flex-1 flex-col items-center gap-1 text-center">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-            <p className="text-xs font-semibold text-foreground">Formation</p>
-            <p className="text-[11px] text-muted-foreground">Incorporate · File · Document</p>
-          </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-1 flex-col items-center gap-1 text-center">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-primary text-xs font-bold text-primary">2</span>
-            <p className="text-xs font-semibold text-foreground">Compliance</p>
-            <p className="text-[11px] text-muted-foreground">EIN · 83(b) · State filings</p>
+        <div className="bg-foreground px-6 py-5">
+          <p className="mb-3.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">Process overview</p>
+          <div className="flex items-center">
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-bold text-foreground">1</span>
+              <div>
+                <p className="text-sm font-semibold text-white">Formation</p>
+                <p className="text-[11px] text-white/45">Incorporate · File · Document</p>
+              </div>
+            </div>
+            <div className="mx-5 flex-1 flex items-center gap-1.5">
+              <div className="flex-1 h-px bg-white/15" />
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-white/25" />
+              <div className="flex-1 h-px bg-white/15" />
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-white/25 text-xs font-bold text-white/40">2</span>
+              <div>
+                <p className="text-sm font-semibold text-white/50">Compliance</p>
+                <p className="text-[11px] text-white/30">EIN · 83(b) · State filings</p>
+              </div>
+            </div>
           </div>
         </div>
 
