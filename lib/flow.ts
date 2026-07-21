@@ -311,12 +311,13 @@ const SPECIAL_BOARD_CONSENT: ComplianceItem = {
   id: "special-board-consent",
   title: "Special Board Consent",
   short: "Special Board Consent",
-  description: "Written consent of the board of directors approving a specific action outside of the annual cycle.",
+  description: "Special written consent of the board for a specific matter.",
   deadline: "As needed",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "action", label: "Action being approved", placeholder: "Describe the corporate action" },
-    { name: "date", label: "Consent date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
+    { name: "matter", label: "Matter being approved", type: "textarea", placeholder: "e.g. approval of stock option grants" },
+    { name: "directors", label: "Directors approving", type: "textarea" },
   ],
 }
 

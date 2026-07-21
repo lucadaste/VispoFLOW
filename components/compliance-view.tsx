@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type ChatMsg = { id: number; role: "bot" | "user"; text: string }
-type ActiveItem = { item: ComplianceItem; groupTitle: string }
+type ActiveItem = { item: ComplianceItem; groupTitle: string; categoryLabel: string }
 
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -94,6 +94,7 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
           <FilingForm
             item={activeItem.item}
             groupTitle={activeItem.groupTitle}
+            categoryLabel={activeItem.categoryLabel}
             done={!!completed[activeItem.item.id]}
             prefill={prefill}
             onBack={() => setActiveItem(null)}
@@ -179,7 +180,7 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                       return (
                         <li key={item.id}>
                           <button
-                            onClick={() => setActiveItem({ item, groupTitle: group.title })}
+                            onClick={() => setActiveItem({ item, groupTitle: group.title, categoryLabel: activeCategory.label })}
                             className={cn(
                               "flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
                               isActive ? "bg-primary/10" : "hover:bg-secondary/60"
@@ -234,10 +235,11 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
 }
 
 function FilingForm({
-  item, groupTitle, done, prefill, onBack, onComplete,
+  item, groupTitle, categoryLabel, done, prefill, onBack, onComplete,
 }: {
   item: ComplianceItem
   groupTitle: string
+  categoryLabel: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
   onBack: () => void
@@ -263,7 +265,7 @@ function FilingForm({
             className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back to chat
+            Back to {categoryLabel}
           </button>
 
           {/* Header */}
