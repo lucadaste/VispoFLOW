@@ -179,7 +179,7 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
           className="sm:hidden fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-md transition-colors hover:border-primary hover:text-primary"
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          Checklist {total > 0 && <span className="text-muted-foreground">({doneCount}/{total})</span>}
+          Compliance Center {total > 0 && <span className="text-muted-foreground">({doneCount}/{total})</span>}
         </button>
       )}
 
