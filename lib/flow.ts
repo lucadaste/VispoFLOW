@@ -78,6 +78,7 @@ export type ComplianceField = {
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
   hint?: string
+  optional?: boolean
 }
 
 export type ComplianceItem = {
@@ -141,11 +142,13 @@ const DE_REGISTERED_AGENT: ComplianceItem = {
   id: "de-registered-agent",
   title: "DE Registered Agent Appointment",
   short: "DE Registered Agent",
-  description: "Appoint a registered agent with a physical Delaware address to receive legal and official documents on behalf of your corporation.",
+  description: "Appoint a registered agent authorized to accept service of process in Delaware.",
   deadline: "At incorporation",
   fields: [
-    { name: "agentName", label: "Registered agent name", placeholder: "Agent name or service" },
-    { name: "agentAddress", label: "Delaware agent address", placeholder: "Street address, Wilmington, DE" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "deFileNumber", label: "Delaware file number", placeholder: "e.g. 1234567", optional: true },
+    { name: "agentName", label: "Registered agent name", placeholder: "e.g. Corporation Service Company" },
+    { name: "agentAddress", label: "Registered agent Delaware address", type: "textarea" },
   ],
 }
 

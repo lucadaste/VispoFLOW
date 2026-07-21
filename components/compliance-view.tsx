@@ -247,7 +247,7 @@ function FilingForm({
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
   )
 
-  const isEmpty = (f: ComplianceField) => !values[f.name]?.trim()
+  const isEmpty = (f: ComplianceField) => !f.optional && !values[f.name]?.trim()
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
 
@@ -279,7 +279,7 @@ function FilingForm({
               <div key={f.name}>
                 <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
                   {f.label}
-                  <span className="text-destructive">*</span>
+                  {!f.optional && <span className="text-destructive">*</span>}
                 </label>
                 {f.type === "select" ? (
                   <select
