@@ -52,7 +52,7 @@ export function TopBar({
         <div className="hidden items-center gap-2 sm:flex">
           <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />
           <div className="h-px w-6 bg-border" />
-          <PhasePill active={phase === "chat"} label="Formation" onClick={() => onPhaseClick("chat")} />
+          <PhasePill active={phase === "chat"} label="Incorporation" onClick={() => onPhaseClick("chat")} />
           <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "compliance"} label="Compliance" onClick={() => onPhaseClick("compliance")} />
         </div>
