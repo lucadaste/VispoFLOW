@@ -297,12 +297,13 @@ const SPECIAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
   id: "special-stockholders-consent",
   title: "Special Stockholders Consent",
   short: "Special Stockholders Consent",
-  description: "Written consent of stockholders approving a specific corporate action outside of the annual cycle.",
+  description: "Special written consent of stockholders for a specific matter.",
   deadline: "As needed",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "action", label: "Action being approved", placeholder: "Describe the corporate action" },
-    { name: "date", label: "Consent date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
+    { name: "matter", label: "Matter being approved", type: "textarea", placeholder: "e.g. approval of a financing round" },
+    { name: "sharesVoting", label: "Shares voting in favor" },
   ],
 }
 
