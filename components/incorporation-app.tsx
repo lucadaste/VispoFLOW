@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceOnboarding } from "@/components/compliance-onboarding"
+import { TransactionsOnboarding } from "@/components/transactions-onboarding"
 import { Landing } from "@/components/landing"
 import { HomeChat } from "@/components/home-chat"
 import {
@@ -43,8 +44,8 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
-  type View = "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding"
-  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding"]
+  type View = "landing" | "home-chat" | "chat" | "compliance" | "compliance-onboarding" | "transactions"
+  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "compliance-onboarding", "transactions"]
 
   const [view, setView] = useState<View | "loading">("loading")
   const [formationComplete, setFormationComplete] = useState(false)
@@ -52,6 +53,7 @@ export function IncorporationApp() {
   const [homeChatKey, setHomeChatKey] = useState(0)
   const [complianceKey, setComplianceKey] = useState(0)
   const [landingKey, setLandingKey] = useState(0)
+  const [transactionsKey, setTransactionsKey] = useState(0)
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -67,9 +69,10 @@ export function IncorporationApp() {
     if (view !== "loading") sessionStorage.setItem("vispo-view", view)
   }, [view])
 
-  const handlePhaseClick = (phase: "home" | "chat" | "compliance") => {
+  const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions") => {
     if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
+    if (phase === "transactions") { setView("transactions"); return }
     if (phase === "compliance") {
       setView(formationComplete ? "compliance" : "compliance-onboarding")
     }
@@ -255,6 +258,7 @@ export function IncorporationApp() {
     if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
     if (view === "compliance" || view === "compliance-onboarding") { setComplianceKey((k) => k + 1); setView("compliance-onboarding"); return }
+    if (view === "transactions") { setTransactionsKey((k) => k + 1); return }
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0
@@ -264,6 +268,8 @@ export function IncorporationApp() {
       ? "home"
       : view === "compliance-onboarding" || view === "compliance"
       ? "compliance"
+      : view === "transactions"
+      ? "transactions"
       : "chat"
 
   return (
@@ -321,6 +327,8 @@ export function IncorporationApp() {
         </div>
       ) : view === "compliance-onboarding" ? (
         <ComplianceOnboarding key={complianceKey} onComplete={(a) => { setAnswers(a); setFormationComplete(true); setView("compliance") }} />
+      ) : view === "transactions" ? (
+        <TransactionsOnboarding key={transactionsKey} />
       ) : (
         <ComplianceCenter answers={answers} onBack={() => setView("chat")} />
       )}
