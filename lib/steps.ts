@@ -29,14 +29,6 @@ export const STEPS: Step[] = [
   {
     id: "welcome",
     messages: ["__GREETING__"],
-    input: { kind: "start" },
-  },
-  {
-    id: "intro",
-    messages: [
-      "Great — let's get started with incorporating your Delaware corporation.",
-      "I'll ask you a few questions to complete the documents required for a typical Silicon Valley–style startup formation. We'll use our standard template with 10,000,000 authorized common shares.",
-    ],
     autoAdvance: true,
   },
   {

@@ -88,8 +88,8 @@ export function IncorporationApp() {
   const resolveMessage = useCallback((text: string) => {
     if (text === "__GREETING__") {
       return user?.firstName
-        ? `Let's get started incorporating your startup as a Delaware Corporation, ${user.firstName}!`
-        : "Let's get started incorporating your startup as a Delaware Corporation!"
+        ? `Let's get started incorporating your startup as a Delaware Corporation, ${user.firstName}! I'll ask you a few quick questions — feel free to stop and ask anything along the way.`
+        : "Let's get started incorporating your startup as a Delaware Corporation! I'll ask you a few quick questions — feel free to stop and ask anything along the way."
     }
     return text
   }, [user])
