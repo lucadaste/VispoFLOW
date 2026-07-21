@@ -309,6 +309,9 @@ function FilingForm({
                     className={inputClass}
                   />
                 )}
+                {f.hint && (
+                  <p className="mt-1.5 text-xs text-muted-foreground">{f.hint}</p>
+                )}
               </div>
             ))}
           </div>

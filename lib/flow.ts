@@ -77,6 +77,7 @@ export type ComplianceField = {
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
+  hint?: string
 }
 
 export type ComplianceItem = {
@@ -124,12 +125,15 @@ const EIGHTY_THREE_B: ComplianceItem = {
   id: "83b",
   title: "83(b) Elections",
   short: "83(b) Elections",
-  description: "Each founder receiving restricted stock should file an 83(b) election with the IRS within 30 days of the stock purchase.",
+  description: "File 83(b) elections for founders holding stock subject to vesting, within 30 days of grant.",
   deadline: "Within 30 days of stock purchase",
   fields: [
-    { name: "founders", label: "Founders filing 83(b)", prefillKey: "foundersList" },
-    { name: "purchaseDate", label: "Stock purchase date", type: "date", prefillKey: "vestingStartDate" },
-    { name: "shares", label: "Total restricted shares", prefillKey: "founderShares" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "taxpayer", label: "Taxpayer (founder) full legal name", prefillKey: "incorporatorName" },
+    { name: "grantDate", label: "Date of stock grant / purchase", type: "date", prefillKey: "vestingStartDate", hint: "The 83(b) election must be filed within 30 days of this date." },
+    { name: "shares", label: "Number of shares purchased", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
+    { name: "pricePerShare", label: "Price paid per share (USD)", placeholder: "e.g. 0.0001" },
+    { name: "vestingSchedule", label: "Vesting schedule", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
   ],
 }
 
