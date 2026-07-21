@@ -132,7 +132,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
           <PathCard
             icon={<Building2 className="h-5 w-5" />}
             title="Start a new incorporation"
-            description="Go from idea to legally incorporated in one guided flow."
+            description="Turn your startup into a legally incorporated Delaware C-Corp through a simple guided flow."
             onClick={() => onSelect("formation")}
           />
           <PathCard
