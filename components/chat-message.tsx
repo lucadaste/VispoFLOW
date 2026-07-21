@@ -56,14 +56,13 @@ export function SystemNote({
 
 export function TypingIndicator() {
   return (
-    <div className="flex animate-message-in items-start gap-3">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
+    <div className="flex animate-message-in items-center gap-3">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-900 to-slate-900 text-white shadow-sm">
         <Scale className="h-4 w-4" />
       </div>
-      <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm bg-white px-4 py-3.5 shadow-sm ring-1 ring-border">
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground" style={{ animationDelay: "0ms" }} />
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground" style={{ animationDelay: "200ms" }} />
-        <span className="typing-dot h-2 w-2 rounded-full bg-muted-foreground" style={{ animationDelay: "400ms" }} />
+      <div className="flex items-center gap-2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+        <span className="animate-pulse text-sm text-muted-foreground">Thinking…</span>
       </div>
     </div>
   )
