@@ -240,11 +240,15 @@ const CA_SOI: ComplianceItem = {
   id: "ca-soi",
   title: "CA Statement of Information",
   short: "CA Statement of Info",
-  description: "File a Statement of Information with the California Secretary of State. Due within 90 days of qualification and biennially thereafter.",
+  description: "File the California Statement of Information (Form SI-550).",
   deadline: "Within 90 days of CA qualification, then biennially",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "address", label: "Principal office address", prefillKey: "corpAddress" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "caEntityNumber", label: "California entity number", placeholder: "e.g. C1234567", optional: true },
+    { name: "principalAddress", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "ceoName", label: "Chief executive officer name", prefillKey: "incorporatorName" },
+    { name: "secretaryName", label: "Secretary name" },
+    { name: "agent", label: "Agent for service of process" },
   ],
 }
 
