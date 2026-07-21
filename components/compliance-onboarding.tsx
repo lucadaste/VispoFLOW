@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send } from "lucide-react"
-import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { BotMessage, UserMessage } from "@/components/chat-message"
 import { type FlowAnswers, initialAnswers } from "@/lib/flow"
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -50,7 +50,6 @@ export function ComplianceOnboarding({
   onComplete: (answers: FlowAnswers) => void
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [isTyping, setIsTyping] = useState(true)
   const [stepIndex, setStepIndex] = useState(0)
   const [value, setValue] = useState("")
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
@@ -58,29 +57,20 @@ export function ComplianceOnboarding({
   const idRef = useRef(0)
   const startedRef = useRef(false)
 
-  const nextId = () => ++idRef.current
-
-  const pushBot = useCallback(async (text: string) => {
-    setIsTyping(true)
-    await delay(800)
-    setIsTyping(false)
-    setMessages((m) => [...m, { id: nextId(), role: "bot", text }])
+  const pushBot = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
   }, [])
 
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
-    const run = async () => {
-      await pushBot("Welcome! Let's get your existing corporation set up for compliance.")
-      await delay(400)
-      await pushBot(STEPS[0].message)
-    }
-    run()
+    pushBot("Welcome! Let's get your existing corporation set up for compliance.")
+    pushBot(STEPS[0].message)
   }, [pushBot])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [messages, isTyping])
+  }, [messages])
 
   const submit = useCallback(async () => {
     if (!value.trim()) return
@@ -88,25 +78,23 @@ export function ComplianceOnboarding({
     const text = value.trim()
     setValue("")
 
-    setMessages((m) => [...m, { id: nextId(), role: "user", text }])
+    setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
     const newAnswers = { ...answers, [step.field]: text }
     setAnswers(newAnswers)
 
-    await delay(300)
-
     const next = stepIndex + 1
     if (next < STEPS.length) {
-      await pushBot(STEPS[next].message)
+      pushBot(STEPS[next].message)
       setStepIndex(next)
     } else {
-      await pushBot(`Got it — setting up your compliance dashboard for ${newAnswers.companyName}.`)
+      pushBot(`Got it — setting up your compliance dashboard for ${newAnswers.companyName}.`)
       await delay(600)
       onComplete(newAnswers)
     }
   }, [value, stepIndex, answers, pushBot, onComplete])
 
   const currentStep = STEPS[stepIndex]
-  const showInput = !isTyping && stepIndex < STEPS.length && messages.length > 0
+  const showInput = stepIndex < STEPS.length && messages.length > 0
 
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
@@ -119,7 +107,6 @@ export function ComplianceOnboarding({
               <UserMessage key={m.id}>{m.text}</UserMessage>
             ),
           )}
-          {isTyping && <TypingIndicator />}
         </div>
       </div>
 
