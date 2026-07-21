@@ -182,14 +182,15 @@ const CA_REGISTERED_AGENT: ComplianceItem = {
 
 const NOTICE_25102F: ComplianceItem = {
   id: "25102f",
-  title: "Section 25102(f) Notice",
+  title: "25102(f)",
   short: "25102(f)",
-  description: "California limited-offering exemption notice for the sale of founder stock. File with the CA DFPI.",
+  description: "Limited offering exemption notice for securities sold in California (Section 25102(f)).",
   deadline: "Within 15 days of first sale",
   fields: [
-    { name: "issuer", label: "Issuer", prefillKey: "companyName" },
-    { name: "purchasers", label: "Number of purchasers", placeholder: "e.g. 2" },
-    { name: "amount", label: "Aggregate amount raised", placeholder: "$" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "firstSaleDate", label: "Date of first sale of securities", type: "date" },
+    { name: "amount", label: "Aggregate amount raised in California (USD)" },
+    { name: "purchasers", label: "Number of California purchasers" },
   ],
 }
 
