@@ -84,6 +84,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [value, setValue] = useState("")
+  const [highlighted, setHighlighted] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -144,7 +145,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
             icon={<MessageCircle className="h-5 w-5" />}
             title="I have questions"
             description="Not sure where to start? Ask anything."
-            onClick={() => inputRef.current?.focus()}
+            onClick={() => { setHighlighted(true); inputRef.current?.focus() }}
           />
         </div>
       </div>
@@ -173,7 +174,10 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
 
       {/* Input — fixed at bottom */}
       <div className="w-full max-w-2xl pb-8 shrink-0">
-        <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+        <div
+          className={`flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm transition-colors${highlighted ? " ring-highlight" : ""}`}
+          onAnimationEnd={() => setHighlighted(false)}
+        >
           <input
             ref={inputRef}
             value={value}

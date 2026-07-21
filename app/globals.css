@@ -109,3 +109,20 @@
 .typing-dot {
   animation: dot-bounce 1.2s infinite ease-in-out both;
 }
+
+@keyframes ring-spin {
+  0%   { box-shadow: 0 0 0 2px #7c3aed, 14px 0 22px rgba(139,92,246,0.85), -14px 0 6px rgba(139,92,246,0.1); }
+  12%  { box-shadow: 0 0 0 2px #7c3aed, 10px 10px 22px rgba(139,92,246,0.85), -10px -10px 6px rgba(139,92,246,0.1); }
+  25%  { box-shadow: 0 0 0 2px #7c3aed, 0 14px 22px rgba(139,92,246,0.85), 0 -14px 6px rgba(139,92,246,0.1); }
+  37%  { box-shadow: 0 0 0 2px #7c3aed, -10px 10px 22px rgba(139,92,246,0.85), 10px -10px 6px rgba(139,92,246,0.1); }
+  50%  { box-shadow: 0 0 0 2px #7c3aed, -14px 0 22px rgba(139,92,246,0.85), 14px 0 6px rgba(139,92,246,0.1); }
+  62%  { box-shadow: 0 0 0 2px #7c3aed, -10px -10px 22px rgba(139,92,246,0.85), 10px 10px 6px rgba(139,92,246,0.1); }
+  75%  { box-shadow: 0 0 0 2px #7c3aed, 0 -14px 22px rgba(139,92,246,0.85), 0 14px 6px rgba(139,92,246,0.1); }
+  87%  { box-shadow: 0 0 0 2px #7c3aed, 10px -10px 22px rgba(139,92,246,0.85), -10px 10px 6px rgba(139,92,246,0.1); }
+  100% { box-shadow: 0 0 0 2px #7c3aed, 14px 0 22px rgba(139,92,246,0.85), -14px 0 6px rgba(139,92,246,0.1); }
+}
+
+.ring-highlight {
+  border-color: #7c3aed !important;
+  animation: ring-spin 0.7s linear 3;
+}
