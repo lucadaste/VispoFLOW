@@ -34,7 +34,7 @@ export const STEPS: Step[] = [
   {
     id: "company-name",
     messages: ["First, what is the name of your company?"],
-    input: { kind: "text", field: "companyName", placeholder: "Acme Inc." },
+    input: { kind: "text", field: "companyName", placeholder: "Enter your company's name…" },
   },
   {
     id: "verify-name",
