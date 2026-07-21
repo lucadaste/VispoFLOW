@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { Send } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { type FlowAnswers, initialAnswers } from "@/lib/flow"
 
@@ -149,11 +150,9 @@ export function ComplianceOnboarding({
               <button
                 onClick={submit}
                 disabled={!value.trim()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>
-                </svg>
+                Send <Send className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>

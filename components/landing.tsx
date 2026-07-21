@@ -174,26 +174,33 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
 
       {/* Input — fixed at bottom */}
       <div className="w-full max-w-2xl pb-8 shrink-0">
-        <div
-          className={`flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm transition-colors${highlighted ? " ring-highlight" : ""}`}
-          onAnimationEnd={() => setHighlighted(false)}
-        >
-          <input
-            ref={inputRef}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="Ask a question…"
-            disabled={isTyping}
-            className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!value.trim() || isTyping}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
-          >
-            <Send className="h-4 w-4" />
-          </button>
+        <div className={`relative rounded-[0.875rem] p-[2px]${highlighted ? " overflow-hidden" : " bg-border"}`}>
+          {highlighted && (
+            <div
+              className="absolute beam-inner"
+              style={{ inset: "-50%" }}
+              aria-hidden
+              onAnimationEnd={() => setHighlighted(false)}
+            />
+          )}
+          <div className="relative z-10 flex items-center gap-2 rounded-xl bg-card p-1.5 shadow-sm">
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="Ask a question…"
+              disabled={isTyping}
+              className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60 disabled:opacity-60"
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={!value.trim() || isTyping}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary/70 disabled:opacity-40"
+            >
+              Send <Send className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
         <p className="mt-2 text-center text-[11px] text-muted-foreground">
           Vispo is an AI-assisted guide. Always consult a licensed attorney for legal advice.
