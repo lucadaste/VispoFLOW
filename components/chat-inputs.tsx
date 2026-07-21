@@ -3,7 +3,6 @@
 import { useState } from "react"
 import {
   Send,
-  Building2,
   Lock,
   Loader2,
   CheckCircle2,
@@ -133,16 +132,19 @@ function StartInput({ onSubmit }: { onSubmit: SubmitFn }) {
   }
   return (
     <div className="space-y-2.5">
-      <div className="flex flex-wrap gap-2">
-        {["I'd like to do an incorporation", "I need to issue stock options", "I have questions"].map((s) => (
-          <button
-            key={s}
-            onClick={() => submit(s)}
-            className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
-          >
-            {s}
-          </button>
-        ))}
+      <div className="flex gap-2">
+        <button
+          onClick={() => submit("I'd like to do an incorporation")}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Let's begin <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => submit("I have questions")}
+          className="inline-flex items-center rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+        >
+          I have a question
+        </button>
       </div>
       <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
         <input
