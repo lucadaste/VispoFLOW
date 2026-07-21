@@ -154,14 +154,16 @@ const DE_REGISTERED_AGENT: ComplianceItem = {
 
 const CA_QUALIFICATION: ComplianceItem = {
   id: "ca-qualification",
-  title: "California Qualification (Form S&DC-S/N)",
+  title: "CA Qualification",
   short: "CA Qualification",
-  description: "A Delaware corporation doing business in California must qualify with the CA Secretary of State as a foreign corporation.",
+  description: "Qualify your out-of-state corporation to transact business in California (Form S&DC-S/N).",
   deadline: "Before transacting business in CA",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "address", label: "Principal CA address", prefillKey: "corpAddress" },
-    { name: "agent", label: "CA agent for service of process", prefillKey: "incorporatorName" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "stateOfIncorp", label: "State of incorporation", placeholder: "e.g. Delaware" },
+    { name: "principalAddress", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "caAddress", label: "California office address (if any)", type: "textarea", optional: true },
+    { name: "ceoName", label: "Chief executive officer name", prefillKey: "incorporatorName" },
   ],
 }
 
