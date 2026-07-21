@@ -283,11 +283,13 @@ const ANNUAL_BOARD_CONSENT: ComplianceItem = {
   id: "annual-board-consent",
   title: "Annual Board Consent",
   short: "Annual Board Consent",
-  description: "Annual written consent of the board of directors approving officer appointments and other routine corporate actions.",
+  description: "Annual written consent of the board of directors in lieu of a meeting.",
   deadline: "Annually",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "date", label: "Consent date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
+    { name: "officers", label: "Officers appointed", type: "textarea" },
+    { name: "otherMatters", label: "Other matters approved", type: "textarea", optional: true },
   ],
 }
 
