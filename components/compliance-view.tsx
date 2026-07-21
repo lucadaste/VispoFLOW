@@ -108,13 +108,8 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                     ? <BotMessage key={m.id}>{m.text}</BotMessage>
                     : <UserMessage key={m.id}>{m.text}</UserMessage>
                 )}
-              </div>
-            </div>
-
-            <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-              <div className="mx-auto max-w-2xl space-y-2.5">
                 {!activeCategory && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 pt-2">
                     {COMPLIANCE_CATEGORIES.map((cat) => (
                       <button
                         key={cat.id}
@@ -126,12 +121,17 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+              <div className="mx-auto max-w-2xl">
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
                   <input
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder="Type a message…"
+                    placeholder="Feel free to ask any questions…"
                     className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
                   />
                   <button
