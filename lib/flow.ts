@@ -196,14 +196,15 @@ const NOTICE_25102F: ComplianceItem = {
 
 const NOTICE_25102O: ComplianceItem = {
   id: "25102o",
-  title: "Section 25102(o) Notice",
+  title: "25102(o)",
   short: "25102(o)",
-  description: "California exemption notice covering securities issued under a qualified equity compensation plan (the option pool).",
+  description: "Notice of exemption for securities issued under a compensatory benefit plan (Section 25102(o)).",
   deadline: "Within 30 days of plan adoption",
   fields: [
-    { name: "issuer", label: "Issuer", prefillKey: "companyName" },
-    { name: "plan", label: "Equity plan name", placeholder: "2026 Equity Incentive Plan" },
-    { name: "poolShares", label: "Shares reserved under plan", prefillKey: "poolShares" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "planName", label: "Equity incentive plan name", placeholder: "e.g. 2025 Equity Incentive Plan" },
+    { name: "adoptionDate", label: "Plan adoption date", type: "date" },
+    { name: "poolShares", label: "Shares reserved under the plan", prefillKey: "poolShares" },
   ],
 }
 
