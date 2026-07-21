@@ -269,11 +269,13 @@ const ANNUAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
   id: "annual-stockholders-consent",
   title: "Annual Stockholders Consent",
   short: "Annual Stockholders Consent",
-  description: "Annual written consent of stockholders approving the election of directors and other routine corporate matters.",
+  description: "Annual written consent of stockholders in lieu of a meeting.",
   deadline: "Annually",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "date", label: "Consent date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
+    { name: "directors", label: "Directors elected for the coming year", type: "textarea" },
+    { name: "otherMatters", label: "Other matters approved", type: "textarea", placeholder: "e.g. ratification of prior board actions", optional: true },
   ],
 }
 
@@ -343,7 +345,7 @@ export const COMPLIANCE_CATEGORIES: ComplianceCategory[] = [
     label: "Corporate Governance",
     chatResponse: "These are your governance documents — annual and special consents required to authorize corporate actions and maintain proper records. Select which document you'd like to begin with by clicking it on the right — I'll guide you through each one.",
     groups: [
-      { id: "governance", title: "Corporate Governance Documents", items: [ANNUAL_STOCKHOLDERS_CONSENT, ANNUAL_BOARD_CONSENT, SPECIAL_STOCKHOLDERS_CONSENT, SPECIAL_BOARD_CONSENT] },
+      { id: "governance", title: "Consents & Resolutions", items: [ANNUAL_STOCKHOLDERS_CONSENT, ANNUAL_BOARD_CONSENT, SPECIAL_STOCKHOLDERS_CONSENT, SPECIAL_BOARD_CONSENT] },
     ],
   },
 ]
