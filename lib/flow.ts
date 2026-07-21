@@ -210,13 +210,16 @@ const NOTICE_25102O: ComplianceItem = {
 
 const DE_ANNUAL_REPORT: ComplianceItem = {
   id: "de-annual-report",
-  title: "Delaware Annual Report",
+  title: "Annual Report",
   short: "DE Annual Report",
-  description: "File the annual report and pay franchise tax with the Delaware Secretary of State each year by March 1.",
+  description: "File the Delaware annual report and pay the annual franchise tax.",
   deadline: "March 1 each year",
   fields: [
-    { name: "entity", label: "Corporation name", prefillKey: "companyName" },
-    { name: "year", label: "Tax year", placeholder: "e.g. 2026" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "reportYear", label: "Report year", placeholder: "e.g. 2025" },
+    { name: "authorizedShares", label: "Total authorized shares" },
+    { name: "grossAssets", label: "Total gross assets (USD)", hint: "Used to calculate franchise tax under the assumed par value method." },
+    { name: "directors", label: "Names and addresses of all directors", type: "textarea" },
   ],
 }
 
