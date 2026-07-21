@@ -1,28 +1,30 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, X, ShieldCheck, CalendarClock } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock, ArrowLeft } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage } from "@/components/chat-message"
 import {
   COMPLIANCE_CATEGORIES,
   type ComplianceCategory,
   type ComplianceItem,
+  type ComplianceField,
   type FlowAnswers,
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
 
 type ChatMsg = { id: number; role: "bot" | "user"; text: string }
+type ActiveItem = { item: ComplianceItem; groupTitle: string }
 
-const fieldClass =
-  "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
+const inputClass =
+  "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
 
 export function ComplianceView({ answers }: { answers: FlowAnswers }) {
   const { user } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
-  const [activeItem, setActiveItem] = useState<ComplianceItem | null>(null)
+  const [activeItem, setActiveItem] = useState<ActiveItem | null>(null)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0)
@@ -48,8 +50,10 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
   }, [pushBot, user])
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [messages])
+    if (!activeItem) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
+    }
+  }, [messages, activeItem])
 
   const selectCategory = useCallback((cat: ComplianceCategory) => {
     pushUser(cat.label)
@@ -57,75 +61,94 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
     setActiveCategory(cat)
   }, [pushBot, pushUser])
 
-  const handleSubmit = useCallback(() => {
+  const handleSend = useCallback(() => {
     const text = value.trim()
     if (!text) return
     setValue("")
     pushUser(text)
-    pushBot("Happy to help. Feel free to click any item in the tracker on the right to get started, or keep asking questions here.")
+    pushBot("Happy to help. Feel free to click any item in the Compliance Center on the right to get started, or keep asking questions here.")
   }, [value, pushBot, pushUser])
+
+  const handleFilingComplete = useCallback((item: ComplianceItem) => {
+    setCompleted((c) => ({ ...c, [item.id]: true }))
+    pushBot(`✓ ${item.title} has been saved. Select another filing from the right to continue, or ask me anything.`)
+    setActiveItem(null)
+  }, [pushBot])
+
+  const prefill = (key?: keyof FlowAnswers | "computed"): string => {
+    if (!key || key === "computed") return ""
+    const v = answers[key]
+    return typeof v === "string" ? v : ""
+  }
 
   const allItems = activeCategory?.groups.flatMap((g) => g.items) ?? []
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
   const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
 
-  const prefill = (key?: keyof FlowAnswers | "computed") => {
-    if (!key || key === "computed") return ""
-    const v = answers[key]
-    return typeof v === "string" ? v : ""
-  }
-
   return (
     <div className="flex w-full flex-1 overflow-hidden">
-      {/* ── Chat ── */}
+      {/* ── Chat / Filing area ── */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl space-y-4">
-            {messages.map((m) =>
-              m.role === "bot"
-                ? <BotMessage key={m.id}>{m.text}</BotMessage>
-                : <UserMessage key={m.id}>{m.text}</UserMessage>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl space-y-2.5">
-            {!activeCategory && (
-              <div className="flex flex-wrap gap-2">
-                {COMPLIANCE_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => selectCategory(cat)}
-                    className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
-                  >
-                    {cat.label}
-                  </button>
-                ))}
+        {activeItem ? (
+          <FilingForm
+            item={activeItem.item}
+            groupTitle={activeItem.groupTitle}
+            done={!!completed[activeItem.item.id]}
+            prefill={prefill}
+            onBack={() => setActiveItem(null)}
+            onComplete={() => handleFilingComplete(activeItem.item)}
+          />
+        ) : (
+          <>
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+              <div className="mx-auto max-w-2xl space-y-4">
+                {messages.map((m) =>
+                  m.role === "bot"
+                    ? <BotMessage key={m.id}>{m.text}</BotMessage>
+                    : <UserMessage key={m.id}>{m.text}</UserMessage>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              <input
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                placeholder="Type a message…"
-                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-              />
-              <button
-                onClick={handleSubmit}
-                disabled={!value.trim()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-              >
-                Send <Send className="h-3.5 w-3.5" />
-              </button>
             </div>
-          </div>
-        </div>
+
+            <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+              <div className="mx-auto max-w-2xl space-y-2.5">
+                {!activeCategory && (
+                  <div className="flex flex-wrap gap-2">
+                    {COMPLIANCE_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => selectCategory(cat)}
+                        className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+                  <input
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder="Type a message…"
+                    className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!value.trim()}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+                  >
+                    Send <Send className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ── Compliance Tracker sidebar ── */}
+      {/* ── Compliance Center sidebar ── */}
       <aside className="hidden w-72 shrink-0 border-l border-border bg-card/40 xl:flex xl:flex-col 2xl:w-80">
         {activeCategory ? (
           <>
@@ -136,13 +159,11 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
               </div>
               <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">
                 <div
-                  className="h-full rounded-full bg-success transition-all duration-700 ease-out"
+                  className="h-full rounded-full bg-primary transition-all duration-700 ease-out"
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">
-                Click any item to complete it.
-              </p>
+              <p className="mt-2 text-xs text-muted-foreground">Click any item to begin filing.</p>
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 py-3">
@@ -154,15 +175,19 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                   <ul className="space-y-0.5">
                     {group.items.map((item) => {
                       const done = !!completed[item.id]
+                      const isActive = activeItem?.item.id === item.id
                       return (
                         <li key={item.id}>
                           <button
-                            onClick={() => setActiveItem(item)}
-                            className="flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                            onClick={() => setActiveItem({ item, groupTitle: group.title })}
+                            className={cn(
+                              "flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
+                              isActive ? "bg-primary/10" : "hover:bg-secondary/60"
+                            )}
                           >
                             <span className={cn(
                               "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                              done ? "bg-success text-success-foreground" : "text-muted-foreground/40"
+                              done ? "bg-primary text-primary-foreground" : "text-muted-foreground/40"
                             )}>
                               {done
                                 ? <Check className="h-3 w-3" strokeWidth={3} />
@@ -182,8 +207,8 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                               </p>
                             </div>
                             {done
-                              ? <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-medium text-success">Filed</span>
-                              : <span className="shrink-0 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-medium text-accent-foreground">Outstanding</span>
+                              ? <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">Filed</span>
+                              : <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">Outstanding</span>
                             }
                           </button>
                         </li>
@@ -204,93 +229,107 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
           </div>
         )}
       </aside>
-
-      {/* ── Filing Drawer ── */}
-      {activeItem && (
-        <FilingDrawer
-          item={activeItem}
-          done={!!completed[activeItem.id]}
-          prefill={prefill}
-          onClose={() => setActiveItem(null)}
-          onComplete={() => {
-            setCompleted((c) => ({ ...c, [activeItem.id]: true }))
-            setActiveItem(null)
-          }}
-        />
-      )}
     </div>
   )
 }
 
-function FilingDrawer({
-  item, done, prefill, onClose, onComplete,
+function FilingForm({
+  item, groupTitle, done, prefill, onBack, onComplete,
 }: {
   item: ComplianceItem
+  groupTitle: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
-  onClose: () => void
+  onBack: () => void
   onComplete: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
   )
-  const valid = item.fields.every((f) => values[f.name]?.trim())
+
+  const isEmpty = (f: ComplianceField) => !values[f.name]?.trim()
+  const remaining = item.fields.filter(isEmpty).length
+  const valid = remaining === 0
+
+  const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-md flex-col bg-card shadow-xl animate-message-in">
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
-          <div className="pr-4">
-            <h3 className="text-base font-semibold text-foreground text-balance">{item.title}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">{item.deadline}</p>
-          </div>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-2xl">
+          {/* Back */}
           <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            onClick={onBack}
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to chat
           </button>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-5 py-5">
-          <p className="rounded-lg bg-secondary/60 p-3 text-sm leading-relaxed text-muted-foreground">
-            {item.description}
+          {/* Header */}
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            {groupTitle}
           </p>
-          <div className="mt-5 space-y-4">
+          <h2 className="mt-1 text-3xl font-bold tracking-tight text-foreground">{item.title}</h2>
+          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+
+          {/* Fields */}
+          <div className="mt-8 space-y-5">
             {item.fields.map((f) => (
               <div key={f.name}>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">{f.label}</label>
-                {f.type === "textarea" ? (
+                <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
+                  {f.label}
+                  <span className="text-destructive">*</span>
+                </label>
+                {f.type === "select" ? (
+                  <select
+                    value={values[f.name] ?? ""}
+                    onChange={(e) => set(f.name, e.target.value)}
+                    className={cn(inputClass, "cursor-pointer")}
+                  >
+                    <option value="" disabled>Select…</option>
+                    {f.options?.map((o) => (
+                      <option key={o} value={o}>{o}</option>
+                    ))}
+                  </select>
+                ) : f.type === "textarea" ? (
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={values[f.name] ?? ""}
                     placeholder={f.placeholder}
-                    onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                    className={cn(fieldClass, "resize-none")}
+                    onChange={(e) => set(f.name, e.target.value)}
+                    className={cn(inputClass, "resize-none")}
                   />
                 ) : (
                   <input
                     type={f.type === "date" ? "date" : "text"}
                     value={values[f.name] ?? ""}
                     placeholder={f.placeholder}
-                    onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
-                    className={fieldClass}
+                    onChange={(e) => set(f.name, e.target.value)}
+                    className={inputClass}
                   />
                 )}
               </div>
             ))}
           </div>
         </div>
+      </div>
 
-        <div className="border-t border-border px-5 py-4">
+      {/* Sticky footer */}
+      <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+        <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground">
+            {valid
+              ? "All fields complete."
+              : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
+          </p>
           <button
             onClick={onComplete}
             disabled={!valid}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Check className="h-4 w-4" />
-            {done ? "Update filing" : "Mark as filed"}
+            {done ? "Update filing" : "Save filing"}
           </button>
         </div>
       </div>

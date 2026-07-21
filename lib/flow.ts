@@ -73,7 +73,8 @@ export function docShorts(ids: string[]): string {
 export type ComplianceField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea"
+  type?: "text" | "date" | "textarea" | "select"
+  options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
 }
@@ -106,12 +107,16 @@ const EIN: ComplianceItem = {
   id: "ein",
   title: "EIN — Employer Identification Number",
   short: "EIN",
-  description: "Obtain a federal tax ID from the IRS (Form SS-4). Required to open a bank account and hire employees.",
+  description: "Apply for a federal Employer Identification Number with the IRS. Required to open a bank account, hire employees, and file taxes.",
   deadline: "Before opening a bank account",
   fields: [
-    { name: "entity", label: "Legal entity name", prefillKey: "companyName" },
-    { name: "responsible", label: "Responsible party", prefillKey: "incorporatorName" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "incorporationDate", label: "Date of incorporation", type: "date" },
+    { name: "entityType", label: "Entity type", type: "select", options: ["C Corporation", "S Corporation", "LLC", "Partnership", "Sole Proprietor"] },
+    { name: "responsible", label: "Responsible party (full legal name)", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
     { name: "ssn", label: "Responsible party SSN / ITIN", placeholder: "XXX-XX-XXXX" },
+    { name: "address", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "reason", label: "Reason for applying", type: "select", options: ["Started new business", "Hired employees", "Banking purpose", "Changed type of organization", "Purchased going business", "Created a trust", "Other"] },
   ],
 }
 
