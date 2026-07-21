@@ -227,11 +227,12 @@ const DE_AGENT_RENEWAL: ComplianceItem = {
   id: "de-agent-renewal",
   title: "DE Registered Agent Renewal",
   short: "DE Agent Renewal",
-  description: "Renew your Delaware registered agent appointment annually to maintain good standing.",
+  description: "Renew your Delaware registered agent for the coming year.",
   deadline: "Annually",
   fields: [
-    { name: "agentName", label: "Registered agent name", placeholder: "Agent name or service" },
-    { name: "renewalDate", label: "Renewal date", type: "date" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "Registered agent name" },
+    { name: "renewalPeriod", label: "Renewal period", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
   ],
 }
 
