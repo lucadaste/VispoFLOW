@@ -114,25 +114,10 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
       {/* Cards — fixed at top */}
       <div className="w-full max-w-2xl space-y-5 shrink-0">
-        <div className="rounded-xl bg-primary px-6 py-5">
-          <p className="mb-4 text-[10px] font-semibold uppercase tracking-widest text-white/40">Process overview</p>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-primary">1</span>
-              <div>
-                <p className="text-sm font-semibold text-white">Formation</p>
-                <p className="text-[11px] text-white/50">Incorporate · File · Document</p>
-              </div>
-            </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-white/35 mx-1" />
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-primary">2</span>
-              <div>
-                <p className="text-sm font-semibold text-white">Compliance</p>
-                <p className="text-[11px] text-white/50">EIN · 83(b) · State filings</p>
-              </div>
-            </div>
-          </div>
+        <div className="rounded-xl bg-primary px-6 py-4 flex items-center justify-center gap-3">
+          <span className="text-sm font-semibold text-white">Entity Incorporation</span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-white/40" />
+          <span className="text-sm font-semibold text-white">Legal Compliance</span>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
