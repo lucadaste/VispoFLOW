@@ -171,11 +171,12 @@ const CA_REGISTERED_AGENT: ComplianceItem = {
   id: "ca-registered-agent",
   title: "CA Registered Agent Appointment",
   short: "CA Registered Agent",
-  description: "Appoint a registered agent with a physical California address to accept legal service on behalf of the corporation.",
+  description: "Designate an agent for service of process in California.",
   deadline: "Concurrent with CA qualification",
   fields: [
-    { name: "agentName", label: "Registered agent name", prefillKey: "incorporatorName" },
-    { name: "agentAddress", label: "Agent street address", prefillKey: "corpAddress" },
+    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "California agent name" },
+    { name: "agentAddress", label: "California agent street address", type: "textarea" },
   ],
 }
 
