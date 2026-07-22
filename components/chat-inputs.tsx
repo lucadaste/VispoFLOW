@@ -268,7 +268,7 @@ function PaywallInput({ onSubmit }: { onSubmit: SubmitFn }) {
     <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b border-border bg-secondary/60 px-4 py-2.5">
         <Lock className="h-3.5 w-3.5 text-muted-foreground" />
-        <span className="text-xs font-medium text-muted-foreground">Secure checkout · Vispo Payments</span>
+        <span className="text-xs font-medium text-muted-foreground">Secure checkout · Vispo Labs Payments</span>
       </div>
       <div className="space-y-3 p-4">
         <div className="flex items-start justify-between">

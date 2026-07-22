@@ -44,7 +44,7 @@ export function TopBar({
             <Scale className="h-4.5 w-4.5" strokeWidth={2} />
           </div>
           <div className="leading-tight text-left">
-            <p className="text-sm font-semibold tracking-tight">Vispo</p>
+            <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
             <p className="text-[11px] text-muted-foreground">Incorporation Studio</p>
           </div>
         </button>

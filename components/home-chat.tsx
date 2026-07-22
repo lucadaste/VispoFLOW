@@ -9,7 +9,7 @@ type Message = { role: "user" | "assistant"; content: string }
 const FAQS: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["incorporate", "incorporation", "form a company", "start a company", "create a company", "set up a company"],
-    answer: "To incorporate a Delaware C-Corp, you file a Certificate of Incorporation with the Delaware Secretary of State (~$90 fee), appoint a registered agent, adopt bylaws, issue founder stock, and hold an organizational board meeting. Vispo walks you through all of these steps in the Formation flow.",
+    answer: "To incorporate a Delaware C-Corp, you file a Certificate of Incorporation with the Delaware Secretary of State (~$90 fee), appoint a registered agent, adopt bylaws, issue founder stock, and hold an organizational board meeting. Vispo Labs walks you through all of these steps in the Formation flow.",
   },
   {
     keywords: ["why delaware", "delaware c-corp", "why c corp", "why not llc"],
@@ -53,7 +53,7 @@ const FAQS: { keywords: string[]; answer: string }[] = [
   },
   {
     keywords: ["securities", "securities filing", "regulation d", "rule 506", "form d"],
-    answer: "When you issue stock to founders or raise money, you're technically selling securities. You file an exemption (like Regulation D / Rule 506(b)) with the SEC within 15 days of the first sale. States may have their own notice filings too. Vispo's Compliance Center covers these.",
+    answer: "When you issue stock to founders or raise money, you're technically selling securities. You file an exemption (like Regulation D / Rule 506(b)) with the SEC within 15 days of the first sale. States may have their own notice filings too. Vispo Labs' Compliance Center covers these.",
   },
   {
     keywords: ["cost", "how much", "price", "fee", "expensive"],
@@ -65,11 +65,11 @@ const FAQS: { keywords: string[]; answer: string }[] = [
   },
   {
     keywords: ["attorney", "lawyer", "legal advice", "counsel"],
-    answer: "For simple standard incorporations, many founders use self-service platforms (Stripe Atlas, Clerky, Vispo). Once you're raising a priced round or dealing with complex equity arrangements, a startup attorney — especially one who knows Delaware corporate law — is worth the cost.",
+    answer: "For simple standard incorporations, many founders use self-service platforms (Stripe Atlas, Clerky, Vispo Labs). Once you're raising a priced round or dealing with complex equity arrangements, a startup attorney — especially one who knows Delaware corporate law — is worth the cost.",
   },
 ]
 
-const GREETING = "Hi! I'm your Vispo assistant. Ask me anything about incorporating your company, equity structures, compliance filings, or founder agreements."
+const GREETING = "Hi! I'm your Vispo Labs assistant. Ask me anything about incorporating your company, equity structures, compliance filings, or founder agreements."
 
 function getLocalResponse(input: string): string {
   const lower = input.toLowerCase()
@@ -181,7 +181,7 @@ export function HomeChat({
             </button>
           </div>
           <p className="mt-2 text-center text-[11px] text-muted-foreground">
-            Vispo is an AI-assisted guide. Always consult a licensed attorney for legal advice.
+            Vispo Labs is an AI-assisted guide. Always consult a licensed attorney for legal advice.
           </p>
         </div>
       </div>
