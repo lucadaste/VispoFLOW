@@ -42,6 +42,7 @@ export function ComplianceView({
   const { user } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory | null>(null)
+  const [expandedCategoryId, setExpandedCategoryId] = useState<ComplianceCategory["id"] | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -66,7 +67,9 @@ export function ComplianceView({
     if (saved && saved.messages.length > 0) {
       idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
       setMessages(saved.messages)
-      setActiveCategory(COMPLIANCE_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null)
+      const restoredCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
+      setActiveCategory(restoredCategory)
+      setExpandedCategoryId(restoredCategory?.id ?? null)
       setCompleted(saved.completed)
       setActiveItemId(saved.activeItemId)
       return
@@ -98,7 +101,12 @@ export function ComplianceView({
     pushUser(cat.label)
     pushBot(cat.chatResponse)
     setActiveCategory(cat)
+    setExpandedCategoryId(cat.id)
   }, [pushBot, pushUser])
+
+  const toggleCategory = useCallback((cat: ComplianceCategory) => {
+    setExpandedCategoryId((id) => (id === cat.id ? null : cat.id))
+  }, [])
 
   const handleSend = useCallback(() => {
     const text = value.trim()
@@ -133,17 +141,14 @@ export function ComplianceView({
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
 
-  const onCategoryClick = useCallback((cat: ComplianceCategory) => {
-    if (cat.id !== activeCategory?.id) selectCategory(cat)
-  }, [activeCategory, selectCategory])
-
   const sidebarContent = (
     <SidebarContent
       activeCategory={activeCategory}
+      expandedCategoryId={expandedCategoryId}
       completed={completed}
       activeItemId={activeItemId}
       onItemClick={openItem}
-      onCategoryClick={onCategoryClick}
+      onCategoryClick={toggleCategory}
     />
   )
 
@@ -234,9 +239,10 @@ export function ComplianceView({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, completed, activeItemId, onItemClick, onCategoryClick,
+  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick,
 }: {
   activeCategory: ComplianceCategory | null
+  expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
   activeItemId: string | null
   onItemClick: (item: ComplianceItem, groupTitle: string) => void
@@ -265,7 +271,7 @@ function SidebarContent({
           const doneCount = items.filter((i) => completed[i.id]).length
           const total = items.length
           const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
-          const isExpanded = activeCategory?.id === cat.id
+          const isExpanded = expandedCategoryId === cat.id
 
           return (
             <div key={cat.id} className="border-b border-border last:border-b-0">
