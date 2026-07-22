@@ -45,7 +45,7 @@ export function TopBar({
           </div>
           <div className="leading-tight text-left">
             <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
-            <p className="text-[11px] text-muted-foreground">Incorporation Studio</p>
+            <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
           </div>
         </button>
 
