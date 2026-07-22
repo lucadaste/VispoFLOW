@@ -21,7 +21,7 @@ export function DocumentTracker({
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Document Vault</h2>
+          <h2 className="text-sm font-semibold text-foreground">Incorporation Documents</h2>
           <span className="text-xs font-medium text-muted-foreground">
             {completed}/{total}
           </span>

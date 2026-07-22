@@ -5,6 +5,7 @@ import { Send, Check, Circle, ShieldCheck, CalendarClock } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
+import { SidebarPanel } from "@/components/sidebar-panel"
 import {
   COMPLIANCE_CATEGORIES,
   type ComplianceCategory,
@@ -74,7 +75,7 @@ export function ComplianceView({
     if (!text) return
     setValue("")
     pushUser(text)
-    pushBot("Happy to help. Feel free to fill out the form above or click any item in the Compliance Center to get started.")
+    pushBot("Happy to help. Feel free to fill out the form above or click any item in Compliance Documents to get started.")
   }, [value, pushBot, pushUser])
 
   const openItem = useCallback((item: ComplianceItem, groupTitle: string) => {
@@ -180,15 +181,15 @@ export function ComplianceView({
         </div>
       </div>
 
-      {/* ── Compliance Center sidebar — always visible ≥ sm ── */}
-      <aside className="hidden w-52 shrink-0 flex-col border-l border-border bg-card/40 sm:flex md:w-60 lg:w-72 2xl:w-80">
+      {/* ── Compliance Documents sidebar — always visible ≥ sm, collapsible ── */}
+      <SidebarPanel icon={ShieldCheck} label="Compliance Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
         {sidebarContent}
-      </aside>
+      </SidebarPanel>
 
       {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
       <MobileSidebarTab
         icon={ShieldCheck}
-        label="Compliance Center"
+        label="Compliance Documents"
         count={activeCategory ? { done: doneCount, total } : undefined}
         open={mobileOpen}
         onOpenChange={setMobileOpen}
@@ -216,7 +217,7 @@ function SidebarContent({
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 text-center">
         <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
-        <p className="mt-3 text-sm font-medium text-foreground">Compliance Center</p>
+        <p className="mt-3 text-sm font-medium text-foreground">Compliance Documents</p>
         <p className="mt-1 text-xs text-muted-foreground">Select a compliance category and your checklist will appear here.</p>
       </div>
     )
@@ -226,7 +227,7 @@ function SidebarContent({
     <>
       <div className="border-b border-border px-4 py-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-foreground">Compliance Center</h2>
+          <h2 className="text-sm font-semibold text-foreground">Compliance Documents</h2>
           <span className="text-xs font-medium text-muted-foreground">{doneCount}/{total}</span>
         </div>
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-secondary">

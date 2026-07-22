@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { FileText } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
+import { SidebarPanel } from "@/components/sidebar-panel"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
@@ -348,15 +349,15 @@ export function IncorporationApp() {
             )}
           </div>
 
-          {/* ── Document Vault sidebar — always visible ≥ sm ── */}
-          <aside className="hidden w-52 shrink-0 flex-col border-l border-border bg-card/40 sm:flex md:w-60 lg:w-72 2xl:w-80">
+          {/* ── Incorporation Documents sidebar — always visible ≥ sm, collapsible ── */}
+          <SidebarPanel icon={FileText} label="Incorporation Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
-          </aside>
+          </SidebarPanel>
 
           {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
           <MobileSidebarTab
             icon={FileText}
-            label="Document Vault"
+            label="Incorporation Documents"
             count={hasDocs ? { done: docsCompleted, total: docsTotal } : undefined}
             open={mobileDocsOpen}
             onOpenChange={setMobileDocsOpen}
