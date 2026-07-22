@@ -265,7 +265,7 @@ function TransactionDocsContent({ docs }: { docs: TxDoc[] }) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 text-center">
         <ArrowLeftRight className="h-8 w-8 text-muted-foreground/40" />
-        <p className="mt-3 text-sm font-medium text-foreground">Transaction Documents</p>
+        <p className="mt-3 text-sm font-medium text-foreground">No documents yet</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Grants, issuances, and transfers will appear here as you record them.
         </p>
