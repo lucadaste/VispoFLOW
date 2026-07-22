@@ -242,6 +242,16 @@ function SidebarContent({
   onItemClick: (item: ComplianceItem, groupTitle: string) => void
   onCategoryClick: (cat: ComplianceCategory) => void
 }) {
+  if (!activeCategory) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
+        <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
+        <p className="mt-3 text-sm font-medium text-foreground">No documents yet</p>
+        <p className="mt-1 text-xs text-muted-foreground">Select a compliance category and your checklist will appear here.</p>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="border-b border-border px-4 py-4">
