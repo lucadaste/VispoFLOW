@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { FileText, X } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
@@ -23,6 +24,7 @@ import {
   type FlowAnswers,
   initialAnswers,
   docShorts,
+  DOCUMENTS,
 } from "@/lib/flow"
 
 type ChatMessage =
@@ -43,6 +45,7 @@ export function IncorporationApp() {
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
+  const [mobileDocsOpen, setMobileDocsOpen] = useState(false)
   type View = "landing" | "home-chat" | "chat" | "compliance" | "transactions"
   const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "transactions"]
 
@@ -257,6 +260,10 @@ export function IncorporationApp() {
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0
+  const docsTotal = DOCUMENTS.length
+  const docsCompleted = DOCUMENTS.filter(
+    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
+  ).length
 
   const phase =
     view === "loading" || view === "landing" || view === "home-chat"
@@ -316,9 +323,39 @@ export function IncorporationApp() {
             )}
           </div>
 
-          <aside className="hidden w-72 shrink-0 border-l border-border bg-card/40 xl:block 2xl:w-80">
+          {/* ── Document Vault sidebar — always visible ≥ sm ── */}
+          <aside className="hidden w-52 shrink-0 flex-col border-l border-border bg-card/40 sm:flex md:w-60 lg:w-72 2xl:w-80">
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
+
+          {/* ── Mobile floating tab (< sm only) ── */}
+          {hasDocs && (
+            <button
+              onClick={() => setMobileDocsOpen(true)}
+              className="sm:hidden fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-md transition-colors hover:border-primary hover:text-primary"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              Document Vault {docsTotal > 0 && <span className="text-muted-foreground">({docsCompleted}/{docsTotal})</span>}
+            </button>
+          )}
+
+          {/* ── Mobile bottom sheet (< sm only) ── */}
+          {mobileDocsOpen && (
+            <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
+              <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setMobileDocsOpen(false)} />
+              <div className="relative flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl">
+                <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+                  <h2 className="text-sm font-semibold text-foreground">Document Vault</h2>
+                  <button onClick={() => setMobileDocsOpen(false)} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : view === "compliance" ? (
         <ComplianceView key={complianceKey} answers={answers} />
