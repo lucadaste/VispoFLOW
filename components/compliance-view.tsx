@@ -22,7 +22,13 @@ type ChatMsg =
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
 
-export function ComplianceView({ answers }: { answers: FlowAnswers }) {
+export function ComplianceView({
+  answers,
+  onItemComplete,
+}: {
+  answers: FlowAnswers
+  onItemComplete?: (doc: { id: string; title: string; subtitle: string }) => void
+}) {
   const { user } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory | null>(null)
@@ -79,11 +85,12 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
     setMobileOpen(false)
   }, [pushBot, pushUser])
 
-  const handleFilingComplete = useCallback((item: ComplianceItem) => {
+  const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string) => {
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setActiveItemId(null)
     pushBot(`✓ ${item.title} has been saved. Select another filing from the right to continue, or ask me anything.`)
-  }, [pushBot])
+    onItemComplete?.({ id: item.id, title: item.title, subtitle: groupTitle })
+  }, [pushBot, onItemComplete])
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => {
     if (!key || key === "computed") return ""
@@ -112,6 +119,12 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
     <div className="flex w-full flex-1 overflow-hidden">
       {/* ── Chat ── */}
       <div className="flex min-w-0 flex-1 flex-col">
+        <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
+          <div className="mx-auto max-w-2xl">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
+          </div>
+        </div>
+
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.map((m) => {
@@ -124,7 +137,7 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
                   groupTitle={m.groupTitle}
                   done={!!completed[m.item.id]}
                   prefill={prefill}
-                  onComplete={() => handleFilingComplete(m.item)}
+                  onComplete={() => handleFilingComplete(m.item, m.groupTitle)}
                 />
               )
               return null
@@ -172,18 +185,16 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
         {sidebarContent}
       </aside>
 
-      {/* ── Mobile minimized tab / drawer (< sm only) ── */}
-      {activeCategory && (
-        <MobileSidebarTab
-          icon={ShieldCheck}
-          label="Compliance Center"
-          count={{ done: doneCount, total }}
-          open={mobileOpen}
-          onOpenChange={setMobileOpen}
-        >
-          {sidebarContent}
-        </MobileSidebarTab>
-      )}
+      {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
+      <MobileSidebarTab
+        icon={ShieldCheck}
+        label="Compliance Center"
+        count={activeCategory ? { done: doneCount, total } : undefined}
+        open={mobileOpen}
+        onOpenChange={setMobileOpen}
+      >
+        {sidebarContent}
+      </MobileSidebarTab>
     </div>
   )
 }

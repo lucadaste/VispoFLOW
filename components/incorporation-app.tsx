@@ -7,6 +7,7 @@ import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
+import { DocumentLibrary, type LibraryDoc } from "@/components/document-library"
 import { Landing } from "@/components/landing"
 import { HomeChat } from "@/components/home-chat"
 import {
@@ -47,8 +48,8 @@ export function IncorporationApp() {
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false)
-  type View = "landing" | "home-chat" | "chat" | "compliance" | "transactions"
-  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "transactions"]
+  type View = "landing" | "home-chat" | "chat" | "compliance" | "transactions" | "documents"
+  const VALID_VIEWS: View[] = ["landing", "home-chat", "chat", "compliance", "transactions", "documents"]
 
   const [view, setView] = useState<View | "loading">("loading")
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
@@ -56,6 +57,8 @@ export function IncorporationApp() {
   const [complianceKey, setComplianceKey] = useState(0)
   const [landingKey, setLandingKey] = useState(0)
   const [transactionsKey, setTransactionsKey] = useState(0)
+  const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
+  const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -71,12 +74,21 @@ export function IncorporationApp() {
     if (view !== "loading") sessionStorage.setItem("vispo-view", view)
   }, [view])
 
-  const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions") => {
+  const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
     if (phase === "transactions") { setView("transactions"); return }
     if (phase === "compliance") { setView("compliance"); return }
+    if (phase === "documents") { setView("documents"); return }
   }
+
+  const handleComplianceDocComplete = useCallback((doc: LibraryDoc) => {
+    setComplianceDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs : [...docs, doc]))
+  }, [])
+
+  const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
+    setTransactionDocs((docs) => [...docs, doc])
+  }, [])
 
   const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
     if (path === "compliance") { setView("compliance"); return }
@@ -256,8 +268,8 @@ export function IncorporationApp() {
     if (view === "chat") { restartFormation(); return }
     if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
-    if (view === "compliance") { setComplianceKey((k) => k + 1); return }
-    if (view === "transactions") { setTransactionsKey((k) => k + 1); return }
+    if (view === "compliance") { setComplianceDocs([]); setComplianceKey((k) => k + 1); return }
+    if (view === "transactions") { setTransactionDocs([]); setTransactionsKey((k) => k + 1); return }
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0
@@ -273,7 +285,13 @@ export function IncorporationApp() {
       ? "compliance"
       : view === "transactions"
       ? "transactions"
+      : view === "documents"
+      ? "documents"
       : "chat"
+
+  const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
+    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
+  ).map((d) => ({ id: d.id, title: d.label, subtitle: d.group }))
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -294,6 +312,12 @@ export function IncorporationApp() {
       ) : view === "chat" ? (
         <div className="flex w-full flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
+            <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
+              <div className="mx-auto max-w-2xl">
+                <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
+              </div>
+            </div>
+
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
               <div className="mx-auto max-w-2xl space-y-4">
                 {messages.map((m) => {
@@ -329,23 +353,28 @@ export function IncorporationApp() {
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
 
-          {/* ── Mobile minimized tab / drawer (< sm only) ── */}
-          {hasDocs && (
-            <MobileSidebarTab
-              icon={FileText}
-              label="Document Vault"
-              count={{ done: docsCompleted, total: docsTotal }}
-              open={mobileDocsOpen}
-              onOpenChange={setMobileDocsOpen}
-            >
-              <DocumentTracker statuses={docStatuses} />
-            </MobileSidebarTab>
-          )}
+          {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
+          <MobileSidebarTab
+            icon={FileText}
+            label="Document Vault"
+            count={hasDocs ? { done: docsCompleted, total: docsTotal } : undefined}
+            open={mobileDocsOpen}
+            onOpenChange={setMobileDocsOpen}
+          >
+            {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
+          </MobileSidebarTab>
         </div>
       ) : view === "compliance" ? (
-        <ComplianceView key={complianceKey} answers={answers} />
+        <ComplianceView key={complianceKey} answers={answers} onItemComplete={handleComplianceDocComplete} />
+      ) : view === "transactions" ? (
+        <TransactionsOnboarding key={transactionsKey} onDocumentReady={handleTransactionDocReady} />
       ) : (
-        <TransactionsOnboarding key={transactionsKey} />
+        <DocumentLibrary
+          incorporationDocs={incorporationLibraryDocs}
+          complianceDocs={complianceDocs}
+          transactionDocs={transactionDocs}
+          onNavigate={handlePhaseClick}
+        />
       )}
     </div>
   )

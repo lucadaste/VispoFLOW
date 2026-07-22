@@ -46,7 +46,11 @@ const initialState: State = {
   transferTo: "",
 }
 
-export function TransactionsOnboarding() {
+export function TransactionsOnboarding({
+  onDocumentReady,
+}: {
+  onDocumentReady?: (doc: { id: string; title: string; subtitle: string }) => void
+} = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [state, setState] = useState<State>(initialState)
   const [value, setValue] = useState("")
@@ -114,6 +118,11 @@ export function TransactionsOnboarding() {
         const vesting = text.toLowerCase() === "standard" ? "4-year / 1-year cliff (standard)" : text
         setState((p) => ({ ...p, vesting, step: "done" }))
         pushBot(`Got it — stock option grant prepared:\n\n• Recipient: ${s.recipient}\n• Options: ${s.amount}\n• Exercise price: ${s.price}\n• Vesting: ${vesting}\n\nYour grant document is ready for review and signature.`)
+        onDocumentReady?.({
+          id: `option-grant-${Date.now()}`,
+          title: `Stock Option Grant — ${s.recipient}`,
+          subtitle: `${s.amount} options · ${vesting}`,
+        })
       }
     } else if (s.flow === "shares") {
       if (s.step === "recipient") {
@@ -125,6 +134,11 @@ export function TransactionsOnboarding() {
       } else if (s.step === "share-class") {
         setState((p) => ({ ...p, shareClass: text, step: "done" }))
         pushBot(`Done — share issuance prepared:\n\n• Recipient: ${s.recipient}\n• Shares: ${s.amount}\n• Class: ${text}\n\nYour stock issuance document is ready for review and signature.`)
+        onDocumentReady?.({
+          id: `share-issuance-${Date.now()}`,
+          title: `Stock Issuance — ${s.recipient}`,
+          subtitle: `${s.amount} shares · ${text}`,
+        })
       }
     } else if (s.flow === "transfer") {
       if (s.step === "transfer-from") {
@@ -136,11 +150,16 @@ export function TransactionsOnboarding() {
       } else if (s.step === "amount") {
         setState((p) => ({ ...p, amount: text, step: "done" }))
         pushBot(`Transfer recorded:\n\n• From: ${s.transferFrom}\n• To: ${s.transferTo}\n• Shares: ${text}\n\nYour stock transfer document is ready for review and signature.`)
+        onDocumentReady?.({
+          id: `stock-transfer-${Date.now()}`,
+          title: `Stock Transfer — ${s.transferFrom} → ${s.transferTo}`,
+          subtitle: `${text} shares`,
+        })
       }
     } else if (s.flow === "questions") {
       pushBot("That's a great question. For specifics on your situation, we'd recommend consulting a startup attorney — but feel free to keep asking and I'll help with what I can.")
     }
-  }, [value, state, pushBot, pushUser, startFlow])
+  }, [value, state, pushBot, pushUser, startFlow, onDocumentReady])
 
   const showInput = state.step !== "done"
   const placeholder =
@@ -152,6 +171,12 @@ export function TransactionsOnboarding() {
 
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
+      <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-2xl">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
+        </div>
+      </div>
+
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.map((m) =>

@@ -30,6 +30,7 @@ const PHASES = [
   { key: "chat", label: "Incorporation" },
   { key: "compliance", label: "Compliance" },
   { key: "transactions", label: "Transactions" },
+  { key: "documents", label: "My Docs" },
 ] as const
 
 export function TopBar({
@@ -37,9 +38,9 @@ export function TopBar({
   onReset,
   onPhaseClick,
 }: {
-  phase: "home" | "chat" | "compliance" | "transactions"
+  phase: "home" | "chat" | "compliance" | "transactions" | "documents"
   onReset: () => void
-  onPhaseClick: (phase: "home" | "chat" | "compliance" | "transactions") => void
+  onPhaseClick: (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -67,6 +68,8 @@ export function TopBar({
           <PhasePill active={phase === "compliance"} label="Compliance" onClick={() => onPhaseClick("compliance")} />
           <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "transactions"} label="Transactions" onClick={() => onPhaseClick("transactions")} />
+          <div className="h-px w-6 bg-border" />
+          <PhasePill active={phase === "documents"} label="My Docs" onClick={() => onPhaseClick("documents")} />
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
