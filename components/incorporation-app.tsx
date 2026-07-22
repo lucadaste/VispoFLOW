@@ -1,8 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { FileText, X } from "lucide-react"
+import { FileText } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
+import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
@@ -328,33 +329,17 @@ export function IncorporationApp() {
             {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
           </aside>
 
-          {/* ── Mobile floating tab (< sm only) ── */}
+          {/* ── Mobile minimized tab / drawer (< sm only) ── */}
           {hasDocs && (
-            <button
-              onClick={() => setMobileDocsOpen(true)}
-              className="sm:hidden fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-md transition-colors hover:border-primary hover:text-primary"
+            <MobileSidebarTab
+              icon={FileText}
+              label="Document Vault"
+              count={{ done: docsCompleted, total: docsTotal }}
+              open={mobileDocsOpen}
+              onOpenChange={setMobileDocsOpen}
             >
-              <FileText className="h-3.5 w-3.5" />
-              Document Vault {docsTotal > 0 && <span className="text-muted-foreground">({docsCompleted}/{docsTotal})</span>}
-            </button>
-          )}
-
-          {/* ── Mobile bottom sheet (< sm only) ── */}
-          {mobileDocsOpen && (
-            <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
-              <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setMobileDocsOpen(false)} />
-              <div className="relative flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl">
-                <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-                  <h2 className="text-sm font-semibold text-foreground">Document Vault</h2>
-                  <button onClick={() => setMobileDocsOpen(false)} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto">
-                  {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
-                </div>
-              </div>
-            </div>
+              <DocumentTracker statuses={docStatuses} />
+            </MobileSidebarTab>
           )}
         </div>
       ) : view === "compliance" ? (

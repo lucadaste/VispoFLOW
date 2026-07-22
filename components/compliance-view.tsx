@@ -1,9 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ShieldCheck, CalendarClock, X } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage } from "@/components/chat-message"
+import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import {
   COMPLIANCE_CATEGORIES,
   type ComplianceCategory,
@@ -171,31 +172,17 @@ export function ComplianceView({ answers }: { answers: FlowAnswers }) {
         {sidebarContent}
       </aside>
 
-      {/* ── Mobile floating tab (< sm only) ── */}
+      {/* ── Mobile minimized tab / drawer (< sm only) ── */}
       {activeCategory && (
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="sm:hidden fixed bottom-24 right-3 z-40 flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-2 text-xs font-medium text-foreground shadow-md transition-colors hover:border-primary hover:text-primary"
+        <MobileSidebarTab
+          icon={ShieldCheck}
+          label="Compliance Center"
+          count={{ done: doneCount, total }}
+          open={mobileOpen}
+          onOpenChange={setMobileOpen}
         >
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Compliance Center {total > 0 && <span className="text-muted-foreground">({doneCount}/{total})</span>}
-        </button>
-      )}
-
-      {/* ── Mobile bottom sheet (< sm only) ── */}
-      {mobileOpen && (
-        <div className="sm:hidden fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
-          <div className="relative flex max-h-[78dvh] flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-foreground">Compliance Center</h2>
-              <button onClick={() => setMobileOpen(false)} className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto">{sidebarContent}</div>
-          </div>
-        </div>
+          {sidebarContent}
+        </MobileSidebarTab>
       )}
     </div>
   )

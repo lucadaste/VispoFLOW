@@ -1,6 +1,7 @@
 "use client"
 
-import { Scale, RotateCcw } from "lucide-react"
+import { useState } from "react"
+import { Scale, RotateCcw, Menu, X } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 
 function AuthControls() {
@@ -24,6 +25,13 @@ function AuthControls() {
   )
 }
 
+const PHASES = [
+  { key: "home", label: "Home" },
+  { key: "chat", label: "Incorporation" },
+  { key: "compliance", label: "Compliance" },
+  { key: "transactions", label: "Transactions" },
+] as const
+
 export function TopBar({
   phase,
   onReset,
@@ -33,14 +41,16 @@ export function TopBar({
   onReset: () => void
   onPhaseClick: (phase: "home" | "chat" | "compliance" | "transactions") => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
         <button
           onClick={() => onPhaseClick("home")}
-          className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Scale className="h-4.5 w-4.5" strokeWidth={2} />
           </div>
           <div className="leading-tight text-left">
@@ -49,7 +59,7 @@ export function TopBar({
           </div>
         </button>
 
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />
           <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "chat"} label="Incorporation" onClick={() => onPhaseClick("chat")} />
@@ -59,18 +69,53 @@ export function TopBar({
           <PhasePill active={phase === "transactions"} label="Transactions" onClick={() => onPhaseClick("transactions")} />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3">
           <button
             onClick={onReset}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Restart
+            <span className="hidden sm:inline">Restart</span>
+          </button>
+
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground lg:hidden"
+            aria-label="Toggle navigation menu"
+          >
+            {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
 
           <AuthControls />
         </div>
       </div>
+
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-30 lg:hidden" onClick={() => setMenuOpen(false)} />
+          <div className="relative z-40 border-t border-border bg-card px-4 py-3 lg:hidden">
+            <div className="flex flex-col gap-1.5">
+              {PHASES.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => {
+                    onPhaseClick(p.key)
+                    setMenuOpen(false)
+                  }}
+                  className={
+                    "rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors " +
+                    (phase === p.key
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-secondary hover:text-foreground")
+                  }
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </header>
   )
 }
