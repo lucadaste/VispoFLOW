@@ -29,6 +29,8 @@ import {
   docShorts,
   DOCUMENTS,
 } from "@/lib/flow"
+import { loadPersisted, savePersisted, clearPersisted } from "@/lib/persist"
+import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -36,6 +38,19 @@ type ChatMessage =
   | { id: number; role: "system"; text: string; variant: "doc" | "filing" }
   | { id: number; role: "widget"; widget: "name-check"; companyName: string }
   | { id: number; role: "widget"; widget: "formed" }
+
+type IncorporationPersisted = {
+  messages: ChatMessage[]
+  docStatuses: Record<string, DocStatus>
+  answers: FlowAnswers
+  activeStepIndex: number
+  activeInput: StepInput | null
+}
+
+type LibraryPersisted = {
+  complianceDocs: LibraryDoc[]
+  transactionDocs: LibraryDoc[]
+}
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 16))
@@ -64,7 +79,7 @@ export function IncorporationApp() {
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
     try {
-      const saved = sessionStorage.getItem("vispo-view") as View | null
+      const saved = sessionStorage.getItem(STORAGE_KEYS.view) as View | null
       if (saved && VALID_VIEWS.includes(saved)) { setView(saved); return }
     } catch {}
     setView("landing")
@@ -72,8 +87,22 @@ export function IncorporationApp() {
   }, [])
 
   useEffect(() => {
-    if (view !== "loading") sessionStorage.setItem("vispo-view", view)
+    if (view !== "loading") sessionStorage.setItem(STORAGE_KEYS.view, view)
   }, [view])
+
+  // Restore the document library (compliance/transaction docs) after mount
+  useEffect(() => {
+    const saved = loadPersisted<LibraryPersisted>(STORAGE_KEYS.library)
+    if (saved) {
+      setComplianceDocs(saved.complianceDocs)
+      setTransactionDocs(saved.transactionDocs)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    savePersisted<LibraryPersisted>(STORAGE_KEYS.library, { complianceDocs, transactionDocs })
+  }, [complianceDocs, transactionDocs])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -201,8 +230,31 @@ export function IncorporationApp() {
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
+
+    const saved = loadPersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation)
+    if (saved && saved.messages.length > 0) {
+      idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+      setMessages(saved.messages)
+      setDocStatuses(saved.docStatuses)
+      setAnswers(saved.answers)
+      setActiveStepIndex(saved.activeStepIndex)
+      setActiveInput(saved.activeInput)
+      return
+    }
+
     playStep(0)
   }, [playStep])
+
+  useEffect(() => {
+    if (!startedRef.current) return
+    savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, {
+      messages,
+      docStatuses,
+      answers,
+      activeStepIndex,
+      activeInput,
+    })
+  }, [messages, docStatuses, answers, activeStepIndex, activeInput])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -238,6 +290,11 @@ export function IncorporationApp() {
       }
 
       if (step.input?.kind === "continue" && step.input.action === "compliance") {
+        if (displayText) {
+          await pushBot("Happy to help with any questions — whenever you're ready, click \"Continue to Compliance Center\" to move on.")
+          setActiveInput(step.input)
+          return
+        }
         await pushBot("Now let's head to the Compliance Center to complete the regulatory filings required for your incorporation.")
         await delay(300)
         setView("compliance")
@@ -259,6 +316,7 @@ export function IncorporationApp() {
     setActiveStepIndex(0)
     setIsTyping(false)
     setView("chat")
+    clearPersisted(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
       startedRef.current = true
       playStep(0)
@@ -267,10 +325,10 @@ export function IncorporationApp() {
 
   const handleRestart = () => {
     if (view === "chat") { restartFormation(); return }
-    if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); return }
+    if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); clearPersisted(STORAGE_KEYS.homeChat); return }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
-    if (view === "compliance") { setComplianceDocs([]); setComplianceKey((k) => k + 1); return }
-    if (view === "transactions") { setTransactionDocs([]); setTransactionsKey((k) => k + 1); return }
+    if (view === "compliance") { setComplianceDocs([]); setComplianceKey((k) => k + 1); clearPersisted(STORAGE_KEYS.compliance); return }
+    if (view === "transactions") { setTransactionDocs([]); setTransactionsKey((k) => k + 1); clearPersisted(STORAGE_KEYS.transactions); return }
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0

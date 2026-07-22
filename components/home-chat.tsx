@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { loadPersisted, savePersisted } from "@/lib/persist"
+import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type Message = { role: "user" | "assistant"; content: string }
 
@@ -120,12 +122,22 @@ export function HomeChat({
     if (sentInitial.current) return
     sentInitial.current = true
 
+    const saved = loadPersisted<{ messages: Message[] }>(STORAGE_KEYS.homeChat)
+    if (saved && saved.messages.length > 0) {
+      setMessages(saved.messages)
+      return
+    }
+
     if (initialMessage) {
       sendMessage(initialMessage)
     } else {
       setMessages([{ role: "assistant", content: GREETING }])
     }
   }, [initialMessage, sendMessage])
+
+  useEffect(() => {
+    if (messages.length > 0) savePersisted(STORAGE_KEYS.homeChat, { messages })
+  }, [messages])
 
   const handleSubmit = () => {
     const t = input.trim()

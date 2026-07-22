@@ -630,15 +630,34 @@ function ContinueInput({
   input: Extract<StepInput, { kind: "continue" }>
   onSubmit: SubmitFn
 }) {
+  const [value, setValue] = useState("")
+  const submit = () => {
+    const t = value.trim()
+    if (!t) return
+    onSubmit(t, {})
+    setValue("")
+  }
   return (
-    <div className="flex justify-center">
-      <button
-        onClick={() => onSubmit("", {})}
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
-      >
-        {input.label}
-        <ArrowRight className="h-4 w-4" />
-      </button>
+    <div className="space-y-2.5">
+      <div className="flex justify-center">
+        <button
+          onClick={() => onSubmit("", {})}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+        >
+          {input.label}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder="Ask a question before you continue…"
+          className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+        />
+        <SubmitButton onClick={submit} disabled={!value.trim()} />
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, Loader2, FileText, Send, Circle } from "lucide-react"
+import { Check, Loader2, FileText, Send, Circle, HelpCircle } from "lucide-react"
 import { DOCUMENTS, type DocStatus } from "@/lib/flow"
 import { cn } from "@/lib/utils"
 
@@ -112,7 +112,15 @@ function StatusBadge({ status }: { status: DocStatus }) {
   if (status === "drafting")
     return <span className="shrink-0 text-[10px] font-medium text-accent-foreground/70">Drafting</span>
   if (status === "filing")
-    return <span className="shrink-0 text-[10px] font-medium text-primary">Filing</span>
+    return (
+      <span className="group/tip relative flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-primary">
+        Filing
+        <HelpCircle className="h-2.5 w-2.5 cursor-help text-primary/60" />
+        <span className="pointer-events-none absolute right-0 top-full z-10 mt-1.5 w-44 rounded-md border border-border bg-popover px-2 py-1.5 text-[10px] font-normal leading-snug text-popover-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/tip:opacity-100">
+          Delaware is processing the filing. This can take anywhere from same-day to a few business days.
+        </span>
+      </span>
+    )
   return null
 }
 

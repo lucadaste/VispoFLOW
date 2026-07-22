@@ -5,6 +5,8 @@ import { Send, ArrowLeftRight, Check } from "lucide-react"
 import { BotMessage, UserMessage } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
+import { loadPersisted, savePersisted } from "@/lib/persist"
+import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -50,6 +52,12 @@ const initialState: State = {
   transferTo: "",
 }
 
+type TransactionsPersisted = {
+  messages: ChatMessage[]
+  state: State
+  docs: TxDoc[]
+}
+
 export function TransactionsOnboarding({
   onDocumentReady,
 }: {
@@ -75,8 +83,23 @@ export function TransactionsOnboarding({
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
+
+    const saved = loadPersisted<TransactionsPersisted>(STORAGE_KEYS.transactions)
+    if (saved && saved.messages.length > 0) {
+      idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+      setMessages(saved.messages)
+      setState(saved.state)
+      setDocs(saved.docs)
+      return
+    }
+
     pushBot(GREETING)
   }, [pushBot])
+
+  useEffect(() => {
+    if (!startedRef.current) return
+    savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, { messages, state, docs })
+  }, [messages, state, docs])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
