@@ -1145,11 +1145,93 @@ FORM OF STOCK PLAN
 (See the Equity Incentive Plan document.)`
 }
 
+const FOUNDER_PRICE_PER_SHARE = 0.00001
+
+function boardConsentFounderStock(a: FlowAnswers): string {
+  const directorSignatures =
+    a.directors.length > 0
+      ? a.directors
+          .map((d) => `_________________________\n${d}, Director`)
+          .join("\n\n")
+      : "_________________________\n[No directors specified], Director"
+
+  const founders = a.allocations.filter((alloc) => !alloc.isPool)
+  const issuanceTable =
+    founders.length > 0
+      ? founders
+          .map(
+            (f) => `Name of Stockholder: ${f.name}
+Shares and Price: ${f.shares.toLocaleString()} shares of Common Stock at $${FOUNDER_PRICE_PER_SHARE} per share
+Amount and Form of Consideration: $${(f.shares * FOUNDER_PRICE_PER_SHARE).toFixed(2)} in cash
+Vesting Schedule: See note (a) below
+Vesting Commencement Date: ${a.vestingStartDate || "Incorporation date"}`,
+          )
+          .join("\n\n")
+      : "[No founder allocations specified]"
+
+  return `ACTION BY WRITTEN CONSENT
+OF THE BOARD OF DIRECTORS OF
+
+${a.companyName}
+
+In accordance with Section 141(f) of the Delaware General Corporation Law and the Bylaws of ${a.companyName}, a Delaware corporation (the "Company"), the undersigned, constituting all of the members of the Company's Board of Directors (the "Board"), hereby take the following actions and adopt the following resolutions by written consent without a meeting:
+
+1. Sale and Issuance of Stock
+
+RESOLVED: That the officers are authorized to sell and issue on behalf of the Company the shares of stock as set forth in Exhibit A (the "Shares") to the purchasers listed therein (the "Purchasers") in the amounts and subject to the vesting provisions specified opposite the Purchaser's name, at the price per share as set forth in Exhibit A, which the Board determines to be the fair value of such Shares as of the date hereof, and in exchange for the consideration set forth in Exhibit A, which the Board determines to have a value equal to the fair value of the Shares.
+
+RESOLVED FURTHER: That each stock sale authorized in the above resolution shall be made pursuant to a stock purchase agreement in substantially the form(s) attached hereto as Exhibit B.
+
+RESOLVED FURTHER: That, upon the Company's receipt of a fully executed stock purchase agreement and the consideration provided for therein, the Company is authorized and directed to issue the Shares.
+
+RESOLVED FURTHER: That it is desirable and in the best interest of the Company that its securities be qualified or registered for sale in various states; that the President or any Vice President and the Secretary or any Assistant Secretary (and their designees or agents) hereby are authorized to determine the states in which appropriate action shall be taken to qualify or register for sale all or such part of the securities of the Company as said persons may deem advisable; that said persons are hereby authorized to perform on behalf of the Company any and all such acts as they deem necessary or advisable in order to comply with the applicable laws of any such states, and in connection therewith to execute and file all requisite papers and documents, including, but not limited to, applications, reports, surety bonds, irrevocable consents and appointments of attorneys for service of process; and the execution by such persons of any such paper or document or the doing by them of any act in connection with the foregoing matters shall conclusively establish their authority from the Company and the approval and ratification by the Company of the papers and documents so executed and the action so taken.
+
+RESOLVED FURTHER: That the stock sales authorized in the above resolution shall be conducted in such a manner as to qualify for the exemption from applicable state requirements regarding registration of the sale of securities.
+
+2. Uncertificated Stock
+
+RESOLVED: That the shares of the Company shall be uncertificated, provided that the Company may issue certificated shares for some or all of any or all classes or series of its stock if deemed advisable and in the best interests of the Company by the officers, in consultation with legal counsel.
+
+RESOLVED FURTHER: That the officers are authorized and directed to send a written notice to record owners of shares of uncertificated stock in accordance with the Delaware General Corporation Law (upon the request of such record owner) substantially in the form provided herewith to the Board with such changes deemed necessary or advisable by the officers, in consultation with legal counsel.
+
+3. Omnibus Resolution
+
+RESOLVED: That each of the officers is authorized and empowered to take all such actions (including, without limitation, soliciting appropriate consents or waivers from stockholders) and to execute and deliver all such documents as may be necessary or advisable to carry out the intent and accomplish the purposes of the foregoing resolutions and to effect any transactions contemplated thereby and the performance of any such actions and the execution and delivery of any such documents shall be conclusive evidence of the approval of the Board thereof and all matters relating thereto.
+
+***
+
+In accordance with the Company's Bylaws, this action may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which when so executed shall be deemed to be an original and all of which taken together shall constitute one and the same action.
+
+The consent of the undersigned shall be effective immediately upon the election of the undersigned as directors of the corporation; provided, however, that if such event has already occurred before the time of execution of this consent by the undersigned, then this consent shall be effective immediately. This consent shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this consent has been made.
+
+Actual Date of Signature: ${today()}
+
+
+${directorSignatures}
+
+
+EXHIBIT A
+
+INITIAL STOCK ISSUANCE TABLE
+
+${issuanceTable}
+
+(a) 100.00% of the Common Shares are subject to vesting (the "Vesting Shares"). 1/4th of the Vesting Shares shall vest on the 12-month anniversary of the Vesting Commencement Date and 1/48th of the Vesting Shares shall vest monthly thereafter. In the event of a Change of Control, 100.00% of the Vesting Shares shall vest on a single trigger basis.
+
+
+EXHIBIT B
+
+FORM OF RESTRICTED STOCK PURCHASE AGREEMENT
+
+(See the Founder Restricted Stock Purchase Agreements document.)`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
   "org-resolutions": orgResolutions,
   "board-consent-option-pool": boardConsentOptionPool,
+  "board-consent-founder-stock": boardConsentFounderStock,
   bylaws,
   "option-pool": optionPool,
 }
