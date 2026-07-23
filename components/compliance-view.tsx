@@ -82,9 +82,16 @@ export function ComplianceView({
     const name = user?.firstName
     pushBot(
       name
-        ? `Hi ${name}, what kind of compliance do you need help with today?`
-        : "Hi! What kind of compliance do you need help with today?"
+        ? `Hi ${name}, let's get your post-incorporation compliance started.`
+        : "Hi! Let's get your post-incorporation compliance started."
     )
+
+    const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
+    if (initialCategory) {
+      pushBot(initialCategory.chatResponse)
+      setActiveCategory(initialCategory)
+      setExpandedCategoryId(initialCategory.id)
+    }
   }, [pushBot, user, applyState])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
