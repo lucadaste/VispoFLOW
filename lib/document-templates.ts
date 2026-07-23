@@ -1098,10 +1098,58 @@ _________________________
 Spouse of Purchaser (if applicable)`
 }
 
+function boardConsentOptionPool(a: FlowAnswers): string {
+  const year = currentYear()
+  const directorSignatures =
+    a.directors.length > 0
+      ? a.directors
+          .map((d) => `_________________________\n${d}, Director`)
+          .join("\n\n")
+      : "_________________________\n[No directors specified], Director"
+
+  return `ACTION BY WRITTEN CONSENT
+OF THE BOARD OF DIRECTORS OF
+
+${a.companyName}
+
+In accordance with Section 141(f) of the Delaware General Corporation Law and the Bylaws of ${a.companyName}, a Delaware corporation (the "Company"), the undersigned, constituting all of the members of the Company's Board of Directors (the "Board"), hereby take the following actions and adopt the following resolutions by written consent without a meeting:
+
+1. Adoption of ${year} Stock Plan
+
+RESOLVED: That the ${year} Stock Plan (the "Plan"), in substantially the form attached hereto as Exhibit A, is hereby adopted and ${a.poolShares} shares of the Company's Common Stock are reserved for issuance pursuant to the Plan.
+
+RESOLVED FURTHER: That the Plan shall continue for 10 years from the effective date of these resolutions unless terminated earlier pursuant to its terms.
+
+RESOLVED FURTHER: That the officers of the Company, in consultation with legal counsel, are authorized and directed to take any and all additional actions and file any other documents necessary to carry out the intent and purposes of the foregoing resolutions, including seeking stockholder approval of the Plan and qualifying or exempting the issuance of securities under the Plan from the registration requirements of the California Corporate Securities Law of 1968, as amended.
+
+2. Omnibus Resolution
+
+RESOLVED: That each of the officers is authorized and empowered to take all such actions (including, without limitation, soliciting appropriate consents or waivers from stockholders) and to execute and deliver all such documents as may be necessary or advisable to carry out the intent and accomplish the purposes of the foregoing resolutions and to effect any transactions contemplated thereby and the performance of any such actions and the execution and delivery of any such documents shall be conclusive evidence of the approval of the Board thereof and all matters relating thereto.
+
+***
+
+In accordance with the Company's Bylaws, this action may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which when so executed shall be deemed to be an original and all of which taken together shall constitute one and the same action.
+
+The consent of the undersigned shall be effective immediately upon the election of the undersigned as directors of the corporation; provided, however, that if such event has already occurred before the time of execution of this consent by the undersigned, then this consent shall be effective immediately. This consent shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this consent has been made.
+
+Actual Date of Signature: ${today()}
+
+
+${directorSignatures}
+
+
+EXHIBIT A
+
+FORM OF STOCK PLAN
+
+(See the Equity Incentive Plan document.)`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
   "org-resolutions": orgResolutions,
+  "board-consent-option-pool": boardConsentOptionPool,
   bylaws,
   "option-pool": optionPool,
 }
