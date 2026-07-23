@@ -426,7 +426,7 @@ export function IncorporationApp() {
       ) : view === "compliance" ? (
         <ComplianceView key={complianceKey} answers={answers} onItemComplete={handleComplianceDocComplete} />
       ) : view === "transactions" ? (
-        <TransactionsOnboarding key={transactionsKey} onDocumentReady={handleTransactionDocReady} />
+        <TransactionsOnboarding key={transactionsKey} answers={answers} onDocumentReady={handleTransactionDocReady} />
       ) : (
         <DocumentLibrary
           incorporationDocs={incorporationLibraryDocs}
