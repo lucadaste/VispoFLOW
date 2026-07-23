@@ -136,67 +136,98 @@ function DocSection({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {docs.map((doc) => {
-            const viewable = !!doc.content
-            const downloadable = viewable && !doc.pending
-            return (
-              <div
-                key={doc.id}
-                role={viewable ? "button" : undefined}
-                tabIndex={viewable ? 0 : undefined}
-                onClick={viewable ? () => onView(doc) : undefined}
-                onKeyDown={viewable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView(doc) } } : undefined}
-                className={`flex items-start gap-3 rounded-xl border p-3.5 text-left shadow-sm ${
-                  doc.pending ? "border-primary/30 bg-primary/5" : "border-border bg-card"
-                } ${viewable ? "cursor-pointer transition-colors hover:border-primary/40" : ""}`}
-              >
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                  <FileText className="h-4 w-4" />
-                </span>
-                <div className="min-w-0 flex-1 leading-tight">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
-                    {doc.pending && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
-                        <Send className="h-2 w-2" />
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
-                  {doc.pending ? (
-                    <p className="mt-1 text-[10px] font-medium text-primary">Filing with the state — usually same-day to a few business days</p>
-                  ) : viewable ? (
-                    <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
-                  ) : null}
-                </div>
-                {downloadable && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
-                    title="Download"
-                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                  </button>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(doc) }}
-                  title="Delete"
-                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-                {!doc.pending && (
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  </span>
-                )}
-              </div>
-            )
-          })}
+          {docs.map((doc) => (
+            <DocCard key={doc.id} doc={doc} onView={onView} onDelete={onDelete} />
+          ))}
         </div>
       )}
     </section>
+  )
+}
+
+function DocCard({
+  doc,
+  onView,
+  onDelete,
+}: {
+  doc: LibraryDoc
+  onView: (doc: LibraryDoc) => void
+  onDelete: (doc: LibraryDoc) => void
+}) {
+  const [confirming, setConfirming] = useState(false)
+  const viewable = !!doc.content
+  const downloadable = viewable && !doc.pending
+
+  return (
+    <div
+      role={viewable ? "button" : undefined}
+      tabIndex={viewable ? 0 : undefined}
+      onClick={viewable ? () => onView(doc) : undefined}
+      onKeyDown={viewable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView(doc) } } : undefined}
+      className={`group flex items-start gap-3 rounded-xl border p-3.5 text-left shadow-sm ${
+        doc.pending ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+      } ${viewable ? "cursor-pointer transition-colors hover:border-primary/40" : ""}`}
+    >
+      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+        <FileText className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1 leading-tight">
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
+          {doc.pending && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
+              <Send className="h-2 w-2" />
+              Pending
+            </span>
+          )}
+        </div>
+        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
+        {confirming ? (
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="text-[10px] font-medium text-destructive">Delete this document?</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(doc) }}
+              className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive hover:bg-destructive/20"
+            >
+              Delete
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setConfirming(false) }}
+              className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-secondary"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : doc.pending ? (
+          <p className="mt-1 text-[10px] font-medium text-primary">Filing with the state — usually same-day to a few business days</p>
+        ) : viewable ? (
+          <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
+        ) : null}
+      </div>
+      {downloadable && (
+        <button
+          onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
+          title="Download"
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <Download className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {!confirming && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
+          title="Delete"
+          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 opacity-40 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
+      {!doc.pending && !confirming && (
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
+    </div>
   )
 }
 
