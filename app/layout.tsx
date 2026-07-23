@@ -18,6 +18,13 @@ const fraunces = Fraunces({
   variable: "--font-serif-display",
 })
 
+const clerkLocalization = {
+  userProfile: {
+    navbar: { account: "Account" },
+    start: { headerTitle__account: "Account" },
+  },
+}
+
 export const metadata: Metadata = {
   title: "Silicon Valley AI Camp — Silicon Valley Experience",
   description:
@@ -30,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider localization={clerkLocalization}>
       <html
         lang="en"
         className={`bg-background ${geistSans.variable} ${geistMono.variable} ${fraunces.variable}`}

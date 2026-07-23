@@ -16,6 +16,7 @@ function AuthControls({ profile, onSaveProfile }: { profile: UserProfile; onSave
           elements: { avatarBox: "h-8 w-8" },
         }}
       >
+        <UserButton.UserProfilePage label="account" />
         <UserButton.UserProfilePage
           label="Company Profile"
           url="company-profile"
@@ -29,6 +30,7 @@ function AuthControls({ profile, onSaveProfile }: { profile: UserProfile; onSave
             <ProfileForm profile={profile} onSave={onSaveProfile} saveLabel="Save" />
           </div>
         </UserButton.UserProfilePage>
+        <UserButton.UserProfilePage label="security" />
       </UserButton>
     )
   }
