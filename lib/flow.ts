@@ -65,15 +65,7 @@ export const DOCUMENTS: LegalDoc[] = [
     short: "TW Founder RSPAs",
     group: "Equity",
     description:
-      "The agreements under which each founder purchases their shares, subject to a vesting schedule so shares are earned over time rather than owned outright from day one.",
-  },
-  {
-    id: "founder-piia",
-    label: "Founder PIIAs (IP Assignment)",
-    short: "TW Founder PIIAs",
-    group: "Equity",
-    description:
-      "Confirms that any intellectual property founders create for the company — code, designs, inventions — belongs to the company, not to them personally.",
+      "The agreements under which each founder purchases their shares, subject to a vesting schedule so shares are earned over time rather than owned outright from day one. Each also includes a PIIA confirming that IP founders create for the company — code, designs, inventions — belongs to the company, not to them personally.",
   },
   {
     id: "board-consent-founder-stock",

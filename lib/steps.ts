@@ -112,12 +112,7 @@ export const STEPS: Step[] = [
       "Founder stock is normally subject to 4-year vesting with a 1-year cliff for 25% of the shares, then monthly vesting over the next three years for the remaining 75%. Vesting starts when a founder began contributing to the project — the incorporation date (recommended default, and required if you were previously employed elsewhere) or an earlier date (optional, if you were already working on the project independently).",
     ],
     input: { kind: "vesting" },
-    completes: [
-      "founder-rspa",
-      "founder-piia",
-      "board-consent-founder-stock",
-      "stockholders-consent-option-pool",
-    ],
+    completes: ["founder-rspa", "board-consent-founder-stock", "stockholders-consent-option-pool"],
   },
   {
     id: "formed",
