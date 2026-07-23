@@ -510,6 +510,8 @@ export function IncorporationApp() {
         onPhaseClick={handlePhaseClick}
         restartWarning={restartWarning}
         onOpenSettings={() => setSettingsOpen(true)}
+        profile={profile}
+        onSaveProfile={setProfile}
       />
 
       {view === "loading" ? null : view === "landing" ? (

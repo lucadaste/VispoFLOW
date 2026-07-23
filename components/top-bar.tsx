@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { RotateCcw, Menu, X, Settings } from "lucide-react"
+import { RotateCcw, Menu, X, Settings, Building2 } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
+import type { UserProfile } from "@/lib/profile"
+import { ProfileForm } from "@/components/profile-form"
 
-function AuthControls() {
+function AuthControls({ profile, onSaveProfile }: { profile: UserProfile; onSaveProfile: (profile: UserProfile) => void }) {
   const { isSignedIn, isLoaded } = useAuth()
   if (!isLoaded) return <div className="h-8 w-8" />
   if (isSignedIn) {
@@ -13,7 +15,21 @@ function AuthControls() {
         appearance={{
           elements: { avatarBox: "h-8 w-8" },
         }}
-      />
+      >
+        <UserButton.UserProfilePage
+          label="Company Profile"
+          url="company-profile"
+          labelIcon={<Building2 className="h-4 w-4" />}
+        >
+          <div className="px-1 py-2">
+            <h2 className="mb-1 text-base font-semibold text-foreground">Company Profile</h2>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Save this once and reuse it across every document flow.
+            </p>
+            <ProfileForm profile={profile} onSave={onSaveProfile} saveLabel="Save" />
+          </div>
+        </UserButton.UserProfilePage>
+      </UserButton>
     )
   }
   return (
@@ -39,6 +55,8 @@ export function TopBar({
   onPhaseClick,
   restartWarning,
   onOpenSettings,
+  profile,
+  onSaveProfile,
 }: {
   phase: "home" | "chat" | "compliance" | "transactions" | "documents"
   onReset: () => void
@@ -46,6 +64,8 @@ export function TopBar({
   /** If set, clicking Restart shows this warning and requires confirmation before onReset fires. */
   restartWarning?: string | null
   onOpenSettings: () => void
+  profile: UserProfile
+  onSaveProfile: (profile: UserProfile) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingRestart, setConfirmingRestart] = useState(false)
@@ -113,7 +133,7 @@ export function TopBar({
             <Settings className="h-4 w-4" />
           </button>
 
-          <AuthControls />
+          <AuthControls profile={profile} onSaveProfile={onSaveProfile} />
         </div>
       </div>
 

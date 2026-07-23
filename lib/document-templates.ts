@@ -1145,7 +1145,8 @@ FORM OF STOCK PLAN
 (See the Equity Incentive Plan document.)`
 }
 
-const FOUNDER_PRICE_PER_SHARE = 0.00001
+const IP_VALUE_PLACEHOLDER = "[Value of assigned IP — to be determined by the Board]"
+const CERT_NUMBER_PLACEHOLDER = "[N/A — shares are uncertificated]"
 
 function boardConsentFounderStock(a: FlowAnswers): string {
   const directorSignatures =
@@ -1161,8 +1162,8 @@ function boardConsentFounderStock(a: FlowAnswers): string {
       ? founders
           .map(
             (f) => `Name of Stockholder: ${f.name}
-Shares and Price: ${f.shares.toLocaleString()} shares of Common Stock at $${FOUNDER_PRICE_PER_SHARE} per share
-Amount and Form of Consideration: $${(f.shares * FOUNDER_PRICE_PER_SHARE).toFixed(2)} in cash
+Shares and Price: ${f.shares.toLocaleString()} shares of Common Stock, at the fair value determined by the Board
+Amount and Form of Consideration: ${IP_VALUE_PLACEHOLDER} in intellectual property, per the Assignment of IP and Other Assets
 Vesting Schedule: See note (a) below
 Vesting Commencement Date: ${a.vestingStartDate || "Incorporation date"}`,
           )
@@ -1225,9 +1226,6 @@ FORM OF RESTRICTED STOCK PURCHASE AGREEMENT
 
 (See the Founder Restricted Stock Purchase Agreements document.)`
 }
-
-const IP_VALUE_PLACEHOLDER = "[Value of assigned IP — to be determined by the Board]"
-const CERT_NUMBER_PLACEHOLDER = "[N/A — shares are uncertificated]"
 
 function buildFounderRSPA(a: FlowAnswers, founderName: string, shares: number): string {
   const sharesStr = shares.toLocaleString()
