@@ -406,7 +406,12 @@ export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () 
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-foreground">{doc.content}</pre>
+          <pre
+            className="whitespace-pre-wrap text-sm leading-relaxed text-foreground"
+            style={{ fontFamily: '"Times New Roman", Times, serif' }}
+          >
+            {doc.content}
+          </pre>
         </div>
       </div>
     </div>
