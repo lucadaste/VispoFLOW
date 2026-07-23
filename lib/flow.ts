@@ -6,7 +6,7 @@ export type LegalDoc = {
   id: string
   label: string
   short: string
-  group: "Formation" | "Equity"
+  group: "Incorporation" | "Organizational Documents" | "Equity Allocation" | "Equity Plan"
   description: string
 }
 
@@ -15,7 +15,7 @@ export const DOCUMENTS: LegalDoc[] = [
     id: "coi",
     label: "Certificate of Incorporation",
     short: "TW COI",
-    group: "Formation",
+    group: "Incorporation",
     description:
       "The document filed with the Delaware Secretary of State that legally creates the corporation. It sets the company's name, its authorized shares, and key liability protections for directors and officers.",
   },
@@ -23,31 +23,62 @@ export const DOCUMENTS: LegalDoc[] = [
     id: "action-incorporator",
     label: "Action by Incorporator",
     short: "TW Action by Incorporator",
-    group: "Formation",
+    group: "Organizational Documents",
     description:
       "The founding legal act taken right after filing: it adopts the bylaws and appoints the initial board of directors so the corporation can start acting through its own governance.",
-  },
-  {
-    id: "org-resolutions",
-    label: "Organizational Resolutions",
-    short: "TW Organizational Resolutions",
-    group: "Formation",
-    description:
-      "Formal board resolutions covering the first housekeeping decisions a corporation needs — things like appointing officers, opening a bank account, and adopting a stock plan.",
   },
   {
     id: "bylaws",
     label: "Bylaws",
     short: "TW Bylaws",
-    group: "Formation",
+    group: "Organizational Documents",
     description:
       "The corporation's internal rulebook: how board meetings are run, how officers are appointed, and what rights stockholders have. It governs day-to-day corporate operations.",
+  },
+  {
+    id: "org-resolutions",
+    label: "Organizational Resolutions",
+    short: "TW Organizational Resolutions",
+    group: "Organizational Documents",
+    description:
+      "Formal board resolutions covering the first housekeeping decisions a corporation needs — things like appointing officers, opening a bank account, and adopting a stock plan.",
+  },
+  {
+    id: "founder-rspa",
+    label: "Founder Restricted Stock Purchase Agreements",
+    short: "TW Founder RSPAs",
+    group: "Equity Allocation",
+    description:
+      "The agreements under which each founder purchases their shares, subject to a vesting schedule so shares are earned over time rather than owned outright from day one. Each also includes a PIIA confirming that IP founders create for the company — code, designs, inventions — belongs to the company, not to them personally.",
+  },
+  {
+    id: "stockholder-consent-indemnification",
+    label: "Stockholder Consent — Indemnification Agreement",
+    short: "TW Stockholder Consent Indemnification Agreement",
+    group: "Equity Allocation",
+    description:
+      "Majority stockholder approval authorizing the Company to enter into indemnification agreements with its present and future officers and directors.",
+  },
+  {
+    id: "board-consent-founder-stock",
+    label: "Board Consent — Founder Stock",
+    short: "TW Board Consent Founder Stock",
+    group: "Equity Allocation",
+    description: "The board's formal approval authorizing the issuance of founder shares under the RSPAs.",
+  },
+  {
+    id: "indemnification-agreement",
+    label: "Indemnification Agreement",
+    short: "TW Indemnification Agreement",
+    group: "Equity Allocation",
+    description:
+      "The agreement itself, under which the Company indemnifies each officer and director against certain liabilities and expenses incurred in that role.",
   },
   {
     id: "option-pool",
     label: "Equity Incentive Plan",
     short: "TW Option Pool",
-    group: "Equity",
+    group: "Equity Plan",
     description:
       "Reserves a pool of shares set aside for future equity grants — stock options or restricted stock — to employees, advisors, and contractors as the company grows.",
   },
@@ -55,24 +86,9 @@ export const DOCUMENTS: LegalDoc[] = [
     id: "board-consent-option-pool",
     label: "Board Consent — Option Pool",
     short: "TW Board Consent Option Pool",
-    group: "Equity",
+    group: "Equity Plan",
     description:
       "The board's formal approval adopting the Equity Incentive Plan and authorizing the shares reserved for it.",
-  },
-  {
-    id: "founder-rspa",
-    label: "Founder Restricted Stock Purchase Agreements",
-    short: "TW Founder RSPAs",
-    group: "Equity",
-    description:
-      "The agreements under which each founder purchases their shares, subject to a vesting schedule so shares are earned over time rather than owned outright from day one. Each also includes a PIIA confirming that IP founders create for the company — code, designs, inventions — belongs to the company, not to them personally.",
-  },
-  {
-    id: "board-consent-founder-stock",
-    label: "Board Consent — Founder Stock",
-    short: "TW Board Consent Founder Stock",
-    group: "Equity",
-    description: "The board's formal approval authorizing the issuance of founder shares under the RSPAs.",
   },
   {
     id: "stockholders-consent-option-pool",
@@ -80,7 +96,7 @@ export const DOCUMENTS: LegalDoc[] = [
     short: "TW Stockholders Consent Option Pool",
     description:
       "Stockholder-level approval — in addition to the board's — required to formally adopt the Equity Incentive Plan.",
-    group: "Equity",
+    group: "Equity Plan",
   },
 ]
 
