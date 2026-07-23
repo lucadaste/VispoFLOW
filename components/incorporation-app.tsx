@@ -51,6 +51,7 @@ type IncorporationPersisted = {
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
+  hiddenDocIds: Record<string, true>
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -76,6 +77,7 @@ export function IncorporationApp() {
   const [transactionsKey, setTransactionsKey] = useState(0)
   const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
   const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
+  const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -97,13 +99,14 @@ export function IncorporationApp() {
     if (saved) {
       setComplianceDocs(saved.complianceDocs)
       setTransactionDocs(saved.transactionDocs)
+      setHiddenDocIds(saved.hiddenDocIds ?? {})
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    savePersisted<LibraryPersisted>(STORAGE_KEYS.library, { complianceDocs, transactionDocs })
-  }, [complianceDocs, transactionDocs])
+    savePersisted<LibraryPersisted>(STORAGE_KEYS.library, { complianceDocs, transactionDocs, hiddenDocIds })
+  }, [complianceDocs, transactionDocs, hiddenDocIds])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -115,6 +118,10 @@ export function IncorporationApp() {
 
   const handleComplianceDocComplete = useCallback((doc: LibraryDoc) => {
     setComplianceDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs : [...docs, doc]))
+  }, [])
+
+  const handleDeleteLibraryDoc = useCallback((doc: LibraryDoc) => {
+    setHiddenDocIds((ids) => ({ ...ids, [doc.id]: true }))
   }, [])
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
@@ -350,7 +357,7 @@ export function IncorporationApp() {
       : "chat"
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
-    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
+    (d) => (docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing") && !hiddenDocIds[d.id],
   ).map((d) => ({
     id: d.id,
     title: d.label,
@@ -437,9 +444,10 @@ export function IncorporationApp() {
       ) : (
         <DocumentLibrary
           incorporationDocs={incorporationLibraryDocs}
-          complianceDocs={complianceDocs}
-          transactionDocs={transactionDocs}
+          complianceDocs={complianceDocs.filter((d) => !hiddenDocIds[d.id])}
+          transactionDocs={transactionDocs.filter((d) => !hiddenDocIds[d.id])}
           onNavigate={handlePhaseClick}
+          onDelete={handleDeleteLibraryDoc}
         />
       )}
     </div>

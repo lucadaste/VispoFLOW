@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type LibraryDoc = {
@@ -31,11 +31,13 @@ export function DocumentLibrary({
   complianceDocs,
   transactionDocs,
   onNavigate,
+  onDelete,
 }: {
   incorporationDocs: LibraryDoc[]
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
   onNavigate: (phase: Phase) => void
+  onDelete: (doc: LibraryDoc) => void
 }) {
   const total = incorporationDocs.length + complianceDocs.length + transactionDocs.length
   const [viewing, setViewing] = useState<LibraryDoc | null>(null)
@@ -60,6 +62,7 @@ export function DocumentLibrary({
             ctaLabel="Go to Incorporation"
             onCta={() => onNavigate("chat")}
             onView={setViewing}
+            onDelete={onDelete}
           />
           <DocSection
             icon={ShieldCheck}
@@ -69,6 +72,7 @@ export function DocumentLibrary({
             ctaLabel="Go to Compliance"
             onCta={() => onNavigate("compliance")}
             onView={setViewing}
+            onDelete={onDelete}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -78,6 +82,7 @@ export function DocumentLibrary({
             ctaLabel="Go to Transactions"
             onCta={() => onNavigate("transactions")}
             onView={setViewing}
+            onDelete={onDelete}
           />
         </div>
       </div>
@@ -95,6 +100,7 @@ function DocSection({
   ctaLabel,
   onCta,
   onView,
+  onDelete,
 }: {
   icon: LucideIcon
   title: string
@@ -103,6 +109,7 @@ function DocSection({
   ctaLabel: string
   onCta: () => void
   onView: (doc: LibraryDoc) => void
+  onDelete: (doc: LibraryDoc) => void
 }) {
   return (
     <section>
@@ -147,7 +154,15 @@ function DocSection({
                   <FileText className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
+                    {doc.pending && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
+                        <Send className="h-2 w-2" />
+                        Pending
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
                   {doc.pending ? (
                     <p className="mt-1 text-[10px] font-medium text-primary">Filing with the state — usually same-day to a few business days</p>
@@ -164,13 +179,18 @@ function DocSection({
                     <Download className="h-3.5 w-3.5" />
                   </button>
                 )}
-                <span
-                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                    doc.pending ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground"
-                  }`}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(doc) }}
+                  title="Delete"
+                  className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 >
-                  {doc.pending ? <Send className="h-2.5 w-2.5" /> : <Check className="h-3 w-3" strokeWidth={3} />}
-                </span>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+                {!doc.pending && (
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                )}
               </div>
             )
           })}
