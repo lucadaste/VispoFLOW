@@ -3,6 +3,7 @@
 import { useState } from "react"
 import type { UserProfile } from "@/lib/profile"
 import { SignaturePad } from "@/components/signature-pad"
+import { cn } from "@/lib/utils"
 
 const fieldClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -21,6 +22,13 @@ export function ProfileForm({
   saveLabel?: string
 }) {
   const [form, setForm] = useState<UserProfile>(profile)
+  const [savedForm, setSavedForm] = useState<UserProfile>(profile)
+  const isDirty = JSON.stringify(form) !== JSON.stringify(savedForm)
+
+  const handleSave = () => {
+    onSave(form)
+    setSavedForm(form)
+  }
 
   return (
     <div className="space-y-4">
@@ -117,10 +125,16 @@ export function ProfileForm({
         )}
         <button
           type="button"
-          onClick={() => onSave(form)}
-          className="rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          onClick={handleSave}
+          disabled={!isDirty}
+          className={cn(
+            "rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+            isDirty
+              ? "bg-primary text-primary-foreground hover:opacity-90"
+              : "cursor-default bg-secondary text-muted-foreground",
+          )}
         >
-          {saveLabel}
+          {isDirty ? saveLabel : "Saved"}
         </button>
       </div>
     </div>
