@@ -39,6 +39,8 @@ import {
   clearFromServer,
 } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
+import { mergeProfileIntoAnswers } from "@/lib/profile"
+import { useProfile } from "@/lib/use-profile"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -66,9 +68,11 @@ const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 
 
 export function IncorporationApp() {
   const { user, isSignedIn } = useUser()
+  const { profile, setProfile } = useProfile()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [docStatuses, setDocStatuses] = useState<Record<string, DocStatus>>({})
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
+  const effectiveAnswers = profile.autofillEnabled ? mergeProfileIntoAnswers(answers, profile) : answers
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
@@ -455,7 +459,7 @@ export function IncorporationApp() {
     id: d.id,
     title: d.label,
     subtitle: d.group,
-    content: renderDocumentContent(d.id, answers) ?? undefined,
+    content: renderDocumentContent(d.id, effectiveAnswers) ?? undefined,
     pending: docStatuses[d.id] === "filing",
     hidden: !!hiddenDocIds[d.id],
   }))
@@ -500,7 +504,7 @@ export function IncorporationApp() {
                   if (m.role === "widget" && m.widget === "name-check")
                     return <NameCheckCard key={m.id} companyName={m.companyName} />
                   if (m.role === "widget" && m.widget === "formed")
-                    return <FormedCard key={m.id} answers={answers} />
+                    return <FormedCard key={m.id} answers={effectiveAnswers} />
                   return null
                 })}
                 {isTyping && <TypingIndicator />}
@@ -510,7 +514,7 @@ export function IncorporationApp() {
             {activeInput && (
               <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl">
-                  <ChatInput input={activeInput} answers={answers} onSubmit={handleSubmit} />
+                  <ChatInput input={activeInput} answers={effectiveAnswers} onSubmit={handleSubmit} />
                 </div>
               </div>
             )}
@@ -518,7 +522,7 @@ export function IncorporationApp() {
 
           {/* ── Incorporation Documents sidebar — always visible ≥ sm, collapsible ── */}
           <SidebarPanel icon={FileText} label="Incorporation Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
-            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={answers} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={effectiveAnswers} /> : <DocumentTrackerEmpty />}
           </SidebarPanel>
 
           {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
@@ -529,13 +533,13 @@ export function IncorporationApp() {
             open={mobileDocsOpen}
             onOpenChange={setMobileDocsOpen}
           >
-            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={answers} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={effectiveAnswers} /> : <DocumentTrackerEmpty />}
           </MobileSidebarTab>
         </div>
       ) : view === "compliance" ? (
-        <ComplianceView key={complianceKey} answers={answers} onItemComplete={handleComplianceDocComplete} />
+        <ComplianceView key={complianceKey} answers={effectiveAnswers} onItemComplete={handleComplianceDocComplete} />
       ) : view === "transactions" ? (
-        <TransactionsOnboarding key={transactionsKey} answers={answers} onDocumentReady={handleTransactionDocReady} />
+        <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
       ) : (
         <DocumentLibrary
           incorporationDocs={incorporationLibraryDocs}

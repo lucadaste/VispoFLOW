@@ -39,15 +39,15 @@ export function ChatInput({
     case "questions":
       return <QuestionsInput onSubmit={onSubmit} />
     case "text":
-      return <TextInput input={input} onSubmit={onSubmit} />
+      return <TextInput input={input} answers={answers} onSubmit={onSubmit} />
     case "incorporator":
-      return <IncorporatorInput onSubmit={onSubmit} />
+      return <IncorporatorInput answers={answers} onSubmit={onSubmit} />
     case "registeredAgent":
       return <RegisteredAgentInput onSubmit={onSubmit} />
     case "paywall":
       return <PaywallInput onSubmit={onSubmit} />
     case "corpAddress":
-      return <CorpAddressInput onSubmit={onSubmit} />
+      return <CorpAddressInput answers={answers} onSubmit={onSubmit} />
     case "directorCount":
       return <DirectorCountInput onSubmit={onSubmit} />
     case "directorNames":
@@ -166,12 +166,15 @@ function StartInput({ onSubmit }: { onSubmit: SubmitFn }) {
 
 function TextInput({
   input,
+  answers,
   onSubmit,
 }: {
   input: Extract<StepInput, { kind: "text" }>
+  answers: FlowAnswers
   onSubmit: SubmitFn
 }) {
-  const [value, setValue] = useState(input.prefill ?? "")
+  const answerValue = answers[input.field as keyof FlowAnswers]
+  const [value, setValue] = useState(input.prefill ?? (typeof answerValue === "string" ? answerValue : "") ?? "")
   const submit = () => {
     const t = value.trim()
     if (!t) return
@@ -193,9 +196,9 @@ function TextInput({
 
 /* ---------- incorporator ---------- */
 
-function IncorporatorInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [name, setName] = useState("")
-  const [address, setAddress] = useState("")
+function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
+  const [name, setName] = useState(answers.incorporatorName)
+  const [address, setAddress] = useState(answers.incorporatorAddress)
   const submit = () => {
     if (!name.trim() || !address.trim()) return
     onSubmit(`${name}\n${address}`, {
@@ -270,8 +273,8 @@ function RegisteredAgentInput({ onSubmit }: { onSubmit: SubmitFn }) {
 
 /* ---------- corp address ---------- */
 
-function CorpAddressInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [address, setAddress] = useState("")
+function CorpAddressInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
+  const [address, setAddress] = useState(answers.corpAddress)
   return (
     <Shell>
       <div className="space-y-3">

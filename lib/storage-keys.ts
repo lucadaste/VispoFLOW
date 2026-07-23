@@ -5,4 +5,5 @@ export const STORAGE_KEYS = {
   transactions: "vispo-transactions-state",
   homeChat: "vispo-home-chat-state",
   library: "vispo-library-state",
+  profile: "vispo-profile-state",
 } as const
