@@ -75,9 +75,99 @@ _________________________
 ${a.incorporatorName}, Incorporator`
 }
 
+function orgResolutions(a: FlowAnswers): string {
+  const ceo = a.officers.find((o) => o.title === "CEO")?.name ?? "[Not specified]"
+  const secretary = a.officers.find((o) => o.title === "Secretary")?.name ?? "[Not specified]"
+  const cfo = a.officers.find((o) => o.title === "CFO")?.name ?? "[Not specified]"
+  const directorSignatures =
+    a.directors.length > 0
+      ? a.directors
+          .map((d) => `_________________________\n${d}, Director`)
+          .join("\n\n")
+      : "_________________________\n[No directors specified], Director"
+
+  return `ACTION BY UNANIMOUS WRITTEN CONSENT
+OF THE BOARD OF DIRECTORS
+
+In accordance with Section 141(f) of the Delaware General Corporation Law and the Bylaws of ${a.companyName}, a Delaware corporation (the "Company"), the undersigned, constituting all of the members of the Company's Board of Directors (the "Board"), hereby take the following actions and adopt the following resolutions by unanimous written consent without a meeting:
+
+1. Incorporator
+
+RESOLVED: That every action taken or authorized with respect to the Company by the Incorporator of the Company is ratified and the Incorporator is hereby discharged from any further liabilities or duties with respect to the Company and the Company further agrees to indemnify and hold harmless the Incorporator from any liability incurred in the past or the future with respect to organizing the Company.
+
+2. Minute Book
+
+RESOLVED: That the Company shall maintain as part of its corporate records a book, in electronic or physical form, entitled "Minute Book" which shall include, but not be limited to, (i) a record of its Certificate of Incorporation and amendments thereto, (ii) its Bylaws and amendments thereto, and (iii) minutes of all meetings of its directors and of its stockholders with the time and place of holding, whether regular or special (and if special how authorized), the notice thereof given, the number of shares present or represented at stockholders' meetings, and the proceedings of the meetings.
+
+3. Election of Officers
+
+RESOLVED: That the following persons are elected as officers of the Company to the offices set forth opposite their respective names, to serve at the pleasure of the Board:
+
+Name                                Title(s)
+${ceo}                              Chief Executive Officer
+${secretary}                        Secretary
+${cfo}                              Chief Financial Officer
+
+4. Officers
+
+RESOLVED: That each of the President and the Chief Executive Officer is authorized to sign and deliver any agreement in the name of the Company and to otherwise obligate the Company in any respect relating to matters of the business of the Company, and to delegate such authority in his or her discretion.
+
+5. Employer Identification Number
+
+RESOLVED: That the officers are authorized and directed to apply for an employer identification number on IRS Form SS-4, unless the Incorporator of the Company has previously made such application.
+
+6. Fiscal Year
+
+RESOLVED: That the fiscal year of the Company shall end on December 31 of each year.
+
+7. Incorporation Expenses
+
+RESOLVED: That the officers are authorized and directed to pay the expenses of incorporation and organization of the Company and the expenses incurred in the formation of the Company.
+
+RESOLVED FURTHER: That the Company elects to deduct currently its organizational expenses, as that term is defined by Section 248 of the Internal Revenue Code of 1986, as amended (the "Code"), to the maximum extent provided in Section 248 of the Code and to amortize the balance of its organizational expenses over a period of one hundred eighty (180) months beginning with the month in which the Company begins business; and that the officers are authorized and directed to take such action as necessary to effectuate this election.
+
+8. Withholding Taxes
+
+RESOLVED: That the officers are authorized and directed to consult with the bookkeeper, auditors and attorneys of the Company in order to be fully informed as to, and to collect and pay promptly when due, all withholding taxes for which the Company may now be (or hereafter become) liable.
+
+9. Qualification to Do Business
+
+RESOLVED: That the officers of the Company are authorized to take any and all steps that they deem to be necessary to qualify the Company to do business as a foreign corporation in each state that the officers determine such qualification to be necessary or appropriate.
+
+10. Banking Resolutions
+
+RESOLVED: That the officers of the Company are hereby authorized to open one or more bank accounts at a bank institution in the United States for purposes of enabling the Company to receive deposits and make payments and for any other banking transactions in the ordinary course of business.
+
+RESOLVED FURTHER: That the officers of the Company are hereby authorized and directed to take any and all additional actions and file any other documents necessary to carry out the intent and purposes of the foregoing resolutions.
+
+11. Management of Fiscal Affairs
+
+RESOLVED: That the officers of the Company are authorized and directed, in their discretion, to select and designate from time to time one or more banks or other financial institutions as a depository of funds of the Company, and that the proper officers are authorized to open and maintain, in the name of the Company, a checking, savings, safe deposit, payroll or other account or accounts with said depository.
+
+RESOLVED FURTHER: That the standard form of corporate banking or financial resolutions of such banks or financial institutions necessary to accomplish the foregoing resolution and showing the persons authorized to draw on such account, are approved and adopted as the resolutions of this Board, and the officers are authorized to execute, certify, and deliver a copy thereof to such banks or financial institutions as the resolutions of this Company.
+
+12. Ratification
+
+RESOLVED: That all actions taken heretofore by the Incorporator, officers and directors with respect to all matters contemplated by the foregoing resolutions and the transactions contemplated thereby are hereby approved, adopted, ratified and confirmed.
+
+13. Omnibus Resolution
+
+RESOLVED: That each of the officers is authorized and empowered to take all such actions (including, without limitation, soliciting appropriate consents or waivers from stockholders) and to execute and deliver all such documents as may be necessary or advisable to carry out the intent and accomplish the purposes of the foregoing resolutions and to effect any transactions contemplated thereby and the performance of any such actions and the execution and delivery of any such documents shall be conclusive evidence of the approval of the Board thereof and all matters relating thereto.
+
+In accordance with the Company's Bylaws, this action may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which when so executed shall be deemed to be an original and all of which taken together shall constitute one and the same action.
+
+The consent of the undersigned shall be effective immediately upon the election of the undersigned as directors of the corporation; provided, however, that if such event has already occurred before the time of execution of this consent by the undersigned, then this consent shall be effective immediately. This consent shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this consent has been made.
+
+Actual Date of Signature: ${today()}
+
+
+${directorSignatures}`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
+  "org-resolutions": orgResolutions,
 }
 
 export function renderDocumentContent(docId: string, answers: FlowAnswers): string | null {
