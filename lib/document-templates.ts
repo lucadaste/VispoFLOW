@@ -1226,12 +1226,390 @@ FORM OF RESTRICTED STOCK PURCHASE AGREEMENT
 (See the Founder Restricted Stock Purchase Agreements document.)`
 }
 
+const IP_VALUE_PLACEHOLDER = "[Value of assigned IP — to be determined by the Board]"
+const CERT_NUMBER_PLACEHOLDER = "[N/A — shares are uncertificated]"
+
+function buildFounderRSPA(a: FlowAnswers, founderName: string, shares: number): string {
+  const sharesStr = shares.toLocaleString()
+  const vestingCommencementDate = a.vestingStartDate || "Incorporation date"
+
+  return `RESTRICTED STOCK PURCHASE AGREEMENT
+
+This Restricted Stock Purchase Agreement (this "Agreement") is made as of ${today()} by and between ${a.companyName}, a Delaware corporation (the "Company"), and ${founderName} ("Purchaser").
+
+1. Sale of Stock. Subject to the terms and conditions of this Agreement, simultaneously with the execution and delivery of this Agreement by the parties or on such other date as the Company and Purchaser shall agree (the "Purchase Date"), the Company will issue and sell to Purchaser, and Purchaser agrees to purchase from the Company, ${sharesStr} shares of the Company's Common Stock (the "Shares") in exchange for the consideration as provided on Schedule A (the "Aggregate Purchase Price"). On the Purchase Date, Purchaser will deliver the Aggregate Purchase Price to the Company and the Company will enter the Shares in Purchaser's name as of such date in the books and records of the Company or, if applicable, a duly authorized transfer agent of the Company. The Company will deliver to Purchaser, upon request, a notice of issuance with respect to the Shares as soon as practicable following such date. As used elsewhere herein, the term "Shares" refers to all of the Shares purchased hereunder and all securities received in connection with the Shares pursuant to stock dividends or splits, all securities received in replacement of the Shares in a recapitalization, merger, reorganization, exchange or the like, and all new, substituted or additional securities or other property to which Purchaser is entitled by reason of Purchaser's ownership of the Shares.
+
+2. Consideration. As consideration for the mutual promises and covenants set forth in this Agreement, Purchaser will deliver the Aggregate Purchase Price by an assignment of certain assets as set forth in the Assignment of IP and Other Assets in the form attached to this Agreement as Exhibit D.
+
+3. Limitations on Transfer. Purchaser acknowledges and agrees that the Shares purchased under this Agreement are subject to (i) the terms and conditions that apply to the Company's Common Stock, as set forth in the Company's Bylaws, as may be in effect at the time of any proposed transfer (the "Bylaw Provisions"), and (ii) any other limitation or restriction on transfer created by applicable laws. In addition to the foregoing limitations on transfer, Purchaser shall not assign, encumber or dispose of any interest in the Shares while the Shares are subject to the Company's Repurchase Option (as defined below). After any Shares have been released from such Repurchase Option, Purchaser shall not assign, encumber or dispose of any interest in the Shares except to the extent permitted by, and in compliance with the Bylaw Provisions, applicable laws, and the provisions below.
+
+(a) Repurchase Option; Vesting.
+
+(i) In the event of the voluntary or involuntary termination of Purchaser's Continuous Service Status (as defined below) for any reason (including, without limitation, resignation, death or Disability (as defined below)), with or without cause, the Company shall upon the date of such termination (the "Termination Date") have an irrevocable, exclusive option (the "Repurchase Option") for a period of 9 months from such date to repurchase all or any portion of the Unvested Shares (as defined below) held by Purchaser as of the Termination Date at the original purchase price per Share (adjusted for any stock splits, stock dividends and the like) specified in Section 1. As used in this Agreement, "Unvested Shares" means Shares, if any, that have not yet been released from the Repurchase Option.
+
+(ii) Unless the Company notifies Purchaser within 9 months from the Termination Date that it does not intend to exercise its Repurchase Option with respect to some or all of the Unvested Shares, the Repurchase Option shall be deemed automatically exercised by the Company as of the end of such 9-month period following such Termination Date, provided that the Company may notify Purchaser that it is exercising its Repurchase Option as of a date prior to the end of such 9-month period. Unless Purchaser is otherwise notified by the Company pursuant to the preceding sentence that the Company does not intend to exercise its Repurchase Option as to some or all of the Unvested Shares to which it applies at the time of termination, execution of this Agreement by Purchaser constitutes written notice to Purchaser of the Company's intention to exercise its Repurchase Option with respect to all Unvested Shares to which such Repurchase Option applies. The Company, at its choice, may satisfy its payment obligation to Purchaser with respect to exercise of the Repurchase Option by either (A) delivering a check, wire transfer or other method of electronic payment to Purchaser in the amount of the purchase price for the Unvested Shares being repurchased, or (B) vesting in the event Purchaser is indebted to the Company, canceling an amount of such indebtedness equal to the purchase price for the Unvested Shares being repurchased, or (C) by a combination of (A) and (B) so that the combined payment and cancellation of indebtedness equals such purchase price. In the event of any deemed automatic exercise of the Repurchase Option pursuant to this Section 3(a)(ii) in which Purchaser is indebted to the Company, such indebtedness equal to the purchase price of the Unvested Shares being repurchased shall be deemed automatically canceled as of the end of the 9-month period following the Termination Date unless the Company otherwise satisfies its payment obligations. As a result of any repurchase of Unvested Shares pursuant to this Section 3(a), the Company shall become the legal and beneficial owner of the Unvested Shares being repurchased and shall have all rights and interest therein or related thereto, and the Company shall have the right to transfer to its own name the number of Unvested Shares being repurchased by the Company, without further action by Purchaser.
+
+(iii) 100.00% of the Shares shall initially be subject to the Repurchase Option (the "Vesting Shares"). 1/4th of the Vesting Shares shall be released from the Repurchase Option on the 12-month anniversary of ${vestingCommencementDate}, and an additional 1/48th of the Vesting Shares shall be released from the Repurchase Option on the 1st day of each month thereafter, until all Vesting Shares are released from the Repurchase Option; provided, however, that such scheduled releases from the Repurchase Option shall immediately cease as of the Termination Date. Fractional shares shall be rounded down to the nearest whole share.
+
+(iv) Notwithstanding the foregoing, if a Change of Control occurs the vesting of the Unvested Shares shall accelerate such that the Repurchase Option in Section 3(a) shall lapse as to 100.00% of the Unvested Shares, effective as of immediately prior to consummation of a Change of Control. As used in this Agreement, "Change of Control" means a sale of all or substantially all of the Company's assets other than to an Excluded Entity (as defined below), a merger, consolidation or other capital reorganization or business combination transaction of the Company with or into another corporation, limited liability company or other entity other than an Excluded Entity, or the consummation of a transaction, or series of related transactions, in which any "person" (as such term is used in Sections 13(d) and 14(d) of the Exchange Act) becomes the "beneficial owner" (as defined in Rule 13d-3 of the Exchange Act), directly or indirectly, of all of the Company's then outstanding voting securities. Notwithstanding the foregoing, a transaction shall not constitute a Change of Control if its purpose is to change the jurisdiction of the Company's incorporation, create a holding company that will be owned in substantially the same proportions by the persons who hold the Company's securities immediately before such transaction, or obtain funding for the Company in a financing that is approved by the Company's Board of Directors. An "Excluded Entity" means a corporation, limited liability company or other entity of which the holders of voting capital stock of the Company outstanding immediately prior to such transaction are the direct or indirect holders of voting securities representing at least a majority of the votes entitled to be cast by all of such corporation's, limited liability company's or other entity's voting securities outstanding immediately after such transaction.
+
+(b) Transfer Restrictions; Right of First Refusal. Before any Shares held by Purchaser or any transferee of Purchaser (either being sometimes referred to herein as the "Holder") may be sold or otherwise transferred (including transfer by gift or operation of law), the Company shall first, to the extent the Company's approval is required by any applicable Bylaw Provisions, have the right to approve such sale or transfer, in full or in part, and shall then have the right to purchase all or any part of the Shares proposed to be sold or transferred, in each case, in its sole and absolute discretion (the "Right of First Refusal"). If the Holder would like to sell or transfer any Shares, the Holder must provide the Company or its assignee(s) with a Notice (as defined below) requesting approval to sell or transfer the Shares and offering the Company or its assignee(s) a Right of First Refusal on the same terms and conditions set forth in this Section 3(b). The Company may either (1) exercise its Right of First Refusal in full or in part and purchase such Shares pursuant to this Section 3(b), (2) decline to exercise its Right of First Refusal in full or in part and permit the transfer of such Shares to the Proposed Transferee (as defined below) in full or in part or (3) decline to exercise its Right of First Refusal in full or in part and, to the extent the Company's approval is required by any applicable Bylaw Provisions, decline the request to sell or transfer the Shares in full or in part.
+
+(i) Notice of Proposed Transfer. The Holder of the Shares shall deliver to the Company a written notice (the "Notice") stating: (A) the Holder's intention to sell or otherwise transfer such Shares; (B) the name of each proposed purchaser or other transferee ("Proposed Transferee"); (C) the number of Shares to be sold or transferred to each Proposed Transferee; (D) the terms and conditions of each proposed sale or transfer, including (without limitation) the purchase price for such Shares (the "Transfer Purchase Price"); and (E) the Holder's offer to the Company or its assignee(s) to purchase the Shares at the Transfer Purchase Price and upon the same terms (or terms that are no less favorable to the Company).
+
+(ii) Exercise of Right of First Refusal. At any time within 30 days after receipt of the Notice, the Company and/or its assignee(s) shall deliver a written notice to the Holder indicating whether the Company and/or its assignee(s) elect to permit or reject the proposed sale or transfer, in full or in part, and/or elect to accept or decline the offer to purchase any or all of the Shares proposed to be sold or transferred to any one or more of the Proposed Transferees, at the Transfer Purchase Price, provided that if the Transfer Purchase Price consists of no legal consideration (as, for example, in the case of a transfer by gift), the purchase price will be the fair market value of the Shares as determined in good faith by the Company. If the Transfer Purchase Price includes consideration other than cash, the cash equivalent value of the non-cash consideration shall be determined by the Company in good faith.
+
+(iii) Payment. Payment of the Transfer Purchase Price shall be made, at the election of the Company or its assignee(s), in cash (by check or other funds transfer), by cancellation of all or a portion of any outstanding indebtedness, or by any combination thereof within 60 days after receipt of the Notice or in the manner and at the times set forth in the Notice.
+
+(iv) Holder's Right to Transfer. If any of the Shares proposed in the Notice to be sold or transferred to a given Proposed Transferee are both (A) not purchased by the Company and/or its assignee(s) as provided in this Section 3(b) and (B) approved by the Company to be sold or transferred, then the Holder may sell or otherwise transfer any such Shares to the applicable Proposed Transferee at the Transfer Purchase Price or at a higher price, provided that such sale or other transfer is consummated within 120 days after the date of the Notice; provided that any such sale or other transfer is also effected in accordance with the Bylaw Provisions and any applicable laws and the Proposed Transferee agrees in writing that the Bylaw Provisions and the provisions of this Agreement, including this Section 3 shall continue to apply to the Shares in the hands of such Proposed Transferee. The Company, in consultation with its legal counsel, may require the Holder to provide an opinion of counsel evidencing compliance with applicable laws. If the Shares described in the Notice are not transferred to the Proposed Transferee within such period, or if the Holder proposes to change the price or other terms to make them more favorable to the Proposed Transferee, a new Notice shall be given to the Company, and the Company and/or its assignees shall again have the right to approve such transfer and be offered the Right of First Refusal.
+
+(v) Exception for Certain Family Transfers. Anything to the contrary contained in this Section 3(b) notwithstanding, the transfer of any or all of the Shares during Holder's lifetime or on Holder's death by will or intestacy to Holder's Immediate Family or a trust for the benefit of Holder or Holder's Immediate Family shall be exempt from the provisions of this Section 3(b). "Immediate Family" as used herein shall mean lineal descendant or antecedent, spouse (or spouse's antecedents), father, mother, brother or sister (or their descendants), stepchild (or their antecedents or descendants), aunt or uncle (or their antecedents or descendants), brother-in-law or sister-in-law (or their antecedents or descendants) and shall include adoptive relationships, or any person sharing Holder's household (other than a tenant or an employee). In such case, the transferee or other recipient shall receive and hold the Shares so transferred subject to the Bylaw Provisions and the provisions of this Agreement, including this Section 3, and there shall be no further transfer of such Shares except in accordance with the terms of this Section 3 and the Bylaw Provisions.
+
+(c) Company's Right to Purchase upon Involuntary Transfer. In the event of any transfer by operation of law or other involuntary transfer (including divorce or intestate transfer upon death, but excluding transfer upon death by will (to any transferee) or a transfer to Immediate Family as set forth in Section 3(b)(v) above) of all or a portion of the Shares by the record holder thereof, the Company shall have an option to purchase any or all of the Shares transferred at the fair market value of the Shares on the date of transfer (as determined by the Company in its sole discretion). Upon such a transfer, the Holder shall promptly notify the Secretary of the Company of such transfer. The right to purchase such Shares shall be provided to the Company for a period of 30 days following receipt by the Company of written notice from the Holder.
+
+(d) Assignment. The right of the Company to purchase any part of the Shares may be assigned in whole or in part to any holder or holders of capital stock of the Company or other persons or organizations.
+
+(e) Restrictions Binding on Transferees. All transferees of Shares or any interest therein will receive and hold such Shares or interest subject to the Bylaw Provisions and the provisions of this Agreement, including, without limitation, Section 3, including, insofar as applicable, the Repurchase Option. In the event of any purchase by the Company hereunder where the Shares or interest are held by a transferee, the transferee shall be obligated, if requested by the Company, to transfer the Shares or interest to Purchaser for consideration equal to the amount to be paid by the Company hereunder. In the event the Repurchase Option is deemed exercised by the Company pursuant to Section 3(a)(ii) hereof, the Company may deem any transferee to have transferred the Shares or interest to Purchaser prior to their purchase by the Company, and payment of the purchase price by the Company to such transferee shall be deemed to satisfy Purchaser's obligation to pay such transferee for such Shares or interest, and also to satisfy the Company's obligation to pay Purchaser for such Shares or interest. Any sale or transfer of the Shares shall be void unless the provisions of this Agreement are satisfied.
+
+(f) Termination of Rights. The transfer restrictions set forth in Section 3(b) above, the Right of First Refusal granted the Company by Section 3(b) above and the right to repurchase the Shares in the event of an involuntary transfer granted the Company by Section 3(c) above shall terminate upon the first sale of Common Stock of the Company to the general public pursuant to a registration statement filed with and declared effective by the Securities and Exchange Commission under the Securities Act of 1933, as amended (the "Securities Act") (other than a registration statement relating solely to the issuance of Common Stock pursuant to a business combination or an employee incentive or benefit plan) or any transfer or conversion of Shares made pursuant to a statutory merger or statutory consolidation of the Company with or into another corporation or corporations if the common stock of the surviving corporation or any direct or indirect parent corporation thereof is registered under the Securities Exchange Act of 1934, as amended (the "Exchange Act").
+
+(g) Lock-Up Agreement. If so requested by the Company or the underwriters in connection with the initial public offering of the Company's securities registered under the Securities Act of 1933, as amended, Purchaser shall not sell, make any short sale of, loan, grant any option for the purchase of, or otherwise dispose of any securities of the Company however or whenever acquired (except for those being registered) without the prior written consent of the Company or such underwriters, as the case may be, for 180 days from the effective date of the registration statement, and Purchaser shall execute an agreement reflecting the foregoing as may be requested by the underwriters at the time of such offering.
+
+4. Escrow of Unvested Shares. For purposes of facilitating the enforcement of the provisions of Section 3 above, Purchaser agrees to deliver a Stock Power in the form attached to this Agreement as Exhibit A executed by Purchaser and by Purchaser's spouse (if required for transfer), in blank, and such stock certificate(s), if any, to the Secretary of the Company, or the Secretary's designee, to hold such Shares (and stock certificate(s), if any) and Stock Power in escrow and to take all such actions and to effectuate all such transfers and/or releases as are required in accordance with the terms of this Agreement. Purchaser hereby acknowledges that the Secretary of the Company, or the Secretary's designee, is so appointed as the escrow holder with the foregoing authorities as a material inducement to make this Agreement and that said appointment is coupled with an interest and is accordingly irrevocable. Purchaser agrees that said escrow holder shall not be liable to any party hereof (or to any other party). The escrow holder may rely upon any letter, notice or other document executed by any signature purported to be genuine and may resign at any time. Purchaser agrees that if the Secretary of the Company, or the Secretary's designee, resigns as escrow holder for any or no reason, the Board of Directors of the Company shall have the power to appoint a successor to serve as escrow holder pursuant to the terms of this Agreement.
+
+5. Investment and Taxation Representations. In connection with the purchase of the Shares, Purchaser represents to the Company the following:
+
+(a) Purchaser is aware of the Company's business affairs and financial condition and has acquired sufficient information about the Company to reach an informed and knowledgeable decision to acquire the Shares. Purchaser is purchasing the Shares for investment for Purchaser's own account only and not with a view to, or for resale in connection with, any "distribution" thereof within the meaning of the Securities Act or under any applicable provision of state law. Purchaser does not have any present intention to transfer the Shares to any other person or entity.
+
+(b) Purchaser understands that the Shares have not been registered under the Securities Act by reason of a specific exemption therefrom, which exemption depends upon, among other things, the bona fide nature of Purchaser's investment intent as expressed herein.
+
+(c) Purchaser further acknowledges and understands that the securities must be held indefinitely unless they are subsequently registered under the Securities Act or an exemption from such registration is available. Purchaser further acknowledges and understands that the Company is under no obligation to register the securities.
+
+(d) Purchaser is familiar with the provisions of Rule 144, promulgated under the Securities Act, which, in substance, permits limited public resale of "restricted securities" acquired, directly or indirectly, from the issuer of the securities (or from an affiliate of such issuer), in a non-public offering subject to the satisfaction of certain conditions. Purchaser understands that the Company provides no assurances as to whether he or she will be able to resell any or all of the Shares pursuant to Rule 144, which rule requires, among other things, that the Company be subject to the reporting requirements of the Exchange Act, that resales of securities take place only after the holder of the Shares has held the Shares for certain specified time periods, and under certain circumstances, that resales of securities be limited in volume and take place only pursuant to brokered transactions. Notwithstanding this Section 5(d), Purchaser acknowledges and agrees to the restrictions set forth in Section 5(e) below.
+
+(e) Purchaser further understands that in the event all of the applicable requirements of Rule 144 are not satisfied, registration under the Securities Act, compliance with Regulation A, or some other registration exemption will be required; and that, notwithstanding the fact that Rule 144 is not exclusive, the Staff of the Securities and Exchange Commission has expressed its opinion that persons proposing to sell private placement securities other than in a registered offering and otherwise than pursuant to Rule 144 will have a substantial burden of proof in establishing that an exemption from registration is available for such offers or sales, and that such persons and their respective brokers who participate in such transactions do so at their own risk.
+
+(f) Purchaser represents that Purchaser is not subject to any of the "Bad Actor" disqualifications described in Rule 506(d)(1)(i) to (viii) under the Securities Act. Purchaser also agrees to notify the Company if Purchaser becomes subject to such disqualifications after the date hereof.
+
+(g) Purchaser understands that Purchaser may suffer adverse tax consequences as a result of Purchaser's purchase or disposition of the Shares. Purchaser represents that Purchaser has consulted any tax consultants Purchaser deems advisable in connection with the purchase or disposition of the Shares and that Purchaser is not relying on the Company for any tax advice.
+
+6. Restrictive Legends and Stop-Transfer Orders.
+
+(a) Legends. Any stock certificate or, in the case of uncertificated securities, any notice of issuance, for the Shares, shall bear the following legends (as well as any legends required by the Company or applicable state and federal corporate and securities laws):
+
+(i) "THE SECURITIES REFERENCED HEREIN HAVE NOT BEEN REGISTERED UNDER THE SECURITIES ACT OF 1933, AND HAVE BEEN ACQUIRED FOR INVESTMENT AND NOT WITH A VIEW TO, OR IN CONNECTION WITH, THE SALE OR DISTRIBUTION THEREOF. NO SUCH SALE OR DISTRIBUTION MAY BE EFFECTED WITHOUT AN EFFECTIVE REGISTRATION STATEMENT RELATED THERETO OR AN OPINION OF COUNSEL IN A FORM SATISFACTORY TO THE COMPANY THAT SUCH REGISTRATION IS NOT REQUIRED UNDER THE SECURITIES ACT OF 1933."
+
+(ii) "THE SECURITIES REFERENCED HEREIN MAY BE TRANSFERRED ONLY IN ACCORDANCE WITH THE TERMS OF AN AGREEMENT BETWEEN THE COMPANY AND THE STOCKHOLDER, A COPY OF WHICH IS ON FILE WITH AND MAY BE OBTAINED FROM THE SECRETARY OF THE COMPANY AT NO CHARGE."
+
+(b) Stop-Transfer Notices. Purchaser agrees that, in order to ensure compliance with the restrictions referred to herein, the Company may issue appropriate "stop transfer" instructions to its transfer agent, if any, and that, if the Company transfers its own securities, it may make appropriate notations to the same effect in its own records.
+
+(c) Refusal to Transfer. The Company shall not be required (i) to transfer on its books any Shares that have been sold or otherwise transferred in violation of any of the provisions of this Agreement or (ii) to treat as owner of such Shares or to accord the right to vote or pay dividends to any purchaser or other transferee to whom such Shares shall have been so transferred.
+
+(d) Legend and Notice Removal. When all of the following events have occurred, the Shares then held by Purchaser will no longer be subject to the legend specified in Section 6(a)(ii) and the Company will remove any stop-transfer notices associated with the transfer restrictions imposed by this Agreement:
+
+(iii) the termination of the Right of First Refusal;
+
+(iv) the expiration or exercise in full of the Repurchase Option; and
+
+(v) the expiration or termination of the lock-up provisions of Section 3(g) (and of any agreement entered pursuant to Section 3(g)).
+
+After such time and upon Purchaser's request, a new stock certificate or, in the case of uncertificated securities, notice of issuance, for the remaining Shares, shall be issued without the legend specified in Section 6(a)(ii) and delivered to Purchaser.
+
+(e) Required Notices. Purchaser acknowledges that the Shares are issued and shall be held subject to all the provisions of this Agreement, the Certificate of Incorporation and the Bylaws of the Company and any amendments thereto, copies of which are on file at the principal office of the Company. A statement of all of the rights, preferences, privileges and restrictions granted to or imposed upon the respective classes and/or series of shares of stock of the Company and upon the holders thereof may be obtained by any stockholder upon request and without charge, at the principal office of the Company, and the Company will furnish any stockholder, upon request and without charge, a copy of such statement. Purchaser acknowledges that the provisions of this Section 6 shall constitute the notices required by Sections 151(f) and 202(a) of the Delaware General Corporation Law and Purchaser hereby expressly waives the requirement of Section 151(f) of the Delaware General Corporation Law that it receive the written notice provided for in Sections 151(f) and 202(a) of the Delaware General Corporation Law within a reasonable time after the issuance of the Shares.
+
+7. No Employment Rights. Nothing in this Agreement shall affect in any manner whatsoever the right or power of the Company, or a parent, subsidiary or affiliate of the Company, to terminate Purchaser's employment or consulting relationship, for any reason, with or without cause.
+
+8. Section 83(b) Election. Purchaser understands that Section 83(a) of the Internal Revenue Code of 1986, as amended (the "Code"), taxes as ordinary income the difference between the amount paid for the Shares and the fair market value of the Shares as of the date any restrictions on the Shares lapse. In this context, "restriction" means the right of the Company to buy back the Shares pursuant to the Repurchase Option set forth in Section 3(a) of this Agreement. Purchaser understands that Purchaser may elect to be taxed at the time the Shares are purchased, rather than when and as the Repurchase Option expires, by filing an election under Section 83(b) (an "83(b) Election") of the Code with the Internal Revenue Service within 30 days from the date of purchase. Even if the fair market value of the Shares at the time of the execution of this Agreement equals the amount paid for the Shares, the election must be made to avoid income under Section 83(a) in the future. Purchaser understands that failure to file such an election in a timely manner may result in adverse tax consequences for Purchaser. Purchaser further understands that an additional copy of such election form should be filed with Purchaser's federal income tax return for the calendar year in which the date of this Agreement falls. Purchaser acknowledges that the foregoing is only a summary of the effect of United States federal income taxation with respect to purchase of the Shares hereunder, does not purport to be complete, and is not intended or written to be used, and cannot be used, for the purposes of avoiding taxpayer penalties. Purchaser further acknowledges that the Company has directed Purchaser to seek independent advice regarding the applicable provisions of the Code, the income tax laws of any municipality, state or foreign country in which Purchaser may reside, and the tax consequences of Purchaser's death, and Purchaser has consulted, and has been fully advised by, Purchaser's own tax advisor regarding such tax laws and tax consequences or has knowingly chosen not to consult such a tax advisor. Purchaser further acknowledges that neither the Company nor any subsidiary or representative of the Company has made any warranty or representation to Purchaser with respect to the tax consequences of Purchaser's purchase of the Shares or of the making or failure to make an 83(b) Election.
+
+Even if the fair market value of the Shares at the time of the execution of this Agreement equals the amount paid for the Shares, the election must be made to avoid income under Section 83(a) in the future. Purchaser understands that failure to file such an election in a timely manner may result in adverse tax consequences for Purchaser. Purchaser further understands that an additional copy of such election form should be filed with Purchaser's federal income tax return for the calendar year in which the date of this Agreement falls. Purchaser acknowledges that the foregoing is only a summary of the effect of United States federal income taxation with respect to purchase of the Shares hereunder, does not purport to be complete, and is not intended or written to be used, and cannot be used, for the purposes of avoiding taxpayer penalties. Purchaser further acknowledges that the Company has directed Purchaser to seek independent advice regarding the applicable provisions of the Code, the income tax laws of any municipality, state or foreign country in which Purchaser may reside, and the tax consequences of Purchaser's death, and Purchaser has consulted, and has been fully advised by, Purchaser's own tax advisor regarding such tax laws and tax consequences or has knowingly chosen not to consult such a tax advisor. Purchaser further acknowledges that neither the Company nor any subsidiary or representative of the Company has made any warranty or representation to Purchaser with respect to the tax consequences of Purchaser's purchase of the Shares or of the making or failure to make an 83(b) Election.
+
+PURCHASER (AND NOT THE COMPANY, ITS AGENTS OR ANY OTHER PERSON) SHALL BE SOLELY RESPONSIBLE FOR APPROPRIATELY FILING SUCH FORM WITH THE IRS, EVEN IF PURCHASER REQUESTS THE COMPANY, ITS AGENTS OR ANY OTHER PERSON MAKE THIS FILING ON PURCHASER'S BEHALF.
+
+Purchaser agrees that Purchaser will execute and deliver to the Company with this executed Agreement a copy of the Acknowledgment and Statement of Decision Regarding Section 83(b) Election (the "Acknowledgment"), attached hereto as Exhibit B and, if Purchaser decides to make an 83(b) Election, a copy of the 83(b) Election, attached hereto as Exhibit C.
+
+9. Certain Defined Terms.
+
+(a) "Affiliate" means an entity other than a Subsidiary which, together with the Company, is under common control of a third person or entity.
+
+(b) "Consultant" means any person, including an advisor but not an Employee, who is engaged by the Company, or any Parent, Subsidiary or Affiliate, to render services (other than capital-raising services) and is compensated for such services, and any Director whether compensated for such services or not.
+
+(c) "Continuous Service Status" means the absence of any interruption or termination of service as an Employee or Consultant. Continuous Service Status as an Employee or Consultant shall not be considered interrupted or terminated in the case of: Company approved sick leave; military leave; any other bona fide leave of absence approved by the Company, provided that such leave is for a period of not more than ninety (90) days, unless reemployment upon the expiration of such leave is guaranteed by contract or statute, or unless provided otherwise pursuant to a written Company policy. Also, Continuous Service Status as an Employee or Consultant shall not be considered interrupted or terminated in the case of a transfer between locations of the Company or between the Company, its Parents, Subsidiaries or Affiliates, or their respective successors, or a change in status from an Employee to a Consultant or from a Consultant to an Employee.
+
+(d) "Director" means a member of the Board of Directors of the Company.
+
+(e) "Disability" means "disability" within the meaning of Section 22(e)(3) of the Code.
+
+(f) "Employee" means any person employed by the Company, or any Parent, Subsidiary or Affiliate, with the status of employment determined pursuant to such factors as are deemed appropriate by the Board of Directors of the Company in its sole discretion, subject to any requirements of applicable laws, including the Code. The payment by the Company of a director's fee shall not be sufficient to constitute "employment" of such director by the Company or any Parent, Subsidiary or Affiliate.
+
+(g) "Parent" means any corporation (other than the Company) in an unbroken chain of corporations ending with the Company if each of the corporations other than the Company owns stock possessing 50% or more of the total combined voting power of all classes of stock in one of the other corporations in such chain.
+
+(h) "Subsidiary" means any corporation (other than the Company) in an unbroken chain of corporations beginning with the Company if each of the corporations other than the last corporation in the unbroken chain owns stock possessing 50% or more of the total combined voting power of all classes of stock in one of the other corporations in such chain.
+
+10. Miscellaneous.
+
+(a) Governing Law. The validity, interpretation, construction and performance of this Agreement, and all acts and transactions pursuant hereto and the rights and obligations of the parties hereto shall be governed, construed and interpreted in accordance with the laws of the state of Delaware, without giving effect to principles of conflicts of law. For purposes of litigating any dispute that may arise directly or indirectly from this Agreement, the parties hereby submit and consent to the exclusive jurisdiction of the state of Delaware and agree that any such litigation shall be conducted only in the courts of Delaware or the federal courts of the United States located in Delaware and no other courts.
+
+(b) Entire Agreement. This Agreement sets forth the entire agreement and understanding of the parties relating to the subject matter herein and supersedes all prior or contemporaneous discussions, understandings and agreements, whether oral or written, between them relating to the subject matter hereof.
+
+(c) Amendments and Waivers. No modification of or amendment to this Agreement, nor any waiver of any rights under this Agreement, shall be effective unless in writing signed by the parties to this Agreement. No delay or failure to require performance of any provision of this Agreement shall constitute a waiver of that provision as to that or any other instance.
+
+(d) Successors and Assigns. Except as otherwise provided in this Agreement, this Agreement, and the rights and obligations of the parties hereunder, will be binding upon and inure to the benefit of their respective successors, assigns, heirs, executors, administrators and legal representatives. The Company may assign any of its rights and obligations under this Agreement. No other party to this Agreement may assign, whether voluntarily or by operation of law, any of its rights and obligations under this Agreement, except with the prior written consent of the Company.
+
+(e) Notices. Any notice, demand or request required or permitted to be given under this Agreement shall be in writing and shall be deemed sufficient when delivered personally or by overnight courier or sent by email, or 48 hours after being deposited in the U.S. mail as certified or registered mail with postage prepaid, addressed to the party to be notified at such party's address as set forth on the signature page, as subsequently modified by written notice, or if no address is specified on the signature page, at the most recent address set forth in the Company's books and records.
+
+(f) Severability. If one or more provisions of this Agreement are held to be unenforceable under applicable law, the parties agree to renegotiate such provision in good faith. In the event that the parties cannot reach a mutually agreeable and enforceable replacement for such provision, then (i) such provision shall be excluded from this Agreement, (ii) the balance of the Agreement shall be interpreted as if such provision were so excluded and (iii) the balance of the Agreement shall be enforceable in accordance with its terms.
+
+(g) Construction. This Agreement is the result of negotiations between and has been reviewed by each of the parties hereto and their respective counsel, if any; accordingly, this Agreement shall be deemed to be the product of all of the parties hereto, and no ambiguity shall be construed in favor of or against any one of the parties hereto.
+
+(h) Counterparts. This Agreement may be executed in any number of counterparts, each of which when so executed and delivered shall be deemed an original, and all of which together shall constitute one and the same agreement. Execution of a facsimile or scanned copy will have the same force and effect as execution of an original, and a facsimile or scanned signature will be deemed an original and valid signature.
+
+(i) Electronic Delivery. The Company may, in its sole discretion, decide to deliver any documents related to this Agreement or any notices required by applicable law or the Company's Certificate of Incorporation or Bylaws by email or any other electronic means. Purchaser hereby consents to (i) conduct business electronically, (ii) receive such documents and notices by such electronic delivery and (iii) sign documents electronically and agrees to participate through an on-line or electronic system established and maintained by the Company or a third party designated by the Company.
+
+(j) California Corporate Securities Law. THE SALE OF THE SECURITIES WHICH ARE THE SUBJECT OF THIS AGREEMENT HAS NOT BEEN QUALIFIED WITH THE COMMISSIONER OF FINANCIAL PROTECTION AND INNOVATION OF THE STATE OF CALIFORNIA AND THE ISSUANCE OF THE SECURITIES OR THE PAYMENT OR RECEIPT OF ANY PART OF THE CONSIDERATION THEREFOR PRIOR TO THE QUALIFICATION IS UNLAWFUL, UNLESS THE SALE OF SECURITIES IS EXEMPT FROM QUALIFICATION BY SECTION 25100, 25102 OR 25105 OF THE CALIFORNIA CORPORATIONS CODE. THE RIGHTS OF ALL PARTIES TO THIS AGREEMENT ARE EXPRESSLY CONDITIONED UPON THE QUALIFICATION BEING OBTAINED, UNLESS THE SALE IS SO EXEMPT.
+
+[Signature Page Follows]
+
+The parties have executed this Restricted Stock Purchase Agreement as of the date first set forth below.
+
+Date: ${today()}
+
+
+THE COMPANY:
+
+${a.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+PURCHASER:
+
+_________________________
+(Signature)
+
+${founderName}
+
+Address:
+_________________________
+_________________________
+
+
+I, _________________________, spouse of ${founderName} ("Purchaser"), have read and hereby approve the foregoing Common Stock Purchase Agreement (the "Agreement"). In consideration of the Company's granting my spouse the right to purchase the Shares as set forth in the Agreement, I hereby agree to be bound irrevocably by the Agreement and further agree that any community property or other such interest that I may have in the Shares shall hereby be similarly bound by the Agreement. I hereby appoint my spouse as my attorney-in-fact with respect to any amendment or exercise or waiver of any rights under the Agreement.
+
+_________________________
+(Print Name of Spouse, if applicable)
+
+_________________________
+(Signature)
+
+
+Schedule A
+
+Consideration
+
+${IP_VALUE_PLACEHOLDER} in intellectual property
+
+
+EXHIBIT A
+STOCK POWER
+
+Instructions: Please do not fill in any blanks other than the signature line. The purpose of this Stock Power is to enable the Company to exercise its repurchase option set forth in the Agreement without requiring additional signatures on the part of Holder.
+
+FOR VALUE RECEIVED, the undersigned ("Holder"), hereby sells, assigns and transfers unto _________________________ ("Transferee") _________________________ shares of the Common Stock of ${a.companyName}, a Delaware corporation (the "Company"), standing in Holder's name on the Company's books as Certificate No. UCS-____ whether held in certificated or uncertificated form, and does hereby irrevocably constitute and appoint _________________________ to transfer said stock on the books of the Company with full power of substitution in the premises.
+
+Dated: _________________________
+
+HOLDER:
+
+_________________________
+
+_________________________
+(Signature)
+
+Address:
+
+Email:
+
+This Stock Power may only be used as authorized by the Common Stock Purchase Agreement between the Holder and the Company, dated _________________________ and the exhibits thereto.
+
+
+IF YOU WISH TO MAKE A SECTION 83(B) ELECTION, THE FILING OF SUCH ELECTION IS YOUR RESPONSIBILITY.
+
+THE FORM FOR MAKING THIS SECTION 83(B) ELECTION IS ATTACHED TO THIS AGREEMENT.
+
+YOU MUST FILE THIS FORM WITHIN 30 DAYS OF PURCHASING THE SHARES.
+
+YOU (AND NOT THE COMPANY, ANY OF ITS AGENTS OR ANY OTHER PERSON) SHALL BE SOLELY RESPONSIBLE FOR FILING SUCH FORM WITH THE IRS, EVEN IF YOU REQUEST THE COMPANY, ITS AGENTS OR ANY OTHER PERSON TO MAKE THIS FILING ON YOUR BEHALF AND EVEN IF THE COMPANY, ANY OF ITS AGENTS OR ANY OTHER PERSON HAS PREVIOUSLY MADE THIS FILING ON YOUR BEHALF.
+
+The election should be filed by mailing a signed election form by certified mail, return receipt requested to the IRS Service Center where you file your tax returns. See www.irs.gov.
+
+
+EXHIBIT B
+ACKNOWLEDGMENT AND STATEMENT OF DECISION
+REGARDING SECTION 83(b) ELECTION
+
+The undersigned has entered into a stock purchase agreement with ${a.companyName}, a Delaware corporation (the "Company"), pursuant to which the undersigned is purchasing ${sharesStr} shares of Common Stock of the Company (the "Shares"). In connection with the purchase of the Shares, the undersigned hereby represents as follows:
+
+1. The undersigned has carefully reviewed the stock purchase agreement pursuant to which the undersigned is purchasing the Shares.
+
+2. The undersigned has either (a) consulted, and has been fully advised by, the undersigned's own tax advisor regarding the federal, state and local tax consequences of purchasing the Shares, and particularly regarding the advisability of making elections pursuant to Section 83(b) of the Internal Revenue Code of 1986, as amended (the "Code") and pursuant to the corresponding provisions, if any, of applicable state law; or (b) knowingly chosen not to consult such a tax advisor.
+
+3. The undersigned hereby states that the undersigned has either decided (a) to make an election pursuant to Section 83(b) of the Code, and is submitting to the Company, together with the undersigned's executed stock purchase agreement, an executed form entitled "Election Under Section 83(b) of the Internal Revenue Code of 1986"; or (b) not to make an election pursuant to Section 83(b) of the Code.
+
+4. Neither the Company nor any subsidiary or representative of the Company has made any warranty or representation to the undersigned with respect to the tax consequences of the undersigned's purchase of the Shares or of the making or failure to make an election pursuant to Section 83(b) of the Code or the corresponding provisions, if any, of applicable state law.
+
+[Signature Page Follows]
+
+IN WITNESS WHEREOF, the undersigned have executed this agreement effective as of the date and year first below written
+
+Dated: ${today()}
+
+
+_________________________
+(Signature)
+
+${founderName}
+
+
+_________________________
+(Signature of Spouse, if applicable)
+
+
+EXHIBIT C
+ELECTION UNDER SECTION 83(B)
+OF THE INTERNAL REVENUE CODE OF 1986
+
+See Form 15620
+
+
+EXHIBIT D
+FORM OF ASSIGNMENT OF IP AND OTHER ASSETS
+(See Attached)
+
+
+ASSIGNMENT OF IP AND OTHER ASSETS
+
+This Assignment of IP and Other Assets (this "Agreement") is made and entered into effective as of the date first written below (this "Effective Date") by and between ${a.companyName}, a Delaware corporation (the "Company"), and ${founderName} (the "Assignor").
+
+WHEREAS, prior to the Effective Date, the Assignor has developed certain technology and intellectual property on behalf of the Company and has developed or acquired other tangible personal property, as further described below, which relate to the Company's business as now conducted and as presently proposed to be conducted (the "Business");
+
+WHEREAS, the Assignor desires such technology and intellectual property and other tangible personal property to be assigned to and owned by the Company, in connection with the sale of the shares of the Company's capital stock issued by the Company to the Assignor on or about the date hereof;
+
+NOW THEREFORE, in consideration of the foregoing and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the parties to this Agreement hereby agree as follows:
+
+1. Certain Definitions. As used herein, the following capitalized terms will have the meanings set forth below:
+
+(a) "Technology" means all inventions, technology, ideas, concepts, processes, business plans, documentation, financial projections, models and any other items, authored, conceived, invented, developed or designed by the Assignor relating to the technology or Business of the Company that is not otherwise owned by the Company.
+
+(b) "Derivative" means: (i) any derivative work of the Technology (as defined in Section 101 of the U.S. Copyright Act); (ii) all improvements, modifications, alterations, adaptations, enhancements and new versions of the Technology (the "Technology Derivatives"); and (iii) all technology, inventions, products or other items that, directly or indirectly, incorporate, or are derived from, any part of the Technology or any Technology Derivative.
+
+(c) "Intellectual Property Rights" means, collectively, all worldwide patents, patent applications, patent rights, copyrights, copyright registrations, moral rights, trade names, trademarks, service marks, domain names and registrations and/or applications for all of the foregoing, trade secrets, know-how, mask work rights, rights in trade dress and packaging, goodwill and all other intellectual property rights and proprietary rights relating in any way to the Technology, any Derivative or any Embodiment, whether arising under the laws of the United States of America or the laws of any other state, country or jurisdiction.
+
+(d) "Embodiment" means all documentation, drafts, papers, designs, schematics, diagrams, models, prototypes, source and object code (in any form or format and for all hardware platforms), computer-stored data, diskettes, manuscripts and other items describing all or any part of the Technology, any Derivative, any Intellectual Property Rights or any information related thereto or in which all of any part of the Technology, any Derivative, any Intellectual Property Right or such information is set forth, embodied, recorded or stored.
+
+(e) "Business Assets" means all business and marketing plans, worldwide marketing rights, software, customer and supplier lists, price lists, mailing lists, customer and supplier records and other confidential or proprietary information relating to the Technology, as well as all computers, office equipment and other tangible personal property owned (i.e., not leased) by Assignor immediately prior to the execution and delivery of this Agreement and used in or related to the Business.
+
+(f) "Assigned Assets" refers to the Technology, all Derivatives, all Intellectual Property Rights, all Embodiments and Business Assets, collectively.
+
+2. Assignment.
+
+(a) The Assignor hereby sells, transfers, assigns and conveys, to the Company, and its successors and assigns, the Assignor's entire right, title and interest in and to the Assigned Assets and all rights of action, power and benefit belonging to or accruing from the Assigned Assets including the right to undertake proceedings to recover past and future damages and claim all other relief in respect of any acts of infringement thereof whether such acts shall have been committed before or after the date of this assignment, the same to be held and enjoyed by said Company, for its own use and benefit and the use and benefit of its successors, legal representatives and assigns, as fully and entirely as the same would have been held and enjoyed by the Assignor, had this assignment not been made.
+
+(b) The Assignor hereby appoints the Company the attorney-in-fact of the Assignor, with full power of substitution on behalf of the Assignor to demand and receive any of the Assigned Assets and to give receipts and releases for the same, to institute and prosecute in the name of the Assignor, but for the benefit of the Company, any legal or equitable proceedings the Company deems proper in order to enforce any rights in the Assigned Assets and to defend or compromise any legal or equitable proceedings relating to the Assigned Assets as the Company shall deem advisable. The Assignor hereby declares that the appointment made and powers granted hereby are coupled with an interest and shall be irrevocable by the Assignor.
+
+(c) The Assignor hereby agrees that the Assignor and the Assignor's successors and assigns will do, execute, acknowledge and deliver, or will cause to be done, executed, acknowledged and delivered such further acts, documents, or instruments confirming the conveyance of any of the Assigned Assets to the Company as the Company shall reasonably deem necessary, provided that the Company shall provide all necessary documentation to the Assignor.
+
+3. Assignor Representations and Warranties. The Assignor represents and warrants to the Company that to the best of Assignor's knowledge the Assignor is the owner, inventor and/or author of, and can grant exclusive right, title and interest in and to, each of the Assigned Assets transferred by the Assignor hereunder and that none of the Assigned Assets are subject to any dispute, claim, prior license or other agreement, assignment, lien or rights of any third party, or any other rights that might interfere with the Company's use, or exercise of ownership of, any of the Assigned Assets. The Assignor further represents and warrants to the Company that to the best of Assignor's knowledge the Assigned Assets are free of any claim of any prior employer or third party client of the Assignor or any school, university or other institution the Assignor attended, and that the Assignor is not aware of any claims by any third party to any rights of any kind in or to any of the Assigned Assets. The Assignor agrees to immediately notify the Company upon becoming aware of any such claims.
+
+4. Reimbursement of Expenses. The Company shall as promptly as practicable, reimburse the Assignor for the Assignor's actual out-of-pocket costs reasonably incurred with respect to Assignor's acquisition and maintenance of the Assigned Assets.
+
+5. Miscellaneous.
+
+(a) Governing Law. The validity, interpretation, construction and performance of this Agreement, and all acts and transactions pursuant hereto and the rights and obligations of the parties hereto shall be governed, construed and interpreted in accordance with the laws of the state of Delaware, without giving effect to principles of conflicts of law.
+
+(b) Entire Agreement. This Agreement sets forth the entire agreement and understanding of the parties relating to the subject matter herein and supersedes all prior or contemporaneous discussions, understandings and agreements, whether oral or written, between them relating to the subject matter hereof.
+
+(c) Amendments and Waivers. No modification of or amendment to this Agreement, nor any waiver of any rights under this Agreement, shall be effective unless in writing signed by the parties to this Agreement. No delay or failure to require performance of any provision of this Agreement shall constitute a waiver of that provision as to that or any other instance.
+
+(d) Successors and Assigns. Except as otherwise provided in this Agreement, this Agreement, and the rights and obligations of the parties hereunder, will be binding upon and inure to the benefit of their respective successors, assigns, heirs, executors, administrators and legal representatives. The Company may assign any of its rights and obligations under this Agreement. No other party to this Agreement may assign, whether voluntarily or by operation of law, any of its rights and obligations under this Agreement, except with the prior written consent of the Company.
+
+(e) Notices. Any notice, demand or request required or permitted to be given under this Agreement shall be in writing and shall be deemed sufficient when delivered personally or by overnight courier or sent by email, or 48 hours after being deposited in the U.S. mail as certified or registered mail with postage prepaid, addressed to the party to be notified at such party's address as set forth on the signature page, as subsequently modified by written notice, or if no address is specified on the signature page, at the most recent address set forth in the Company's books and records.
+
+(f) Severability. If one or more provisions of this Agreement are held to be unenforceable under applicable law, the parties agree to renegotiate such provision in good faith. In the event that the parties cannot reach a mutually agreeable and enforceable replacement for such provision, then (i) such provision shall be excluded from this Agreement, (ii) the balance of the Agreement shall be interpreted as if such provision were so excluded and (iii) the balance of the Agreement shall be enforceable in accordance with its terms.
+
+(g) Construction. This Agreement is the result of negotiations between and has been reviewed by each of the parties hereto and their respective counsel, if any; accordingly, this Agreement shall be deemed to be the product of all of the parties hereto, and no ambiguity shall be construed in favor of or against any one of the parties hereto.
+
+(h) Counterparts. This Agreement may be executed in any number of counterparts, each of which when so executed and delivered shall be deemed an original, and all of which together shall constitute one and the same agreement. Execution of a facsimile or scanned copy will have the same force and effect as execution of an original, and a facsimile or scanned signature will be deemed an original and valid signature.
+
+[Signature Page Follows]
+
+IN WITNESS WHEREOF, the undersigned have executed this Assignment of IP and Other Assets Agreement effective as of the date and year first below written.
+
+Dated: ${today()}
+
+
+_________________________
+(Signature)
+
+${founderName}, Assignor
+
+
+RECEIPT
+
+${a.companyName}, a Delaware corporation (the "Company"), hereby acknowledges receipt of:
+
+ X  The assignment of certain intellectual property and/or other assets having an aggregate value equal to ${IP_VALUE_PLACEHOLDER} given by ${founderName} as consideration for ${sharesStr} shares of Common Stock of the Company recorded on the books of the Company as No. ${CERT_NUMBER_PLACEHOLDER}.
+
+Dated: ${today()}
+
+
+_________________________
+(Signature)
+
+By: _________________________, on behalf of the Company
+
+
+RECEIPT AND CONSENT
+
+The undersigned hereby acknowledges receipt of ${sharesStr} shares of Common Stock of ${a.companyName}, a Delaware corporation (the "Company").
+
+The undersigned further acknowledges that the Secretary of the Company, or his or her designee, is acting as escrow holder pursuant to the Common Stock Purchase Agreement that Purchaser has previously entered into with the Company. As escrow holder, the Secretary of the Company, or his or her designee, holds the aforementioned certificate issued in the undersigned's name.
+
+Dated: ${today()}
+
+
+_________________________
+(Signature)
+
+${founderName}
+
+
+_________________________
+(Signature of Spouse, if applicable)`
+}
+
+function founderRSPA(a: FlowAnswers): string {
+  const founders = a.allocations.filter((alloc) => !alloc.isPool)
+
+  if (founders.length === 0) {
+    return buildFounderRSPA(a, "[No founder allocations specified]", 0)
+  }
+
+  return founders
+    .map((f) => buildFounderRSPA(a, f.name, f.shares))
+    .join("\n\n\n════════════════════════════════════════\n\n\n")
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
   "org-resolutions": orgResolutions,
   "board-consent-option-pool": boardConsentOptionPool,
   "board-consent-founder-stock": boardConsentFounderStock,
+  "founder-rspa": founderRSPA,
   bylaws,
   "option-pool": optionPool,
 }
