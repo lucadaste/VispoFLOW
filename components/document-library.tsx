@@ -16,16 +16,47 @@ export type LibraryDoc = {
   hidden?: boolean
 }
 
-/** Matches section headers like "Article I" or "1. Adoption of Bylaws" so they can be bolded. */
-function isDocHeadingLine(line: string): boolean {
+/** Titles and major section names (e.g. "BYLAWS", "CORPORATE OFFICES", "***") are set in all-caps — bold + centered. */
+function isAllCapsHeadingLine(line: string): boolean {
   const trimmed = line.trim()
   if (!trimmed) return false
-  return /^Article\s+[IVXLCDM]+$/i.test(trimmed) || /^\d+\.\s+\S/.test(trimmed)
+  if (trimmed === "***") return true
+  if (!/[A-Z]/.test(trimmed) || /[a-z]/.test(trimmed)) return false
+  return /^[A-Z0-9][A-Z0-9 .,'&()/-]*$/.test(trimmed)
 }
 
-/** The document title is its first non-blank line; it's bolded and centered. */
+/** A numbered/"Article N" line counts as a heading only if it's a short standalone label, not a
+ *  numbered clause whose text runs on past the label (e.g. "2. Definitions. As used herein..."). */
+function isStandaloneHeadingText(rest: string): boolean {
+  const body = rest.trim()
+  if (!body) return false
+  const periodIndex = body.indexOf(".")
+  return periodIndex === -1 || periodIndex === body.length - 1
+}
+
+/** Matches section headers like "Article I", "1. Adoption of Bylaws", or "II.1. Place of Meetings" — bold, left-aligned. */
+function isNumberedHeadingLine(line: string): boolean {
+  const trimmed = line.trim()
+  if (!trimmed || trimmed.length > 90) return false
+  if (/^Article\s+[IVXLCDM]+$/i.test(trimmed)) return true
+  const numbered = trimmed.match(/^\d+\.\s+(.*)$/)
+  if (numbered) return isStandaloneHeadingText(numbered[1])
+  const romanNumbered = trimmed.match(/^[IVXLCDM]+\.\d+\.\s+(.*)$/i)
+  if (romanNumbered) return isStandaloneHeadingText(romanNumbered[1])
+  return false
+}
+
+/** The document title is its first non-blank line — always bolded and centered as a safety net,
+ *  even for a future template whose title doesn't happen to be all-caps. */
 function docTitleLineIndex(content: string): number {
   return content.split("\n").findIndex((l) => l.trim().length > 0)
+}
+
+function classifyDocLine(line: string, isTitle: boolean): { bold: boolean; center: boolean } {
+  if (isTitle) return { bold: true, center: true }
+  if (isAllCapsHeadingLine(line)) return { bold: true, center: true }
+  if (isNumberedHeadingLine(line)) return { bold: true, center: false }
+  return { bold: false, center: false }
 }
 
 const DOWNLOAD_FORMATS = ["pdf", "txt", "jpeg"] as const
@@ -74,13 +105,12 @@ async function downloadAsPdf(doc: LibraryDoc) {
       return
     }
 
-    const isTitle = i === titleIndex
-    const isHeading = !isTitle && isDocHeadingLine(raw)
-    pdf.setFont("times", isTitle || isHeading ? "bold" : "normal")
+    const { bold, center } = classifyDocLine(raw, i === titleIndex)
+    pdf.setFont("times", bold ? "bold" : "normal")
 
     const wrapped: string[] = pdf.splitTextToSize(raw, maxWidth)
     for (const w of wrapped) {
-      if (isTitle) pdf.text(w, centerX, y, { align: "center" })
+      if (center) pdf.text(w, centerX, y, { align: "center" })
       else pdf.text(w, margin, y)
       advance()
     }
@@ -428,12 +458,11 @@ function DocumentBody({ content }: { content: string }) {
   return (
     <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {lines.map((line, i) => {
-        const isTitle = i === titleIndex
-        const isHeading = !isTitle && isDocHeadingLine(line)
+        const { bold, center } = classifyDocLine(line, i === titleIndex)
         return (
           <p
             key={i}
-            className={cn("m-0 whitespace-pre-wrap", (isTitle || isHeading) && "font-bold", isTitle && "text-center")}
+            className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}
           >
             {line || " "}
           </p>
