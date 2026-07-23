@@ -1673,9 +1673,7 @@ ${stockholderSignatures}
 
 Exhibit A
 
-Indemnification Agreement
-
-(See the Indemnification Agreement document.)`
+Indemnification Agreement`
 }
 
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
