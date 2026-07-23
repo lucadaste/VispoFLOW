@@ -108,6 +108,7 @@ export function ProfileForm({
       <div className="flex justify-end gap-2">
         {onCancel && (
           <button
+            type="button"
             onClick={onCancel}
             className="rounded-lg border border-border bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
@@ -115,6 +116,7 @@ export function ProfileForm({
           </button>
         )}
         <button
+          type="button"
           onClick={() => onSave(form)}
           className="rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >

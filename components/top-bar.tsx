@@ -126,6 +126,7 @@ export function TopBar({
           )}
 
           <button
+            type="button"
             onClick={onOpenSettings}
             title="Your profile"
             className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"

@@ -25,6 +25,7 @@ export function ProfileSettingsModal({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           >
