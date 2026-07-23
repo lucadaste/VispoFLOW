@@ -23,7 +23,7 @@ export function DocumentTracker({
   ).length
   const pct = Math.round((completed / total) * 100)
 
-  const groups = ["Incorporation", "Organizational Documents", "Equity Allocation", "Equity Plan"] as const
+  const groups = ["Incorporation", "Organizational Documents", "Equity Plan", "Equity Allocation"] as const
 
   return (
     <div className="flex h-full flex-col">

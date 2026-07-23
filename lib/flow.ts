@@ -44,6 +44,30 @@ export const DOCUMENTS: LegalDoc[] = [
       "Formal board resolutions covering the first housekeeping decisions a corporation needs — things like appointing officers, opening a bank account, and adopting a stock plan.",
   },
   {
+    id: "option-pool",
+    label: "Equity Incentive Plan",
+    short: "TW Option Pool",
+    group: "Equity Plan",
+    description:
+      "Reserves a pool of shares set aside for future equity grants — stock options or restricted stock — to employees, advisors, and contractors as the company grows.",
+  },
+  {
+    id: "board-consent-option-pool",
+    label: "Board Consent — Option Pool",
+    short: "TW Board Consent Option Pool",
+    group: "Equity Plan",
+    description:
+      "The board's formal approval adopting the Equity Incentive Plan and authorizing the shares reserved for it.",
+  },
+  {
+    id: "stockholders-consent-option-pool",
+    label: "Stockholders Consent — Option Pool",
+    short: "TW Stockholders Consent Option Pool",
+    description:
+      "Stockholder-level approval — in addition to the board's — required to formally adopt the Equity Incentive Plan.",
+    group: "Equity Plan",
+  },
+  {
     id: "founder-rspa",
     label: "Founder Restricted Stock Purchase Agreements",
     short: "TW Founder RSPAs",
@@ -73,30 +97,6 @@ export const DOCUMENTS: LegalDoc[] = [
     group: "Equity Allocation",
     description:
       "The agreement itself, under which the Company indemnifies each officer and director against certain liabilities and expenses incurred in that role.",
-  },
-  {
-    id: "option-pool",
-    label: "Equity Incentive Plan",
-    short: "TW Option Pool",
-    group: "Equity Plan",
-    description:
-      "Reserves a pool of shares set aside for future equity grants — stock options or restricted stock — to employees, advisors, and contractors as the company grows.",
-  },
-  {
-    id: "board-consent-option-pool",
-    label: "Board Consent — Option Pool",
-    short: "TW Board Consent Option Pool",
-    group: "Equity Plan",
-    description:
-      "The board's formal approval adopting the Equity Incentive Plan and authorizing the shares reserved for it.",
-  },
-  {
-    id: "stockholders-consent-option-pool",
-    label: "Stockholders Consent — Option Pool",
-    short: "TW Stockholders Consent Option Pool",
-    description:
-      "Stockholder-level approval — in addition to the board's — required to formally adopt the Equity Incentive Plan.",
-    group: "Equity Plan",
   },
 ]
 
