@@ -13,15 +13,99 @@ export type LibraryDoc = {
   pending?: boolean
 }
 
-function downloadDoc(doc: LibraryDoc) {
-  if (!doc.content) return
-  const blob = new Blob([doc.content], { type: "text/plain" })
+const DOWNLOAD_FORMATS = ["pdf", "txt", "jpeg"] as const
+type DownloadFormat = (typeof DOWNLOAD_FORMATS)[number]
+
+function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `${doc.title}.txt`
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
+}
+
+function downloadAsTxt(doc: LibraryDoc) {
+  triggerDownload(new Blob([doc.content ?? ""], { type: "text/plain" }), `${doc.title}.txt`)
+}
+
+async function downloadAsPdf(doc: LibraryDoc) {
+  const { jsPDF } = await import("jspdf")
+  const pdf = new jsPDF({ unit: "pt", format: "letter" })
+  const margin = 56
+  const lineHeight = 16
+  const maxWidth = pdf.internal.pageSize.getWidth() - margin * 2
+  const pageHeight = pdf.internal.pageSize.getHeight()
+
+  pdf.setFont("times", "normal")
+  pdf.setFontSize(11)
+
+  const lines: string[] = pdf.splitTextToSize(doc.content ?? "", maxWidth)
+  let y = margin
+  for (const line of lines) {
+    if (y > pageHeight - margin) {
+      pdf.addPage()
+      y = margin
+    }
+    pdf.text(line, margin, y)
+    y += lineHeight
+  }
+
+  pdf.save(`${doc.title}.pdf`)
+}
+
+function downloadAsJpeg(doc: LibraryDoc) {
+  const width = 850
+  const margin = 48
+  const lineHeight = 22
+  const fontSize = 15
+  const font = `${fontSize}px Georgia, serif`
+
+  const canvas = document.createElement("canvas")
+  const ctx = canvas.getContext("2d")
+  if (!ctx) return
+
+  ctx.font = font
+  const maxWidth = width - margin * 2
+  const lines: string[] = []
+  for (const raw of (doc.content ?? "").split("\n")) {
+    if (raw === "") {
+      lines.push("")
+      continue
+    }
+    let current = ""
+    for (const word of raw.split(" ")) {
+      const test = current ? `${current} ${word}` : word
+      if (current && ctx.measureText(test).width > maxWidth) {
+        lines.push(current)
+        current = word
+      } else {
+        current = test
+      }
+    }
+    lines.push(current)
+  }
+
+  canvas.width = width
+  canvas.height = margin * 2 + lines.length * lineHeight
+  // canvas dimension changes reset the 2D context, so font/fill must be reapplied
+  ctx.font = font
+  ctx.fillStyle = "#ffffff"
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = "#1a1a1a"
+  ctx.textBaseline = "top"
+  lines.forEach((line, i) => ctx.fillText(line, margin, margin + i * lineHeight))
+
+  canvas.toBlob((blob) => {
+    if (blob) triggerDownload(blob, `${doc.title}.jpg`)
+  }, "image/jpeg", 0.92)
+}
+
+function downloadDoc(doc: LibraryDoc, format: DownloadFormat) {
+  if (!doc.content) return
+  if (format === "txt") downloadAsTxt(doc)
+  else if (format === "pdf") downloadAsPdf(doc)
+  else downloadAsJpeg(doc)
 }
 
 type Phase = "chat" | "compliance" | "transactions"
@@ -155,6 +239,7 @@ function DocCard({
   onDelete: (doc: LibraryDoc) => void
 }) {
   const [confirming, setConfirming] = useState(false)
+  const [formatMenuOpen, setFormatMenuOpen] = useState(false)
   const viewable = !!doc.content
   const downloadable = viewable
 
@@ -206,13 +291,37 @@ function DocCard({
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1">
         {downloadable && (
-          <button
-            onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
-            title="Download"
-            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </button>
+          <div className="relative mt-0.5">
+            <button
+              onClick={(e) => { e.stopPropagation(); setFormatMenuOpen((v) => !v) }}
+              title="Download"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Download className="h-3.5 w-3.5" />
+            </button>
+            {formatMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={(e) => { e.stopPropagation(); setFormatMenuOpen(false) }}
+                />
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 top-7 z-50 w-28 overflow-hidden rounded-lg border border-border bg-popover py-1 text-popover-foreground shadow-md"
+                >
+                  {DOWNLOAD_FORMATS.map((format) => (
+                    <button
+                      key={format}
+                      onClick={() => { downloadDoc(doc, format); setFormatMenuOpen(false) }}
+                      className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+                    >
+                      {format}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
         {!confirming && (
           <button
