@@ -1,12 +1,27 @@
 "use client"
 
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check } from "lucide-react"
+import { useState } from "react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type LibraryDoc = {
   id: string
   title: string
   subtitle: string
+  content?: string
+  /** true while an external process (e.g. a state filing) is still resolving in the real world */
+  pending?: boolean
+}
+
+function downloadDoc(doc: LibraryDoc) {
+  if (!doc.content) return
+  const blob = new Blob([doc.content], { type: "text/plain" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${doc.title}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 type Phase = "chat" | "compliance" | "transactions"
@@ -23,6 +38,7 @@ export function DocumentLibrary({
   onNavigate: (phase: Phase) => void
 }) {
   const total = incorporationDocs.length + complianceDocs.length + transactionDocs.length
+  const [viewing, setViewing] = useState<LibraryDoc | null>(null)
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
@@ -43,6 +59,7 @@ export function DocumentLibrary({
             emptyText="Formation documents will appear here as you complete the Incorporation flow."
             ctaLabel="Go to Incorporation"
             onCta={() => onNavigate("chat")}
+            onView={setViewing}
           />
           <DocSection
             icon={ShieldCheck}
@@ -51,6 +68,7 @@ export function DocumentLibrary({
             emptyText="Filed compliance items will appear here as you complete them in the Compliance Center."
             ctaLabel="Go to Compliance"
             onCta={() => onNavigate("compliance")}
+            onView={setViewing}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -59,9 +77,12 @@ export function DocumentLibrary({
             emptyText="Grants, issuances, and transfers will appear here as you record them in Transactions."
             ctaLabel="Go to Transactions"
             onCta={() => onNavigate("transactions")}
+            onView={setViewing}
           />
         </div>
       </div>
+
+      {viewing && <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />}
     </div>
   )
 }
@@ -73,6 +94,7 @@ function DocSection({
   emptyText,
   ctaLabel,
   onCta,
+  onView,
 }: {
   icon: LucideIcon
   title: string
@@ -80,6 +102,7 @@ function DocSection({
   emptyText: string
   ctaLabel: string
   onCta: () => void
+  onView: (doc: LibraryDoc) => void
 }) {
   return (
     <section>
@@ -106,25 +129,78 @@ function DocSection({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {docs.map((doc) => (
-            <div
-              key={doc.id}
-              className="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5 shadow-sm"
-            >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                <FileText className="h-4 w-4" />
-              </span>
-              <div className="min-w-0 flex-1 leading-tight">
-                <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
-                <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
+          {docs.map((doc) => {
+            const viewable = !!doc.content
+            const downloadable = viewable && !doc.pending
+            return (
+              <div
+                key={doc.id}
+                role={viewable ? "button" : undefined}
+                tabIndex={viewable ? 0 : undefined}
+                onClick={viewable ? () => onView(doc) : undefined}
+                onKeyDown={viewable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView(doc) } } : undefined}
+                className={`flex items-start gap-3 rounded-xl border p-3.5 text-left shadow-sm ${
+                  doc.pending ? "border-primary/30 bg-primary/5" : "border-border bg-card"
+                } ${viewable ? "cursor-pointer transition-colors hover:border-primary/40" : ""}`}
+              >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                  <FileText className="h-4 w-4" />
+                </span>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
+                  {doc.pending ? (
+                    <p className="mt-1 text-[10px] font-medium text-primary">Filing with the state — usually same-day to a few business days</p>
+                  ) : viewable ? (
+                    <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
+                  ) : null}
+                </div>
+                {downloadable && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
+                    title="Download"
+                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <span
+                  className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                    doc.pending ? "bg-primary text-primary-foreground" : "bg-success text-success-foreground"
+                  }`}
+                >
+                  {doc.pending ? <Send className="h-2.5 w-2.5" /> : <Check className="h-3 w-3" strokeWidth={3} />}
+                </span>
               </div>
-              <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
-                <Check className="h-3 w-3" strokeWidth={3} />
-              </span>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>
+  )
+}
+
+function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex h-full w-full max-w-2xl flex-col bg-card shadow-xl">
+        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+          <div className="pr-4">
+            <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-foreground">{doc.content}</pre>
+        </div>
+      </div>
+    </div>
   )
 }

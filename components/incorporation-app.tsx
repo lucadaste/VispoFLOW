@@ -29,6 +29,7 @@ import {
   docShorts,
   DOCUMENTS,
 } from "@/lib/flow"
+import { renderDocumentContent } from "@/lib/document-templates"
 import { loadPersisted, savePersisted, clearPersisted } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
@@ -350,7 +351,13 @@ export function IncorporationApp() {
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
     (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
-  ).map((d) => ({ id: d.id, title: d.label, subtitle: d.group }))
+  ).map((d) => ({
+    id: d.id,
+    title: d.label,
+    subtitle: d.group,
+    content: renderDocumentContent(d.id, answers) ?? undefined,
+    pending: docStatuses[d.id] === "filing",
+  }))
 
   return (
     <div className="flex h-dvh flex-col bg-background">

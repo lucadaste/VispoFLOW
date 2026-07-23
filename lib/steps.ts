@@ -3,6 +3,7 @@ export type StepInput =
   | { kind: "text"; field: string; placeholder?: string; prefill?: string; submitLabel?: string }
   | { kind: "questions" }
   | { kind: "incorporator" }
+  | { kind: "registeredAgent" }
   | { kind: "paywall" }
   | { kind: "corpAddress" }
   | { kind: "directorCount" }
@@ -46,6 +47,11 @@ export const STEPS: Step[] = [
     id: "incorporator",
     messages: ["Perfect, that name is available. What is your name and address? You'll be the incorporator who signs the initial filing."],
     input: { kind: "incorporator" },
+  },
+  {
+    id: "registered-agent",
+    messages: ["Every Delaware corporation needs a registered agent — a person or company authorized to accept legal documents on the corporation's behalf at a Delaware address. What is your registered agent's name and address?"],
+    input: { kind: "registeredAgent" },
     completes: ["coi"],
   },
   {

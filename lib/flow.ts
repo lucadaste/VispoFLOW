@@ -782,6 +782,8 @@ export type FlowAnswers = {
   companyName: string
   incorporatorName: string
   incorporatorAddress: string
+  registeredAgentName: string
+  registeredAgentAddress: string
   corpAddress: string
   directorCount: number
   directors: string[]
@@ -799,6 +801,8 @@ export const initialAnswers: FlowAnswers = {
   companyName: "",
   incorporatorName: "",
   incorporatorAddress: "",
+  registeredAgentName: "",
+  registeredAgentAddress: "",
   corpAddress: "",
   directorCount: 2,
   directors: [],

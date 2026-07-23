@@ -42,6 +42,8 @@ export function ChatInput({
       return <TextInput input={input} onSubmit={onSubmit} />
     case "incorporator":
       return <IncorporatorInput onSubmit={onSubmit} />
+    case "registeredAgent":
+      return <RegisteredAgentInput onSubmit={onSubmit} />
     case "paywall":
       return <PaywallInput onSubmit={onSubmit} />
     case "corpAddress":
@@ -210,6 +212,47 @@ function IncorporatorInput({ onSubmit }: { onSubmit: SubmitFn }) {
         </div>
         <div>
           <label className={labelClass}>Mailing address</label>
+          <textarea
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            rows={2}
+            className={cn(fieldClass, "resize-none")}
+          />
+        </div>
+        <div className="flex justify-end">
+          <SubmitButton onClick={submit} disabled={!name.trim() || !address.trim()} />
+        </div>
+      </div>
+    </Shell>
+  )
+}
+
+/* ---------- registered agent ---------- */
+
+function RegisteredAgentInput({ onSubmit }: { onSubmit: SubmitFn }) {
+  const [name, setName] = useState("")
+  const [address, setAddress] = useState("")
+  const submit = () => {
+    if (!name.trim() || !address.trim()) return
+    onSubmit(`${name}\n${address}`, {
+      registeredAgentName: name.trim(),
+      registeredAgentAddress: address.trim(),
+    })
+  }
+  return (
+    <Shell>
+      <div className="space-y-3">
+        <div>
+          <label className={labelClass}>Registered agent name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Corporation Service Company"
+            className={fieldClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>Registered agent Delaware address</label>
           <textarea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
