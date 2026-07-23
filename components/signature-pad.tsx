@@ -70,11 +70,11 @@ export function SignaturePad({
     drawingRef.current = false
   }
 
-  const canConfirm = !!name.trim() && (mode === "typed" || hasDrawn)
+  const canConfirm = mode === "typed" ? !!name.trim() : hasDrawn
 
   const confirm = () => {
-    if (!name.trim()) return
     if (mode === "typed") {
+      if (!name.trim()) return
       onCapture(renderTypedSignature(name.trim()), "typed", name.trim())
     } else {
       if (!hasDrawnRef.current || !canvasRef.current) return
