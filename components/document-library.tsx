@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText } from "@/lib/signature"
+import { signatureBlockText, findSignatureLineIndex, formatSignedDate } from "@/lib/signature"
 import { SignaturePad } from "@/components/signature-pad"
 
 export type LibraryDoc = {
@@ -113,8 +113,17 @@ async function downloadAsPdf(doc: LibraryDoc) {
 
   const rawLines = (doc.content ?? "").split("\n")
   const titleIndex = docTitleLineIndex(doc.content ?? "")
+  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
+  const signatureLineIndex = signed ? findSignatureLineIndex(doc.content ?? "", doc.signerName!) : null
+  const inlineImgHeight = 34
 
   rawLines.forEach((raw, i) => {
+    if (i === signatureLineIndex) {
+      pdf.addImage(doc.signatureDataUrl!, "PNG", margin, y - inlineImgHeight + 4, inlineImgHeight * 3, inlineImgHeight)
+      advance()
+      return
+    }
+
     if (!raw.trim()) {
       advance()
       return
@@ -129,9 +138,18 @@ async function downloadAsPdf(doc: LibraryDoc) {
       else pdf.text(w, margin, y)
       advance()
     }
+
+    if (signatureLineIndex !== null && i === signatureLineIndex + 1) {
+      pdf.setFont("times", "italic")
+      pdf.setFontSize(9)
+      pdf.text(`Electronically signed on ${formatSignedDate(doc.signedAt!)}`, margin, y)
+      pdf.setFontSize(11)
+      pdf.setFont("times", "normal")
+      advance()
+    }
   })
 
-  if (doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt) {
+  if (signed && signatureLineIndex === null) {
     const imgHeight = 50
     const imgWidth = 160
     if (y + imgHeight > pageHeight - margin) {
@@ -139,10 +157,10 @@ async function downloadAsPdf(doc: LibraryDoc) {
       y = margin
     }
     y += 10
-    pdf.addImage(doc.signatureDataUrl, "PNG", margin, y, imgWidth, imgHeight)
+    pdf.addImage(doc.signatureDataUrl!, "PNG", margin, y, imgWidth, imgHeight)
     y += imgHeight
     pdf.setFont("times", "normal")
-    for (const line of signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt }).trim().split("\n")) {
+    for (const line of signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n")) {
       pdf.text(line, margin, y)
       advance()
     }
@@ -177,7 +195,9 @@ async function downloadAsJpeg(doc: LibraryDoc) {
   ctx.font = font
   const maxWidth = width - margin * 2
   const lines: string[] = []
+  const sourceLineWrappedStart: number[] = []
   for (const raw of (doc.content ?? "").split("\n")) {
+    sourceLineWrappedStart.push(lines.length)
     if (raw === "") {
       lines.push("")
       continue
@@ -195,26 +215,56 @@ async function downloadAsJpeg(doc: LibraryDoc) {
     lines.push(current)
   }
 
-  const sigLines = signed ? signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n") : []
-  const sigBlockHeight = sigImage ? sigImageHeight + sigLines.length * lineHeight : 0
+  const signatureLineIndex = signed ? findSignatureLineIndex(doc.content ?? "", doc.signerName!) : null
+  const sigWrappedIdx = signatureLineIndex !== null ? sourceLineWrappedStart[signatureLineIndex] : null
+  // the name line's last wrapped sub-line, i.e. right before the next source line begins
+  const captionAfterWrappedIdx =
+    signatureLineIndex !== null
+      ? signatureLineIndex + 2 < sourceLineWrappedStart.length
+        ? sourceLineWrappedStart[signatureLineIndex + 2] - 1
+        : lines.length - 1
+      : null
+
+  const sigLines = signed && signatureLineIndex === null
+    ? signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n")
+    : []
+  const sigBlockHeight = sigImage && signatureLineIndex === null ? sigImageHeight + sigLines.length * lineHeight : 0
+  const inlineCaptionHeight = sigImage && captionAfterWrappedIdx !== null ? lineHeight : 0
 
   canvas.width = width
-  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight
+  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight + inlineCaptionHeight
   // canvas dimension changes reset the 2D context, so font/fill must be reapplied
   ctx.font = font
   ctx.fillStyle = "#ffffff"
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.fillStyle = "#1a1a1a"
   ctx.textBaseline = "top"
-  lines.forEach((line, i) => ctx.fillText(line, margin, margin + i * lineHeight))
 
-  if (sigImage) {
-    let y = margin + lines.length * lineHeight
-    const sigImageWidth = sigImage.width * (sigImageHeight / sigImage.height)
-    ctx.drawImage(sigImage, margin, y, sigImageWidth, sigImageHeight)
-    y += sigImageHeight
+  let yCursor = margin
+  lines.forEach((line, i) => {
+    if (sigImage && i === sigWrappedIdx) {
+      const inlineHeight = 40
+      const inlineWidth = sigImage.width * (inlineHeight / sigImage.height)
+      ctx.drawImage(sigImage, margin, yCursor - 10, inlineWidth, inlineHeight)
+    } else {
+      ctx.fillText(line, margin, yCursor)
+    }
+    yCursor += lineHeight
+    if (sigImage && i === captionAfterWrappedIdx) {
+      ctx.font = `italic ${fontSize - 2}px Georgia, serif`
+      ctx.fillStyle = "#666666"
+      ctx.fillText(`Electronically signed on ${formatSignedDate(doc.signedAt!)}`, margin, yCursor)
+      ctx.font = font
+      ctx.fillStyle = "#1a1a1a"
+      yCursor += lineHeight
+    }
+  })
+
+  if (sigImage && signatureLineIndex === null) {
+    ctx.drawImage(sigImage, margin, yCursor, sigImage.width * (sigImageHeight / sigImage.height), sigImageHeight)
+    yCursor += sigImageHeight
     ctx.font = font
-    sigLines.forEach((line, i) => ctx.fillText(line, margin, y + i * lineHeight))
+    sigLines.forEach((line, i) => ctx.fillText(line, margin, yCursor + i * lineHeight))
   }
 
   canvas.toBlob((blob) => {
@@ -619,10 +669,20 @@ function DocumentBody({ doc }: { doc: LibraryDoc }) {
   const content = doc.content ?? ""
   const lines = content.split("\n")
   const titleIndex = docTitleLineIndex(content)
+  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
+  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!) : null
 
   return (
     <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {lines.map((line, i) => {
+        if (i === signatureLineIndex) {
+          return (
+            <div key={i} className="my-0.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={doc.signatureDataUrl!} alt="Signature" className="h-12 object-contain object-left" />
+            </div>
+          )
+        }
         const { bold, center } = classifyDocLine(line, i === titleIndex)
         return (
           <p
@@ -633,11 +693,16 @@ function DocumentBody({ doc }: { doc: LibraryDoc }) {
           </p>
         )
       })}
-      {doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt && (
+      {signed && signatureLineIndex !== null && (
+        <p className="m-0 mt-1 text-xs text-muted-foreground">
+          Electronically signed on {formatSignedDate(doc.signedAt!)}
+        </p>
+      )}
+      {signed && signatureLineIndex === null && (
         <div className="mt-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={doc.signatureDataUrl} alt="Signature" className="h-14 object-contain object-left" />
-          <p className="m-0 whitespace-pre-wrap">{signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt }).trim()}</p>
+          <img src={doc.signatureDataUrl!} alt="Signature" className="h-14 object-contain object-left" />
+          <p className="m-0 whitespace-pre-wrap">{signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim()}</p>
         </div>
       )}
     </div>
