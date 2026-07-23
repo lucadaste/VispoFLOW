@@ -7,57 +7,87 @@ export type LegalDoc = {
   label: string
   short: string
   group: "Formation" | "Equity"
+  description: string
 }
 
 export const DOCUMENTS: LegalDoc[] = [
-  { id: "coi", label: "Certificate of Incorporation", short: "TW COI", group: "Formation" },
+  {
+    id: "coi",
+    label: "Certificate of Incorporation",
+    short: "TW COI",
+    group: "Formation",
+    description:
+      "The document filed with the Delaware Secretary of State that legally creates the corporation. It sets the company's name, its authorized shares, and key liability protections for directors and officers.",
+  },
   {
     id: "action-incorporator",
     label: "Action by Incorporator",
     short: "TW Action by Incorporator",
     group: "Formation",
+    description:
+      "The founding legal act taken right after filing: it adopts the bylaws and appoints the initial board of directors so the corporation can start acting through its own governance.",
   },
   {
     id: "org-resolutions",
     label: "Organizational Resolutions",
     short: "TW Organizational Resolutions",
     group: "Formation",
+    description:
+      "Formal board resolutions covering the first housekeeping decisions a corporation needs — things like appointing officers, opening a bank account, and adopting a stock plan.",
   },
-  { id: "bylaws", label: "Bylaws", short: "TW Bylaws", group: "Formation" },
+  {
+    id: "bylaws",
+    label: "Bylaws",
+    short: "TW Bylaws",
+    group: "Formation",
+    description:
+      "The corporation's internal rulebook: how board meetings are run, how officers are appointed, and what rights stockholders have. It governs day-to-day corporate operations.",
+  },
   {
     id: "option-pool",
     label: "Equity Incentive Plan",
     short: "TW Option Pool",
     group: "Equity",
+    description:
+      "Reserves a pool of shares set aside for future equity grants — stock options or restricted stock — to employees, advisors, and contractors as the company grows.",
   },
   {
     id: "board-consent-option-pool",
     label: "Board Consent — Option Pool",
     short: "TW Board Consent Option Pool",
     group: "Equity",
+    description:
+      "The board's formal approval adopting the Equity Incentive Plan and authorizing the shares reserved for it.",
   },
   {
     id: "founder-rspa",
     label: "Founder Restricted Stock Purchase Agreements",
     short: "TW Founder RSPAs",
     group: "Equity",
+    description:
+      "The agreements under which each founder purchases their shares, subject to a vesting schedule so shares are earned over time rather than owned outright from day one.",
   },
   {
     id: "founder-piia",
     label: "Founder PIIAs (IP Assignment)",
     short: "TW Founder PIIAs",
     group: "Equity",
+    description:
+      "Confirms that any intellectual property founders create for the company — code, designs, inventions — belongs to the company, not to them personally.",
   },
   {
     id: "board-consent-founder-stock",
     label: "Board Consent — Founder Stock",
     short: "TW Board Consent Founder Stock",
     group: "Equity",
+    description: "The board's formal approval authorizing the issuance of founder shares under the RSPAs.",
   },
   {
     id: "stockholders-consent-option-pool",
     label: "Stockholders Consent — Option Pool",
     short: "TW Stockholders Consent Option Pool",
+    description:
+      "Stockholder-level approval — in addition to the board's — required to formally adopt the Equity Incentive Plan.",
     group: "Equity",
   },
 ]

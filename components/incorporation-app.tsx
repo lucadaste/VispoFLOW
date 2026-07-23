@@ -372,6 +372,11 @@ export function IncorporationApp() {
     setActiveStepIndex(0)
     setIsTyping(false)
     setView("chat")
+    setHiddenDocIds((ids) => {
+      const next = { ...ids }
+      DOCUMENTS.forEach((d) => delete next[d.id])
+      return next
+    })
     clearPersisted(STORAGE_KEYS.incorporation)
     if (isSignedIn) clearFromServer(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
@@ -391,6 +396,11 @@ export function IncorporationApp() {
     }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
     if (view === "compliance") {
+      setHiddenDocIds((ids) => {
+        const next = { ...ids }
+        complianceDocs.forEach((d) => delete next[d.id])
+        return next
+      })
       setComplianceDocs([])
       setComplianceKey((k) => k + 1)
       clearPersisted(STORAGE_KEYS.compliance)
@@ -398,6 +408,11 @@ export function IncorporationApp() {
       return
     }
     if (view === "transactions") {
+      setHiddenDocIds((ids) => {
+        const next = { ...ids }
+        transactionDocs.forEach((d) => delete next[d.id])
+        return next
+      })
       setTransactionDocs([])
       setTransactionsKey((k) => k + 1)
       clearPersisted(STORAGE_KEYS.transactions)
@@ -503,7 +518,7 @@ export function IncorporationApp() {
 
           {/* ── Incorporation Documents sidebar — always visible ≥ sm, collapsible ── */}
           <SidebarPanel icon={FileText} label="Incorporation Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
-            {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={answers} /> : <DocumentTrackerEmpty />}
           </SidebarPanel>
 
           {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
@@ -514,7 +529,7 @@ export function IncorporationApp() {
             open={mobileDocsOpen}
             onOpenChange={setMobileDocsOpen}
           >
-            {hasDocs ? <DocumentTracker statuses={docStatuses} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={answers} /> : <DocumentTrackerEmpty />}
           </MobileSidebarTab>
         </div>
       ) : view === "compliance" ? (

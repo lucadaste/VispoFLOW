@@ -1,14 +1,22 @@
 "use client"
 
-import { Check, Loader2, FileText, Send, Circle, HelpCircle } from "lucide-react"
-import { DOCUMENTS, type DocStatus } from "@/lib/flow"
+import { useState } from "react"
+import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, X } from "lucide-react"
+import { DOCUMENTS, type DocStatus, type FlowAnswers, type LegalDoc } from "@/lib/flow"
+import { renderDocumentContent } from "@/lib/document-templates"
+import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
 import { cn } from "@/lib/utils"
 
 export function DocumentTracker({
   statuses,
+  answers,
 }: {
   statuses: Record<string, DocStatus>
+  answers: FlowAnswers
 }) {
+  const [viewing, setViewing] = useState<LibraryDoc | null>(null)
+  const [infoDoc, setInfoDoc] = useState<LegalDoc | null>(null)
+
   const total = DOCUMENTS.length
   const completed = DOCUMENTS.filter(
     (d) => statuses[d.id] === "complete" || statuses[d.id] === "filing",
@@ -33,7 +41,8 @@ export function DocumentTracker({
           />
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
-          Documents are drafted automatically as you answer.
+          Documents are drafted automatically as you answer. Every document you generate is saved to your
+          personal document library under My Docs.
         </p>
       </div>
 
@@ -46,11 +55,37 @@ export function DocumentTracker({
             <ul className="space-y-0.5">
               {DOCUMENTS.filter((d) => d.group === group).map((doc) => {
                 const status = statuses[doc.id] ?? "pending"
+                const content =
+                  status === "complete" || status === "filing"
+                    ? renderDocumentContent(doc.id, answers)
+                    : null
+                const viewable = !!content
+
+                const openRow = () =>
+                  viewable
+                    ? setViewing({
+                        id: doc.id,
+                        title: doc.label,
+                        subtitle: doc.group,
+                        content: content ?? undefined,
+                        pending: status === "filing",
+                      })
+                    : setInfoDoc(doc)
+
                 return (
                   <li
                     key={doc.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={openRow}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        openRow()
+                      }
+                    }}
                     className={cn(
-                      "flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors",
+                      "flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-secondary",
                       status === "drafting" && "bg-accent/10",
                       status === "filing" && "bg-primary/5",
                     )}
@@ -77,6 +112,32 @@ export function DocumentTracker({
           </div>
         ))}
       </div>
+
+      {viewing && <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />}
+      {infoDoc && <DocInfoModal doc={infoDoc} onClose={() => setInfoDoc(null)} />}
+    </div>
+  )
+}
+
+function DocInfoModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-balance text-foreground">{doc.label}</h3>
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{doc.description}</p>
+        <p className="mt-3 text-[11px] font-medium text-primary">
+          This document hasn't been drafted yet — it'll appear here once the flow reaches it.
+        </p>
+      </div>
     </div>
   )
 }
@@ -92,7 +153,7 @@ function StatusIcon({ status }: { status: DocStatus }) {
   if (status === "filing")
     return (
       <span className={cn(base, "bg-primary text-primary-foreground")}>
-        <Send className="h-2.5 w-2.5" />
+        <Landmark className="h-2.5 w-2.5" />
       </span>
     )
   if (status === "drafting")

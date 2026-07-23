@@ -388,7 +388,7 @@ function DocCard({
   )
 }
 
-function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () => void }) {
+export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
