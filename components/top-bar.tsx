@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Scale, RotateCcw, Menu, X } from "lucide-react"
+import { RotateCcw, Menu, X } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 
 function AuthControls() {
@@ -64,9 +64,8 @@ export function TopBar({
           onClick={() => onPhaseClick("home")}
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Scale className="h-4.5 w-4.5" strokeWidth={2} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
           <div className="leading-tight text-left">
             <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
             <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
