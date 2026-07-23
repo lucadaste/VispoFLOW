@@ -404,6 +404,17 @@ export function IncorporationApp() {
     (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
   ).length
 
+  const restartWarning: string | null =
+    view === "chat"
+      ? "You'll be sent back to the start of the guided incorporation flow, and any incorporation documents you've generated so far will be removed from My Docs."
+      : view === "compliance"
+      ? "You'll be sent back to the start of the Compliance Center, and any compliance filings you've completed will be removed from My Docs."
+      : view === "transactions"
+      ? "You'll be sent back to the start of the Transaction Center, and any transaction documents you've prepared will be removed from My Docs."
+      : view === "home-chat"
+      ? "Your conversation history in this chat will be cleared."
+      : null
+
   const phase =
     view === "loading" || view === "landing" || view === "home-chat"
       ? "home"
@@ -431,6 +442,7 @@ export function IncorporationApp() {
         phase={phase}
         onReset={handleRestart}
         onPhaseClick={handlePhaseClick}
+        restartWarning={restartWarning}
       />
 
       {view === "loading" ? null : view === "landing" ? (

@@ -37,14 +37,27 @@ export function TopBar({
   phase,
   onReset,
   onPhaseClick,
+  restartWarning,
 }: {
   phase: "home" | "chat" | "compliance" | "transactions" | "documents"
   onReset: () => void
   onPhaseClick: (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => void
+  /** If set, clicking Restart shows this warning and requires confirmation before onReset fires. */
+  restartWarning?: string | null
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmingRestart, setConfirmingRestart] = useState(false)
+
+  const handleRestartClick = () => {
+    if (restartWarning) {
+      setConfirmingRestart(true)
+    } else {
+      onReset()
+    }
+  }
 
   return (
+    <>
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
         <button
@@ -83,7 +96,7 @@ export function TopBar({
 
           {phase !== "documents" && (
             <button
-              onClick={onReset}
+              onClick={handleRestartClick}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <RotateCcw className="h-3.5 w-3.5" />
@@ -122,6 +135,31 @@ export function TopBar({
         </>
       )}
     </header>
+
+    {confirmingRestart && restartWarning && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setConfirmingRestart(false)} />
+        <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
+          <h3 className="text-sm font-semibold text-foreground">Restart this section?</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{restartWarning}</p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmingRestart(false)}
+              className="rounded-lg border border-border bg-background px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { setConfirmingRestart(false); onReset() }}
+              className="rounded-lg bg-destructive px-3.5 py-2 text-sm font-medium text-destructive-foreground transition-opacity hover:opacity-90"
+            >
+              Restart
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
