@@ -44,8 +44,40 @@ _________________________
 ${a.incorporatorName}, Incorporator`
 }
 
+function actionIncorporator(a: FlowAnswers): string {
+  const directorsList = a.directors.length > 0 ? a.directors.join("\n") : "[No directors specified]"
+  return `ACTION OF INCORPORATOR
+
+The undersigned, being the sole Incorporator of ${a.companyName}, a corporation organized, or to be organized, under the laws of Delaware (the "Company"), hereby adopts the following resolutions pursuant to Section 108 of the Delaware General Corporation Law with respect to the initial organization of the corporation:
+
+1. Adoption of Bylaws
+
+RESOLVED: That the Bylaws attached to this Action of Incorporator as Exhibit A are hereby adopted as the Bylaws of the Company.
+
+RESOLVED FURTHER: That the Secretary of the Company is hereby authorized and directed to execute a certificate of the adoption of the Bylaws and insert it in the Company's Minute Book and that the officers of the Company are ordered to maintain a copy of such Bylaws in the principal office of the Company for the transaction of its business open for inspection by the stockholders at all reasonable times during office hours.
+
+2. Board of Directors
+
+RESOLVED: That each of the following individuals are hereby elected as the directors of the Company, to serve as directors until such director's successor has been duly elected and qualified, or until such time as such director resigns or is removed:
+
+${directorsList}
+
+3. Resignation of Incorporator
+
+RESOLVED: That the undersigned, having taken all actions necessary and appropriate in connection with the incorporation of the Company, hereby resigns as Incorporator.
+
+This Action of Incorporator shall be filed in the Minute Book of the Company and shall be effective immediately following the certification by the Delaware Secretary of State of the filing of the Company's certificate of incorporation; provided, however, that if such event has already occurred before the time of execution of this Action of Incorporator by the undersigned, then this Action of Incorporator shall be effective immediately. This Action of Incorporator shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this Action of Incorporator has been made.
+
+Actual Date of Signature: ${today()}
+
+
+_________________________
+${a.incorporatorName}, Incorporator`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
+  "action-incorporator": actionIncorporator,
 }
 
 export function renderDocumentContent(docId: string, answers: FlowAnswers): string | null {
