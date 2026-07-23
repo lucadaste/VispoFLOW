@@ -8,8 +8,6 @@ export function renderTypedSignature(name: string): string {
   const ctx = canvas.getContext("2d")
   if (!ctx) return ""
 
-  ctx.fillStyle = "#ffffff"
-  ctx.fillRect(0, 0, width, height)
   ctx.fillStyle = "#1a1a1a"
   ctx.textBaseline = "middle"
   ctx.textAlign = "center"

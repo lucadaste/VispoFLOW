@@ -1,9 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { signatureBlockText } from "@/lib/signature"
+import { SignaturePad } from "@/components/signature-pad"
 
 export type LibraryDoc = {
   id: string
@@ -14,7 +16,14 @@ export type LibraryDoc = {
   pending?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
+  signed?: boolean
+  signatureDataUrl?: string | null
+  signerName?: string
+  signedAt?: string
 }
+
+type SavedSignature = { signatureDataUrl: string; signerName: string }
+type SignPayload = { signatureDataUrl: string; signerName: string }
 
 /** Titles and major section names (e.g. "BYLAWS", "CORPORATE OFFICES", "***") are set in all-caps — bold + centered. */
 function isAllCapsHeadingLine(line: string): boolean {
@@ -71,8 +80,14 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
+function fullContent(doc: LibraryDoc): string {
+  const base = doc.content ?? ""
+  if (!doc.signed || !doc.signerName || !doc.signedAt) return base
+  return base + signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt })
+}
+
 function downloadAsTxt(doc: LibraryDoc) {
-  triggerDownload(new Blob([doc.content ?? ""], { type: "text/plain" }), `${doc.title}.txt`)
+  triggerDownload(new Blob([fullContent(doc)], { type: "text/plain" }), `${doc.title}.txt`)
 }
 
 async function downloadAsPdf(doc: LibraryDoc) {
@@ -116,15 +131,44 @@ async function downloadAsPdf(doc: LibraryDoc) {
     }
   })
 
+  if (doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt) {
+    const imgHeight = 50
+    const imgWidth = 160
+    if (y + imgHeight > pageHeight - margin) {
+      pdf.addPage()
+      y = margin
+    }
+    y += 10
+    pdf.addImage(doc.signatureDataUrl, "PNG", margin, y, imgWidth, imgHeight)
+    y += imgHeight
+    pdf.setFont("times", "normal")
+    for (const line of signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt }).trim().split("\n")) {
+      pdf.text(line, margin, y)
+      advance()
+    }
+  }
+
   pdf.save(`${doc.title}.pdf`)
 }
 
-function downloadAsJpeg(doc: LibraryDoc) {
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+async function downloadAsJpeg(doc: LibraryDoc) {
   const width = 850
   const margin = 48
   const lineHeight = 22
   const fontSize = 15
   const font = `${fontSize}px Georgia, serif`
+  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
+  const sigImageHeight = 75
+  const sigImage = signed ? await loadImage(doc.signatureDataUrl!).catch(() => null) : null
 
   const canvas = document.createElement("canvas")
   const ctx = canvas.getContext("2d")
@@ -151,8 +195,11 @@ function downloadAsJpeg(doc: LibraryDoc) {
     lines.push(current)
   }
 
+  const sigLines = signed ? signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n") : []
+  const sigBlockHeight = sigImage ? sigImageHeight + sigLines.length * lineHeight : 0
+
   canvas.width = width
-  canvas.height = margin * 2 + lines.length * lineHeight
+  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight
   // canvas dimension changes reset the 2D context, so font/fill must be reapplied
   ctx.font = font
   ctx.fillStyle = "#ffffff"
@@ -160,6 +207,15 @@ function downloadAsJpeg(doc: LibraryDoc) {
   ctx.fillStyle = "#1a1a1a"
   ctx.textBaseline = "top"
   lines.forEach((line, i) => ctx.fillText(line, margin, margin + i * lineHeight))
+
+  if (sigImage) {
+    let y = margin + lines.length * lineHeight
+    const sigImageWidth = sigImage.width * (sigImageHeight / sigImage.height)
+    ctx.drawImage(sigImage, margin, y, sigImageWidth, sigImageHeight)
+    y += sigImageHeight
+    ctx.font = font
+    sigLines.forEach((line, i) => ctx.fillText(line, margin, y + i * lineHeight))
+  }
 
   canvas.toBlob((blob) => {
     if (blob) triggerDownload(blob, `${doc.title}.jpg`)
@@ -182,6 +238,8 @@ export function DocumentLibrary({
   onNavigate,
   onDelete,
   onRestore,
+  onSign,
+  savedSignature,
 }: {
   incorporationDocs: LibraryDoc[]
   complianceDocs: LibraryDoc[]
@@ -189,10 +247,17 @@ export function DocumentLibrary({
   onNavigate: (phase: Phase) => void
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature: SavedSignature | null
 }) {
   const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
   const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
   const [viewing, setViewing] = useState<LibraryDoc | null>(null)
+
+  const handleSign = (doc: LibraryDoc, signature: SignPayload) => {
+    onSign(doc, signature)
+    setViewing((v) => (v && v.id === doc.id ? { ...v, signed: true, ...signature, signedAt: new Date().toISOString() } : v))
+  }
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
@@ -216,6 +281,8 @@ export function DocumentLibrary({
             onView={setViewing}
             onDelete={onDelete}
             onRestore={onRestore}
+            onSign={handleSign}
+            savedSignature={savedSignature}
           />
           <DocSection
             icon={ShieldCheck}
@@ -227,6 +294,8 @@ export function DocumentLibrary({
             onView={setViewing}
             onDelete={onDelete}
             onRestore={onRestore}
+            onSign={handleSign}
+            savedSignature={savedSignature}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -238,11 +307,20 @@ export function DocumentLibrary({
             onView={setViewing}
             onDelete={onDelete}
             onRestore={onRestore}
+            onSign={handleSign}
+            savedSignature={savedSignature}
           />
         </div>
       </div>
 
-      {viewing && <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <DocumentViewer
+          doc={viewing}
+          onClose={() => setViewing(null)}
+          onSign={handleSign}
+          savedSignature={savedSignature}
+        />
+      )}
     </div>
   )
 }
@@ -257,6 +335,8 @@ function DocSection({
   onView,
   onDelete,
   onRestore,
+  onSign,
+  savedSignature,
 }: {
   icon: LucideIcon
   title: string
@@ -267,6 +347,8 @@ function DocSection({
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature: SavedSignature | null
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const visible = docs.filter((d) => !d.hidden)
@@ -298,7 +380,7 @@ function DocSection({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((doc) => (
-            <DocCard key={doc.id} doc={doc} onView={onView} onDelete={onDelete} />
+            <DocCard key={doc.id} doc={doc} onView={onView} onDelete={onDelete} onSign={onSign} savedSignature={savedSignature} />
           ))}
         </div>
       )}
@@ -338,14 +420,85 @@ function DocSection({
   )
 }
 
+function SignButton({
+  doc,
+  onSign,
+  savedSignature,
+  variant = "icon",
+}: {
+  doc: LibraryDoc
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature: SavedSignature | null
+  variant?: "icon" | "full"
+}) {
+  const [open, setOpen] = useState(false)
+
+  const applySaved = () => {
+    if (!savedSignature) return
+    onSign(doc, savedSignature)
+    setOpen(false)
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Sign"
+        className={
+          variant === "icon"
+            ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+        }
+      >
+        <PenLine className="h-3.5 w-3.5" />
+        {variant === "full" && "Sign"}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
+            {savedSignature ? (
+              <div className="space-y-2.5">
+                <p className="text-xs font-medium text-foreground">Sign with your saved signature?</p>
+                <div className="flex items-center rounded-md border border-border bg-white px-2 py-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={savedSignature.signatureDataUrl} alt="Your signature" className="h-8 object-contain object-left" />
+                </div>
+                <button
+                  onClick={applySaved}
+                  className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                >
+                  Sign document
+                </button>
+              </div>
+            ) : (
+              <SignaturePad
+                defaultName={doc.signerName ?? ""}
+                onCapture={(dataUrl, _method, name) => {
+                  onSign(doc, { signatureDataUrl: dataUrl, signerName: name })
+                  setOpen(false)
+                }}
+              />
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function DocCard({
   doc,
   onView,
   onDelete,
+  onSign,
+  savedSignature,
 }: {
   doc: LibraryDoc
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature: SavedSignature | null
 }) {
   const [confirming, setConfirming] = useState(false)
   const [formatMenuOpen, setFormatMenuOpen] = useState(false)
@@ -374,6 +527,12 @@ function DocCard({
               Pending
             </span>
           )}
+          {doc.signed && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
+              <PenLine className="h-2 w-2" />
+              Signed
+            </span>
+          )}
         </div>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
         {confirming ? (
@@ -399,6 +558,11 @@ function DocCard({
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1">
+        {viewable && !doc.signed && (
+          <div onClick={(e) => e.stopPropagation()}>
+            <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} />
+          </div>
+        )}
         {downloadable && (
           <div className="relative mt-0.5">
             <button
@@ -451,7 +615,8 @@ function DocCard({
   )
 }
 
-function DocumentBody({ content }: { content: string }) {
+function DocumentBody({ doc }: { doc: LibraryDoc }) {
+  const content = doc.content ?? ""
   const lines = content.split("\n")
   const titleIndex = docTitleLineIndex(content)
 
@@ -468,11 +633,28 @@ function DocumentBody({ content }: { content: string }) {
           </p>
         )
       })}
+      {doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt && (
+        <div className="mt-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={doc.signatureDataUrl} alt="Signature" className="h-14 object-contain object-left" />
+          <p className="m-0 whitespace-pre-wrap">{signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt }).trim()}</p>
+        </div>
+      )}
     </div>
   )
 }
 
-export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () => void }) {
+export function DocumentViewer({
+  doc,
+  onClose,
+  onSign,
+  savedSignature = null,
+}: {
+  doc: LibraryDoc
+  onClose: () => void
+  onSign?: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature?: SavedSignature | null
+}) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
@@ -482,15 +664,20 @@ export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () 
             <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
             <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {doc.content && !doc.signed && onSign && (
+              <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} variant="full" />
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <DocumentBody content={doc.content ?? ""} />
+          <DocumentBody doc={doc} />
         </div>
       </div>
     </div>

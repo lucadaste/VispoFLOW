@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { RotateCcw, Menu, X } from "lucide-react"
+import { RotateCcw, Menu, X, Settings } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 
 function AuthControls() {
@@ -38,12 +38,14 @@ export function TopBar({
   onReset,
   onPhaseClick,
   restartWarning,
+  onOpenSettings,
 }: {
   phase: "home" | "chat" | "compliance" | "transactions" | "documents"
   onReset: () => void
   onPhaseClick: (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => void
   /** If set, clicking Restart shows this warning and requires confirmation before onReset fires. */
   restartWarning?: string | null
+  onOpenSettings: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingRestart, setConfirmingRestart] = useState(false)
@@ -102,6 +104,14 @@ export function TopBar({
               <span className="hidden sm:inline">Restart</span>
             </button>
           )}
+
+          <button
+            onClick={onOpenSettings}
+            title="Your profile"
+            className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
 
           <AuthControls />
         </div>

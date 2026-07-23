@@ -39,8 +39,10 @@ import {
   clearFromServer,
 } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
-import { mergeProfileIntoAnswers } from "@/lib/profile"
+import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
 import { useProfile } from "@/lib/use-profile"
+import { ProfileSettingsModal } from "@/components/profile-settings-modal"
+import { ProfileNudge } from "@/components/profile-nudge"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -57,10 +59,13 @@ type IncorporationPersisted = {
   activeInput: StepInput | null
 }
 
+type SignatureStamp = { signatureDataUrl: string; signerName: string; signedAt: string }
+
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
   hiddenDocIds: Record<string, true>
+  signedDocs: Record<string, SignatureStamp>
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -89,6 +94,9 @@ export function IncorporationApp() {
   const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
   const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
   const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
+  const [signedDocs, setSignedDocs] = useState<Record<string, SignatureStamp>>({})
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [nudgeDismissed, setNudgeDismissed] = useState(false)
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -108,6 +116,7 @@ export function IncorporationApp() {
     setComplianceDocs(saved.complianceDocs)
     setTransactionDocs(saved.transactionDocs)
     setHiddenDocIds(saved.hiddenDocIds ?? {})
+    setSignedDocs(saved.signedDocs ?? {})
   }, [])
 
   // Restore the document library (compliance/transaction docs) after mount
@@ -128,10 +137,10 @@ export function IncorporationApp() {
   }, [isSignedIn, applyLibraryState])
 
   useEffect(() => {
-    const snapshot: LibraryPersisted = { complianceDocs, transactionDocs, hiddenDocIds }
+    const snapshot: LibraryPersisted = { complianceDocs, transactionDocs, hiddenDocIds, signedDocs }
     savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
-  }, [complianceDocs, transactionDocs, hiddenDocIds, isSignedIn])
+  }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -155,6 +164,13 @@ export function IncorporationApp() {
       delete next[doc.id]
       return next
     })
+  }, [])
+
+  const handleSignLibraryDoc = useCallback((doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string }) => {
+    setSignedDocs((docs) => ({
+      ...docs,
+      [doc.id]: { ...signature, signedAt: new Date().toISOString() },
+    }))
   }, [])
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
@@ -381,6 +397,11 @@ export function IncorporationApp() {
       DOCUMENTS.forEach((d) => delete next[d.id])
       return next
     })
+    setSignedDocs((docs) => {
+      const next = { ...docs }
+      DOCUMENTS.forEach((d) => delete next[d.id])
+      return next
+    })
     clearPersisted(STORAGE_KEYS.incorporation)
     if (isSignedIn) clearFromServer(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
@@ -405,6 +426,11 @@ export function IncorporationApp() {
         complianceDocs.forEach((d) => delete next[d.id])
         return next
       })
+      setSignedDocs((docs) => {
+        const next = { ...docs }
+        complianceDocs.forEach((d) => delete next[d.id])
+        return next
+      })
       setComplianceDocs([])
       setComplianceKey((k) => k + 1)
       clearPersisted(STORAGE_KEYS.compliance)
@@ -414,6 +440,11 @@ export function IncorporationApp() {
     if (view === "transactions") {
       setHiddenDocIds((ids) => {
         const next = { ...ids }
+        transactionDocs.forEach((d) => delete next[d.id])
+        return next
+      })
+      setSignedDocs((docs) => {
+        const next = { ...docs }
         transactionDocs.forEach((d) => delete next[d.id])
         return next
       })
@@ -453,16 +484,23 @@ export function IncorporationApp() {
       ? "documents"
       : "chat"
 
+  const withSignature = (doc: LibraryDoc): LibraryDoc => {
+    const stamp = signedDocs[doc.id]
+    return stamp ? { ...doc, signed: true, ...stamp } : doc
+  }
+
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
     (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
-  ).map((d) => ({
-    id: d.id,
-    title: d.label,
-    subtitle: d.group,
-    content: renderDocumentContent(d.id, effectiveAnswers) ?? undefined,
-    pending: docStatuses[d.id] === "filing",
-    hidden: !!hiddenDocIds[d.id],
-  }))
+  ).map((d) =>
+    withSignature({
+      id: d.id,
+      title: d.label,
+      subtitle: d.group,
+      content: renderDocumentContent(d.id, effectiveAnswers) ?? undefined,
+      pending: docStatuses[d.id] === "filing",
+      hidden: !!hiddenDocIds[d.id],
+    }),
+  )
 
   return (
     <div className="flex h-dvh flex-col bg-background">
@@ -471,10 +509,18 @@ export function IncorporationApp() {
         onReset={handleRestart}
         onPhaseClick={handlePhaseClick}
         restartWarning={restartWarning}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       {view === "loading" ? null : view === "landing" ? (
-        <Landing key={landingKey} onSelect={handleLandingSelect} />
+        <>
+          {!nudgeDismissed && isProfileEmpty(profile) && (
+            <div className="shrink-0 px-4 pt-4 sm:px-6">
+              <ProfileNudge onOpen={() => setSettingsOpen(true)} onDismiss={() => setNudgeDismissed(true)} />
+            </div>
+          )}
+          <Landing key={landingKey} onSelect={handleLandingSelect} />
+        </>
       ) : view === "home-chat" ? (
         <HomeChat
           key={homeChatKey}
@@ -543,12 +589,18 @@ export function IncorporationApp() {
       ) : (
         <DocumentLibrary
           incorporationDocs={incorporationLibraryDocs}
-          complianceDocs={complianceDocs.map((d) => ({ ...d, hidden: !!hiddenDocIds[d.id] }))}
-          transactionDocs={transactionDocs.map((d) => ({ ...d, hidden: !!hiddenDocIds[d.id] }))}
+          complianceDocs={complianceDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}
+          transactionDocs={transactionDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}
           onNavigate={handlePhaseClick}
           onDelete={handleDeleteLibraryDoc}
           onRestore={handleRestoreLibraryDoc}
+          onSign={handleSignLibraryDoc}
+          savedSignature={profile.signatureDataUrl ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName } : null}
         />
+      )}
+
+      {settingsOpen && (
+        <ProfileSettingsModal profile={profile} onSave={setProfile} onClose={() => setSettingsOpen(false)} />
       )}
     </div>
   )

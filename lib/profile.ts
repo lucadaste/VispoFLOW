@@ -24,6 +24,16 @@ export const emptyProfile: UserProfile = {
   autofillEnabled: true,
 }
 
+export function isProfileEmpty(profile: UserProfile): boolean {
+  return (
+    !profile.companyName &&
+    !profile.companyAddress &&
+    !profile.personalAddress &&
+    !profile.signerName &&
+    !profile.signatureDataUrl
+  )
+}
+
 /**
  * Fills empty FlowAnswers fields from the saved profile. Never overwrites something
  * the user already typed, so toggling autofill off reverts cleanly to `answers` as-is.
