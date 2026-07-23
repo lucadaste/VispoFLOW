@@ -1601,6 +1601,44 @@ function founderRSPA(a: FlowAnswers): string {
     .join("\n\n\n════════════════════════════════════════\n\n\n")
 }
 
+function stockholdersConsentOptionPool(a: FlowAnswers): string {
+  const year = currentYear()
+  const founders = a.allocations.filter((alloc) => !alloc.isPool)
+  const stockholderSignatures =
+    founders.length > 0
+      ? founders
+          .map((f) => `_________________________\n${f.name}, Stockholder`)
+          .join("\n\n")
+      : "_________________________\n[No stockholders specified], Stockholder"
+
+  return `ACTION BY WRITTEN CONSENT
+OF THE MAJORITY STOCKHOLDERS
+
+Pursuant to Section 228 of the Delaware General Corporation Law and the Bylaws of ${a.companyName}, a Delaware corporation (the "Company"), the undersigned majority stockholders of the Company hereby take the following actions and adopt the following resolutions by written consent. This written consent will be filed in the minute book of the Company:
+
+1. Adoption of ${year} Stock Plan
+
+RESOLVED: That the ${year} Stock Plan (the "Plan"), in substantially the form attached hereto as Exhibit B, is hereby adopted and ${a.poolShares} shares of the Company's Common Stock are hereby reserved for issuance thereunder.
+
+[Signature Page Follows]
+
+In accordance with the Company's Bylaws, this Action by Written Consent may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which, when so executed, shall be deemed an original and all of which taken together shall constitute one and the same action.
+
+The consent of the undersigned shall be effective immediately upon the grant, sale or issuance of Company common stock to the undersigned; provided, however, that if such event has already occurred before the time of execution of this consent by the undersigned, then this consent shall be effective immediately. This consent shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this consent has been made.
+
+Actual Date of Signature: ${today()}
+
+
+${stockholderSignatures}
+
+
+EXHIBIT B
+
+FORM OF STOCK PLAN
+
+(See the Equity Incentive Plan document.)`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
@@ -1608,6 +1646,7 @@ const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   "board-consent-option-pool": boardConsentOptionPool,
   "board-consent-founder-stock": boardConsentFounderStock,
   "founder-rspa": founderRSPA,
+  "stockholders-consent-option-pool": stockholdersConsentOptionPool,
   bylaws,
   "option-pool": optionPool,
 }
