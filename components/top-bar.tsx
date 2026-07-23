@@ -65,7 +65,7 @@ export function TopBar({
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
+          <img src="/brand/beaker.png" alt="" className="h-9 w-9 shrink-0 object-contain" />
           <div className="leading-tight text-left">
             <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
             <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
