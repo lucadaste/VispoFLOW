@@ -156,7 +156,7 @@ function DocCard({
 }) {
   const [confirming, setConfirming] = useState(false)
   const viewable = !!doc.content
-  const downloadable = viewable && !doc.pending
+  const downloadable = viewable
 
   return (
     <div
@@ -204,24 +204,26 @@ function DocCard({
           <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
         ) : null}
       </div>
-      {downloadable && (
-        <button
-          onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
-          title="Download"
-          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-        >
-          <Download className="h-3.5 w-3.5" />
-        </button>
-      )}
-      {!confirming && (
-        <button
-          onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
-          title="Delete"
-          className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 opacity-40 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      )}
+      <div className="flex shrink-0 flex-col items-center gap-1">
+        {downloadable && (
+          <button
+            onClick={(e) => { e.stopPropagation(); downloadDoc(doc) }}
+            title="Download"
+            className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {!confirming && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
+            title="Delete"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 opacity-40 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
       {!doc.pending && !confirming && (
         <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
           <Check className="h-3 w-3" strokeWidth={3} />

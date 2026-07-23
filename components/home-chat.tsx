@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send } from "lucide-react"
+import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
-import { loadPersisted, savePersisted } from "@/lib/persist"
+import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type Message = { role: "user" | "assistant"; content: string }
@@ -90,6 +91,7 @@ export function HomeChat({
   initialMessage?: string
   onStartFormation: () => void
 }) {
+  const { isSignedIn } = useUser()
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [input, setInput] = useState("")
@@ -135,9 +137,24 @@ export function HomeChat({
     }
   }, [initialMessage, sendMessage])
 
+  // Once signed in, the account's cloud copy (if any) takes over from the local one
+  const syncedRef = useRef(false)
   useEffect(() => {
-    if (messages.length > 0) savePersisted(STORAGE_KEYS.homeChat, { messages })
-  }, [messages])
+    if (!isSignedIn || syncedRef.current) return
+    syncedRef.current = true
+    loadFromServer<{ messages: Message[] }>(STORAGE_KEYS.homeChat).then((saved) => {
+      if (saved && saved.messages.length > 0) {
+        sentInitial.current = true
+        setMessages(saved.messages)
+      }
+    })
+  }, [isSignedIn])
+
+  useEffect(() => {
+    if (messages.length === 0) return
+    savePersisted(STORAGE_KEYS.homeChat, { messages })
+    if (isSignedIn) saveToServer(STORAGE_KEYS.homeChat, { messages })
+  }, [messages, isSignedIn])
 
   const handleSubmit = () => {
     const t = input.trim()

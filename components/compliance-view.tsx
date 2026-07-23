@@ -14,7 +14,7 @@ import {
   type FlowAnswers,
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
-import { loadPersisted, savePersisted } from "@/lib/persist"
+import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type CompliancePersisted = {
@@ -39,7 +39,7 @@ export function ComplianceView({
   answers: FlowAnswers
   onItemComplete?: (doc: { id: string; title: string; subtitle: string }) => void
 }) {
-  const { user } = useUser()
+  const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [activeCategory, setActiveCategory] = useState<ComplianceCategory | null>(null)
   const [expandedCategoryId, setExpandedCategoryId] = useState<ComplianceCategory["id"] | null>(null)
@@ -59,19 +59,23 @@ export function ComplianceView({
     setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
   }, [])
 
+  const applyState = useCallback((saved: CompliancePersisted) => {
+    idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+    setMessages(saved.messages)
+    const restoredCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
+    setActiveCategory(restoredCategory)
+    setExpandedCategoryId(restoredCategory?.id ?? null)
+    setCompleted(saved.completed)
+    setActiveItemId(saved.activeItemId)
+  }, [])
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
 
     const saved = loadPersisted<CompliancePersisted>(STORAGE_KEYS.compliance)
     if (saved && saved.messages.length > 0) {
-      idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-      setMessages(saved.messages)
-      const restoredCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
-      setActiveCategory(restoredCategory)
-      setExpandedCategoryId(restoredCategory?.id ?? null)
-      setCompleted(saved.completed)
-      setActiveItemId(saved.activeItemId)
+      applyState(saved)
       return
     }
 
@@ -81,17 +85,32 @@ export function ComplianceView({
         ? `Hi ${name}, what kind of compliance do you need help with today?`
         : "Hi! What kind of compliance do you need help with today?"
     )
-  }, [pushBot, user])
+  }, [pushBot, user, applyState])
+
+  // Once signed in, the account's cloud copy (if any) takes over from the local one
+  const syncedRef = useRef(false)
+  useEffect(() => {
+    if (!isSignedIn || syncedRef.current) return
+    syncedRef.current = true
+    loadFromServer<CompliancePersisted>(STORAGE_KEYS.compliance).then((saved) => {
+      if (saved && saved.messages.length > 0) {
+        startedRef.current = true
+        applyState(saved)
+      }
+    })
+  }, [isSignedIn, applyState])
 
   useEffect(() => {
     if (!startedRef.current) return
-    savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, {
+    const snapshot: CompliancePersisted = {
       messages,
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
-    })
-  }, [messages, activeCategory, completed, activeItemId])
+    }
+    savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
+    if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
+  }, [messages, activeCategory, completed, activeItemId, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })

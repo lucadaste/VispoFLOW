@@ -30,7 +30,14 @@ import {
   DOCUMENTS,
 } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
-import { loadPersisted, savePersisted, clearPersisted } from "@/lib/persist"
+import {
+  loadPersisted,
+  savePersisted,
+  clearPersisted,
+  loadFromServer,
+  saveToServer,
+  clearFromServer,
+} from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type ChatMessage =
@@ -58,7 +65,7 @@ const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 16))
 
 export function IncorporationApp() {
-  const { user } = useUser()
+  const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [docStatuses, setDocStatuses] = useState<Record<string, DocStatus>>({})
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
@@ -93,20 +100,34 @@ export function IncorporationApp() {
     if (view !== "loading") sessionStorage.setItem(STORAGE_KEYS.view, view)
   }, [view])
 
+  const applyLibraryState = useCallback((saved: LibraryPersisted) => {
+    setComplianceDocs(saved.complianceDocs)
+    setTransactionDocs(saved.transactionDocs)
+    setHiddenDocIds(saved.hiddenDocIds ?? {})
+  }, [])
+
   // Restore the document library (compliance/transaction docs) after mount
   useEffect(() => {
     const saved = loadPersisted<LibraryPersisted>(STORAGE_KEYS.library)
-    if (saved) {
-      setComplianceDocs(saved.complianceDocs)
-      setTransactionDocs(saved.transactionDocs)
-      setHiddenDocIds(saved.hiddenDocIds ?? {})
-    }
+    if (saved) applyLibraryState(saved)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Once signed in, the account's cloud copy (if any) takes over from the local one
+  const librarySyncedRef = useRef(false)
   useEffect(() => {
-    savePersisted<LibraryPersisted>(STORAGE_KEYS.library, { complianceDocs, transactionDocs, hiddenDocIds })
-  }, [complianceDocs, transactionDocs, hiddenDocIds])
+    if (!isSignedIn || librarySyncedRef.current) return
+    librarySyncedRef.current = true
+    loadFromServer<LibraryPersisted>(STORAGE_KEYS.library).then((saved) => {
+      if (saved) applyLibraryState(saved)
+    })
+  }, [isSignedIn, applyLibraryState])
+
+  useEffect(() => {
+    const snapshot: LibraryPersisted = { complianceDocs, transactionDocs, hiddenDocIds }
+    savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
+    if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
+  }, [complianceDocs, transactionDocs, hiddenDocIds, isSignedIn])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -235,34 +256,53 @@ export function IncorporationApp() {
     [pushBot],
   )
 
+  const applyIncorporationState = useCallback((saved: IncorporationPersisted) => {
+    idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+    setMessages(saved.messages)
+    setDocStatuses(saved.docStatuses)
+    setAnswers(saved.answers)
+    setActiveStepIndex(saved.activeStepIndex)
+    setActiveInput(saved.activeInput)
+  }, [])
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
 
     const saved = loadPersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation)
     if (saved && saved.messages.length > 0) {
-      idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-      setMessages(saved.messages)
-      setDocStatuses(saved.docStatuses)
-      setAnswers(saved.answers)
-      setActiveStepIndex(saved.activeStepIndex)
-      setActiveInput(saved.activeInput)
+      applyIncorporationState(saved)
       return
     }
 
     playStep(0)
-  }, [playStep])
+  }, [playStep, applyIncorporationState])
+
+  // Once signed in, the account's cloud copy (if any) takes over from the local one
+  const incorporationSyncedRef = useRef(false)
+  useEffect(() => {
+    if (!isSignedIn || incorporationSyncedRef.current) return
+    incorporationSyncedRef.current = true
+    loadFromServer<IncorporationPersisted>(STORAGE_KEYS.incorporation).then((saved) => {
+      if (saved && saved.messages.length > 0) {
+        startedRef.current = true
+        applyIncorporationState(saved)
+      }
+    })
+  }, [isSignedIn, applyIncorporationState])
 
   useEffect(() => {
     if (!startedRef.current) return
-    savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, {
+    const snapshot: IncorporationPersisted = {
       messages,
       docStatuses,
       answers,
       activeStepIndex,
       activeInput,
-    })
-  }, [messages, docStatuses, answers, activeStepIndex, activeInput])
+    }
+    savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, snapshot)
+    if (isSignedIn) saveToServer(STORAGE_KEYS.incorporation, snapshot)
+  }, [messages, docStatuses, answers, activeStepIndex, activeInput, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -325,6 +365,7 @@ export function IncorporationApp() {
     setIsTyping(false)
     setView("chat")
     clearPersisted(STORAGE_KEYS.incorporation)
+    if (isSignedIn) clearFromServer(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
       startedRef.current = true
       playStep(0)
@@ -333,10 +374,28 @@ export function IncorporationApp() {
 
   const handleRestart = () => {
     if (view === "chat") { restartFormation(); return }
-    if (view === "home-chat") { setHomeChatSeed(undefined); setHomeChatKey((k) => k + 1); clearPersisted(STORAGE_KEYS.homeChat); return }
+    if (view === "home-chat") {
+      setHomeChatSeed(undefined)
+      setHomeChatKey((k) => k + 1)
+      clearPersisted(STORAGE_KEYS.homeChat)
+      if (isSignedIn) clearFromServer(STORAGE_KEYS.homeChat)
+      return
+    }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
-    if (view === "compliance") { setComplianceDocs([]); setComplianceKey((k) => k + 1); clearPersisted(STORAGE_KEYS.compliance); return }
-    if (view === "transactions") { setTransactionDocs([]); setTransactionsKey((k) => k + 1); clearPersisted(STORAGE_KEYS.transactions); return }
+    if (view === "compliance") {
+      setComplianceDocs([])
+      setComplianceKey((k) => k + 1)
+      clearPersisted(STORAGE_KEYS.compliance)
+      if (isSignedIn) clearFromServer(STORAGE_KEYS.compliance)
+      return
+    }
+    if (view === "transactions") {
+      setTransactionDocs([])
+      setTransactionsKey((k) => k + 1)
+      clearPersisted(STORAGE_KEYS.transactions)
+      if (isSignedIn) clearFromServer(STORAGE_KEYS.transactions)
+      return
+    }
   }
 
   const hasDocs = Object.keys(docStatuses).length > 0

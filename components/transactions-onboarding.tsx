@@ -15,7 +15,7 @@ import {
   initialAnswers,
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
-import { loadPersisted, savePersisted } from "@/lib/persist"
+import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 type TransactionsPersisted = {
@@ -40,7 +40,7 @@ export function TransactionsOnboarding({
   answers?: FlowAnswers
   onDocumentReady?: (doc: { id: string; title: string; subtitle: string }) => void
 } = {}) {
-  const { user } = useUser()
+  const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [activeCategory, setActiveCategory] = useState<TransactionCategory | null>(null)
   const [expandedCategoryId, setExpandedCategoryId] = useState<TransactionCategory["id"] | null>(null)
@@ -60,19 +60,23 @@ export function TransactionsOnboarding({
     setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
   }, [])
 
+  const applyState = useCallback((saved: TransactionsPersisted) => {
+    idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+    setMessages(saved.messages)
+    const restoredCategory = TRANSACTION_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
+    setActiveCategory(restoredCategory)
+    setExpandedCategoryId(restoredCategory?.id ?? null)
+    setCompleted(saved.completed)
+    setActiveItemId(saved.activeItemId)
+  }, [])
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
 
     const saved = loadPersisted<TransactionsPersisted>(STORAGE_KEYS.transactions)
     if (saved && saved.messages.length > 0) {
-      idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-      setMessages(saved.messages)
-      const restoredCategory = TRANSACTION_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
-      setActiveCategory(restoredCategory)
-      setExpandedCategoryId(restoredCategory?.id ?? null)
-      setCompleted(saved.completed)
-      setActiveItemId(saved.activeItemId)
+      applyState(saved)
       return
     }
 
@@ -82,17 +86,32 @@ export function TransactionsOnboarding({
         ? `Hi ${name}, what kind of transaction document do you need today?`
         : "Hi! What kind of transaction document do you need today?"
     )
-  }, [pushBot, user])
+  }, [pushBot, user, applyState])
+
+  // Once signed in, the account's cloud copy (if any) takes over from the local one
+  const syncedRef = useRef(false)
+  useEffect(() => {
+    if (!isSignedIn || syncedRef.current) return
+    syncedRef.current = true
+    loadFromServer<TransactionsPersisted>(STORAGE_KEYS.transactions).then((saved) => {
+      if (saved && saved.messages.length > 0) {
+        startedRef.current = true
+        applyState(saved)
+      }
+    })
+  }, [isSignedIn, applyState])
 
   useEffect(() => {
     if (!startedRef.current) return
-    savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, {
+    const snapshot: TransactionsPersisted = {
       messages,
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
-    })
-  }, [messages, activeCategory, completed, activeItemId])
+    }
+    savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
+    if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
+  }, [messages, activeCategory, completed, activeItemId, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
