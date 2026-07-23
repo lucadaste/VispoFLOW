@@ -145,6 +145,14 @@ export function IncorporationApp() {
     setHiddenDocIds((ids) => ({ ...ids, [doc.id]: true }))
   }, [])
 
+  const handleRestoreLibraryDoc = useCallback((doc: LibraryDoc) => {
+    setHiddenDocIds((ids) => {
+      const next = { ...ids }
+      delete next[doc.id]
+      return next
+    })
+  }, [])
+
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
     setTransactionDocs((docs) => [...docs, doc])
   }, [])
@@ -427,13 +435,14 @@ export function IncorporationApp() {
       : "chat"
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
-    (d) => (docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing") && !hiddenDocIds[d.id],
+    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
   ).map((d) => ({
     id: d.id,
     title: d.label,
     subtitle: d.group,
     content: renderDocumentContent(d.id, answers) ?? undefined,
     pending: docStatuses[d.id] === "filing",
+    hidden: !!hiddenDocIds[d.id],
   }))
 
   return (
@@ -515,10 +524,11 @@ export function IncorporationApp() {
       ) : (
         <DocumentLibrary
           incorporationDocs={incorporationLibraryDocs}
-          complianceDocs={complianceDocs.filter((d) => !hiddenDocIds[d.id])}
-          transactionDocs={transactionDocs.filter((d) => !hiddenDocIds[d.id])}
+          complianceDocs={complianceDocs.map((d) => ({ ...d, hidden: !!hiddenDocIds[d.id] }))}
+          transactionDocs={transactionDocs.map((d) => ({ ...d, hidden: !!hiddenDocIds[d.id] }))}
           onNavigate={handlePhaseClick}
           onDelete={handleDeleteLibraryDoc}
+          onRestore={handleRestoreLibraryDoc}
         />
       )}
     </div>

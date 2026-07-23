@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2 } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 export type LibraryDoc = {
@@ -11,6 +11,8 @@ export type LibraryDoc = {
   content?: string
   /** true while an external process (e.g. a state filing) is still resolving in the real world */
   pending?: boolean
+  /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
+  hidden?: boolean
 }
 
 const DOWNLOAD_FORMATS = ["pdf", "txt", "jpeg"] as const
@@ -116,14 +118,17 @@ export function DocumentLibrary({
   transactionDocs,
   onNavigate,
   onDelete,
+  onRestore,
 }: {
   incorporationDocs: LibraryDoc[]
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
   onNavigate: (phase: Phase) => void
   onDelete: (doc: LibraryDoc) => void
+  onRestore: (doc: LibraryDoc) => void
 }) {
-  const total = incorporationDocs.length + complianceDocs.length + transactionDocs.length
+  const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
+  const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
   const [viewing, setViewing] = useState<LibraryDoc | null>(null)
 
   return (
@@ -147,6 +152,7 @@ export function DocumentLibrary({
             onCta={() => onNavigate("chat")}
             onView={setViewing}
             onDelete={onDelete}
+            onRestore={onRestore}
           />
           <DocSection
             icon={ShieldCheck}
@@ -157,6 +163,7 @@ export function DocumentLibrary({
             onCta={() => onNavigate("compliance")}
             onView={setViewing}
             onDelete={onDelete}
+            onRestore={onRestore}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -167,6 +174,7 @@ export function DocumentLibrary({
             onCta={() => onNavigate("transactions")}
             onView={setViewing}
             onDelete={onDelete}
+            onRestore={onRestore}
           />
         </div>
       </div>
@@ -185,6 +193,7 @@ function DocSection({
   onCta,
   onView,
   onDelete,
+  onRestore,
 }: {
   icon: LucideIcon
   title: string
@@ -194,7 +203,12 @@ function DocSection({
   onCta: () => void
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
+  onRestore: (doc: LibraryDoc) => void
 }) {
+  const [showHidden, setShowHidden] = useState(false)
+  const visible = docs.filter((d) => !d.hidden)
+  const hidden = docs.filter((d) => d.hidden)
+
   return (
     <section>
       <div className="mb-3 flex items-center justify-between">
@@ -204,10 +218,10 @@ function DocSection({
           </span>
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         </div>
-        <span className="text-xs font-medium text-muted-foreground">{docs.length}</span>
+        <span className="text-xs font-medium text-muted-foreground">{visible.length}</span>
       </div>
 
-      {docs.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/40 px-6 py-8 text-center">
           <FileText className="h-6 w-6 text-muted-foreground/40" />
           <p className="max-w-sm text-xs text-muted-foreground">{emptyText}</p>
@@ -220,9 +234,41 @@ function DocSection({
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {docs.map((doc) => (
+          {visible.map((doc) => (
             <DocCard key={doc.id} doc={doc} onView={onView} onDelete={onDelete} />
           ))}
+        </div>
+      )}
+
+      {hidden.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowHidden((v) => !v)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDown className={`h-3 w-3 transition-transform ${showHidden ? "rotate-180" : ""}`} />
+            {hidden.length} deleted document{hidden.length === 1 ? "" : "s"} — {showHidden ? "hide" : "show"}
+          </button>
+          {showHidden && (
+            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {hidden.map((doc) => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-2.5 rounded-lg border border-dashed border-border bg-card/40 px-3 py-2.5"
+                >
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{doc.title}</span>
+                  <button
+                    onClick={() => onRestore(doc)}
+                    title="Restore"
+                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </section>
