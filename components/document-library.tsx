@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export type LibraryDoc = {
   id: string
@@ -13,6 +14,18 @@ export type LibraryDoc = {
   pending?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
+}
+
+/** Matches section headers like "Article I" or "1. Adoption of Bylaws" so they can be bolded. */
+function isDocHeadingLine(line: string): boolean {
+  const trimmed = line.trim()
+  if (!trimmed) return false
+  return /^Article\s+[IVXLCDM]+$/i.test(trimmed) || /^\d+\.\s+\S/.test(trimmed)
+}
+
+/** The document title is its first non-blank line; it's bolded and centered. */
+function docTitleLineIndex(content: string): number {
+  return content.split("\n").findIndex((l) => l.trim().length > 0)
 }
 
 const DOWNLOAD_FORMATS = ["pdf", "txt", "jpeg"] as const
@@ -36,22 +49,42 @@ async function downloadAsPdf(doc: LibraryDoc) {
   const pdf = new jsPDF({ unit: "pt", format: "letter" })
   const margin = 56
   const lineHeight = 16
-  const maxWidth = pdf.internal.pageSize.getWidth() - margin * 2
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const maxWidth = pageWidth - margin * 2
   const pageHeight = pdf.internal.pageSize.getHeight()
+  const centerX = pageWidth / 2
 
-  pdf.setFont("times", "normal")
   pdf.setFontSize(11)
 
-  const lines: string[] = pdf.splitTextToSize(doc.content ?? "", maxWidth)
   let y = margin
-  for (const line of lines) {
+  const advance = () => {
+    y += lineHeight
     if (y > pageHeight - margin) {
       pdf.addPage()
       y = margin
     }
-    pdf.text(line, margin, y)
-    y += lineHeight
   }
+
+  const rawLines = (doc.content ?? "").split("\n")
+  const titleIndex = docTitleLineIndex(doc.content ?? "")
+
+  rawLines.forEach((raw, i) => {
+    if (!raw.trim()) {
+      advance()
+      return
+    }
+
+    const isTitle = i === titleIndex
+    const isHeading = !isTitle && isDocHeadingLine(raw)
+    pdf.setFont("times", isTitle || isHeading ? "bold" : "normal")
+
+    const wrapped: string[] = pdf.splitTextToSize(raw, maxWidth)
+    for (const w of wrapped) {
+      if (isTitle) pdf.text(w, centerX, y, { align: "center" })
+      else pdf.text(w, margin, y)
+      advance()
+    }
+  })
 
   pdf.save(`${doc.title}.pdf`)
 }
@@ -388,6 +421,28 @@ function DocCard({
   )
 }
 
+function DocumentBody({ content }: { content: string }) {
+  const lines = content.split("\n")
+  const titleIndex = docTitleLineIndex(content)
+
+  return (
+    <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+      {lines.map((line, i) => {
+        const isTitle = i === titleIndex
+        const isHeading = !isTitle && isDocHeadingLine(line)
+        return (
+          <p
+            key={i}
+            className={cn("m-0 whitespace-pre-wrap", (isTitle || isHeading) && "font-bold", isTitle && "text-center")}
+          >
+            {line || " "}
+          </p>
+        )
+      })}
+    </div>
+  )
+}
+
 export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -406,12 +461,7 @@ export function DocumentViewer({ doc, onClose }: { doc: LibraryDoc; onClose: () 
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <pre
-            className="whitespace-pre-wrap text-sm leading-relaxed text-foreground"
-            style={{ fontFamily: '"Times New Roman", Times, serif' }}
-          >
-            {doc.content}
-          </pre>
+          <DocumentBody content={doc.content ?? ""} />
         </div>
       </div>
     </div>
