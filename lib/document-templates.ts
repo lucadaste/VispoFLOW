@@ -1226,12 +1226,52 @@ FORM OF RESTRICTED STOCK PURCHASE AGREEMENT
 (See the Founder Restricted Stock Purchase Agreements document.)`
 }
 
+function stockholdersConsentOptionPool(a: FlowAnswers): string {
+  const founders = a.allocations.filter((alloc) => !alloc.isPool)
+  const stockholderSignatures =
+    founders.length > 0
+      ? founders
+          .map((f) => `_________________________\n${f.name}, Stockholder`)
+          .join("\n\n")
+      : "_________________________\n[No stockholders specified], Stockholder"
+
+  return `ACTION BY WRITTEN CONSENT
+OF THE MAJORITY STOCKHOLDERS
+
+Pursuant to Section 228 of the Delaware General Corporation Law and the Bylaws of ${a.companyName}, a Delaware corporation (the "Company"), the undersigned majority stockholders of the Company hereby take the following actions and adopt the following resolutions by written consent. This written consent will be filed in the minute book of the Company:
+
+1. Indemnification Agreements
+
+RESOLVED: It is in the best interests of this Company and its stockholders that the Company enter into indemnification agreements with its present and future officers and directors.
+
+RESOLVED FURTHER: That the Company is authorized to enter into Indemnification Agreements with its present and future officers and directors in substantially the form attached hereto as Exhibit A (the "Indemnification Agreement"), together with any changes to such Indemnification Agreements determined by an officer of the Company to be desirable; and that determination shall be conclusively evidenced by such officer's execution and delivery of a definitive Indemnification Agreement.
+
+[Signature Page Follows]
+
+In accordance with the Company's Bylaws, this Action by Written Consent may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which, when so executed, shall be deemed an original and all of which taken together shall constitute one and the same action.
+
+The consent of the undersigned shall be effective immediately upon the grant, sale or issuance of Company common stock to the undersigned; provided, however, that if such event has already occurred before the time of execution of this consent by the undersigned, then this consent shall be effective immediately. This consent shall be deemed revoked if it has not become effective within 60 days of the Actual Date of Signature below, which Actual Date of Signature is the date on which provision for the effectiveness of this consent has been made.
+
+Actual Date of Signature: ${today()}
+
+
+${stockholderSignatures}
+
+
+Exhibit A
+
+Indemnification Agreement
+
+(Form of Indemnification Agreement)`
+}
+
 const RENDERERS: Partial<Record<string, (a: FlowAnswers) => string>> = {
   coi,
   "action-incorporator": actionIncorporator,
   "org-resolutions": orgResolutions,
   "board-consent-option-pool": boardConsentOptionPool,
   "board-consent-founder-stock": boardConsentFounderStock,
+  "stockholders-consent-option-pool": stockholdersConsentOptionPool,
   bylaws,
   "option-pool": optionPool,
 }
