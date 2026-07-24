@@ -1,5 +1,7 @@
 "use client"
 
+"use client"
+
 import Link from "next/link"
 import { ArrowRight, FileCheck2, Send } from "lucide-react"
 
