@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { RotateCcw, Menu, X, Settings, Building2 } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 import type { UserProfile } from "@/lib/profile"
@@ -84,8 +85,8 @@ export function TopBar({
     <>
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
-        <button
-          onClick={() => onPhaseClick("home")}
+        <Link
+          href="/"
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -94,7 +95,7 @@ export function TopBar({
             <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
             <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
           </div>
-        </button>
+        </Link>
 
         <div className="hidden items-center gap-2 lg:flex">
           <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />
