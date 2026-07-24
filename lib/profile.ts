@@ -1,5 +1,19 @@
 import type { FlowAnswers } from "@/lib/flow"
 
+/** Titles a signer can hold — used to pick which signature line/block in a document is theirs. */
+export const COMPANY_ROLES = [
+  "Incorporator",
+  "Director",
+  "President",
+  "CEO",
+  "Secretary",
+  "Treasurer / CFO",
+  "Manager",
+  "Member",
+  "Stockholder",
+  "Sole Proprietor",
+] as const
+
 export type UserProfile = {
   companyName: string
   /** the corporation's principal address */
@@ -8,6 +22,8 @@ export type UserProfile = {
   personalAddress: string
   /** full legal name, used both for the signature block text and as the incorporator's name */
   signerName: string
+  /** titles held at the company, used to route the signature onto the matching line in each document */
+  roles: string[]
   signatureMethod: "typed" | "drawn" | null
   /** PNG data URL — typed signatures are rasterized too, so every consumer only ever deals with one image format */
   signatureDataUrl: string | null
@@ -19,6 +35,7 @@ export const emptyProfile: UserProfile = {
   companyAddress: "",
   personalAddress: "",
   signerName: "",
+  roles: [],
   signatureMethod: null,
   signatureDataUrl: null,
   autofillEnabled: true,

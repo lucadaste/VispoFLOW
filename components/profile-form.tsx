@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { UserProfile } from "@/lib/profile"
+import { COMPANY_ROLES, type UserProfile } from "@/lib/profile"
 import { SignaturePad } from "@/components/signature-pad"
 import { cn } from "@/lib/utils"
 
@@ -72,6 +72,38 @@ export function ProfileForm({
           placeholder="e.g. Jane Founder"
           className={fieldClass}
         />
+      </div>
+
+      <div>
+        <label className={labelClass}>Your role(s) at the company</label>
+        <p className="mb-2 text-xs text-muted-foreground">
+          Select every title you hold — this puts your signature on the matching line in each document.
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {COMPANY_ROLES.map((role) => {
+            const checked = form.roles.includes(role)
+            return (
+              <button
+                key={role}
+                type="button"
+                onClick={() =>
+                  setForm((f) => ({
+                    ...f,
+                    roles: checked ? f.roles.filter((r) => r !== role) : [...f.roles, role],
+                  }))
+                }
+                className={cn(
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                  checked
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-foreground hover:bg-secondary",
+                )}
+              >
+                {role}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div>

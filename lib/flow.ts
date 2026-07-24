@@ -98,6 +98,14 @@ export const DOCUMENTS: LegalDoc[] = [
     description:
       "The agreement itself, under which the Company indemnifies each officer and director against certain liabilities and expenses incurred in that role.",
   },
+  {
+    id: "notice-of-option-grant",
+    label: "Notice of Stock Option Grant",
+    short: "TW Notice of Option Grant",
+    group: "Equity Plan",
+    description:
+      "The document granting stock options to a specific employee, advisor, or consultant under the Equity Incentive Plan — sets the grant date, exercise price, number of shares, option type, and vesting schedule for that individual.",
+  },
 ]
 
 export function docShorts(ids: string[]): string {
@@ -815,6 +823,16 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
 
 export type Officer = { title: string; name: string }
 export type Allocation = { name: string; shares: number; isPool?: boolean }
+export type OptionGrant = {
+  name: string
+  address: string
+  grantDate: string
+  exercisePrice: string
+  shares: number
+  optionType: "ISO" | "NSO"
+  vestingCommencementDate: string
+  expirationDate: string
+}
 
 export type FlowAnswers = {
   companyName: string
@@ -829,6 +847,7 @@ export type FlowAnswers = {
   allocations: Allocation[]
   vestingStartDate: string
   vestingUsesEarlierDate: boolean
+  optionGrants: OptionGrant[]
   // derived display helpers
   foundersList: string
   founderShares: string
@@ -848,6 +867,7 @@ export const initialAnswers: FlowAnswers = {
   allocations: [],
   vestingStartDate: "",
   vestingUsesEarlierDate: false,
+  optionGrants: [],
   foundersList: "",
   founderShares: "",
   poolShares: "",

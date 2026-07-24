@@ -16,7 +16,7 @@ export function useProfile() {
     if (startedRef.current) return
     startedRef.current = true
     const saved = loadPersisted<UserProfile>(STORAGE_KEYS.profile)
-    if (saved) setProfile(saved)
+    if (saved) setProfile({ ...emptyProfile, ...saved })
   }, [])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
@@ -25,7 +25,7 @@ export function useProfile() {
     if (!isSignedIn || syncedRef.current) return
     syncedRef.current = true
     loadFromServer<UserProfile>(STORAGE_KEYS.profile).then((saved) => {
-      if (saved) setProfile(saved)
+      if (saved) setProfile({ ...emptyProfile, ...saved })
     })
   }, [isSignedIn])
 

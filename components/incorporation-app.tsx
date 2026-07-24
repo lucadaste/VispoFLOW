@@ -59,7 +59,7 @@ type IncorporationPersisted = {
   activeInput: StepInput | null
 }
 
-type SignatureStamp = { signatureDataUrl: string; signerName: string; signedAt: string }
+type SignatureStamp = { signatureDataUrl: string; signerName: string; signerRoles?: string[]; signedAt: string }
 
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
@@ -166,12 +166,26 @@ export function IncorporationApp() {
     })
   }, [])
 
-  const handleSignLibraryDoc = useCallback((doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string }) => {
-    setSignedDocs((docs) => ({
-      ...docs,
-      [doc.id]: { ...signature, signedAt: new Date().toISOString() },
-    }))
-  }, [])
+  const handleSignLibraryDoc = useCallback(
+    (doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string; roles?: string[] }) => {
+      // The ad-hoc "type/draw a signature" path (used when no saved profile signature exists yet)
+      // doesn't collect roles. If the typed name matches the account holder, fall back to their
+      // saved profile roles so the company execution block still gets filled in correctly.
+      const roles =
+        signature.roles ??
+        (signature.signerName.trim().toLowerCase() === profile.signerName.trim().toLowerCase() ? profile.roles : undefined)
+      setSignedDocs((docs) => ({
+        ...docs,
+        [doc.id]: {
+          signatureDataUrl: signature.signatureDataUrl,
+          signerName: signature.signerName,
+          signerRoles: roles,
+          signedAt: new Date().toISOString(),
+        },
+      }))
+    },
+    [profile.signerName, profile.roles],
+  )
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
     setTransactionDocs((docs) => [...docs, doc])
@@ -288,7 +302,7 @@ export function IncorporationApp() {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
     setMessages(saved.messages)
     setDocStatuses(saved.docStatuses)
-    setAnswers(saved.answers)
+    setAnswers({ ...initialAnswers, ...saved.answers })
     setActiveStepIndex(saved.activeStepIndex)
     setActiveInput(saved.activeInput)
   }, [])
@@ -600,7 +614,11 @@ export function IncorporationApp() {
           onDelete={handleDeleteLibraryDoc}
           onRestore={handleRestoreLibraryDoc}
           onSign={handleSignLibraryDoc}
-          savedSignature={profile.signatureDataUrl ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName } : null}
+          savedSignature={
+            profile.signatureDataUrl
+              ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName, roles: profile.roles }
+              : null
+          }
         />
       )}
 

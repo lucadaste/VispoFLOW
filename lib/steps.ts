@@ -11,6 +11,7 @@ export type StepInput =
   | { kind: "officers" }
   | { kind: "allocations" }
   | { kind: "vesting" }
+  | { kind: "optionGrants" }
   | { kind: "continue"; label: string; action: "compliance" }
 
 export type Step = {
@@ -118,6 +119,14 @@ export const STEPS: Step[] = [
       "stockholder-consent-indemnification",
       "indemnification-agreement",
     ],
+  },
+  {
+    id: "option-grants",
+    messages: [
+      "Now let's prepare stock option grants under the Equity Incentive Plan for anyone receiving options — employees, advisors, or consultants. Add a grant for each recipient with their exercise price, share count, and vesting terms, or skip this if you don't have any grants yet.",
+    ],
+    input: { kind: "optionGrants" },
+    completes: ["notice-of-option-grant"],
   },
   {
     id: "formed",

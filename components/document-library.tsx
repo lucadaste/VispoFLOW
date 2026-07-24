@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText, findSignatureLineIndex, formatSignedDate } from "@/lib/signature"
+import { signatureBlockText, findSignatureLineIndex, fillCompanyExecutionBlock, formatSignedDate } from "@/lib/signature"
 import { SignaturePad } from "@/components/signature-pad"
 
 export type LibraryDoc = {
@@ -19,11 +19,21 @@ export type LibraryDoc = {
   signed?: boolean
   signatureDataUrl?: string | null
   signerName?: string
+  /** titles the signer holds, used to route the signature onto the matching line/block */
+  signerRoles?: string[]
   signedAt?: string
 }
 
-type SavedSignature = { signatureDataUrl: string; signerName: string }
-type SignPayload = { signatureDataUrl: string; signerName: string }
+type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
+type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[] }
+
+/** The document text as actually signed — blank Name:/Title: lines in a company execution block
+ *  filled in from the signer's roles, so the printed block matches who's signing. */
+function signedContent(doc: LibraryDoc): string {
+  const base = doc.content ?? ""
+  if (!doc.signed || !doc.signerName) return base
+  return fillCompanyExecutionBlock(base, doc.signerName, doc.signerRoles ?? [])
+}
 
 /** Titles and major section names (e.g. "BYLAWS", "CORPORATE OFFICES", "***") are set in all-caps — bold + centered. */
 function isAllCapsHeadingLine(line: string): boolean {
@@ -81,7 +91,7 @@ function triggerDownload(blob: Blob, filename: string) {
 }
 
 function fullContent(doc: LibraryDoc): string {
-  const base = doc.content ?? ""
+  const base = signedContent(doc)
   if (!doc.signed || !doc.signerName || !doc.signedAt) return base
   return base + signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt })
 }
@@ -111,10 +121,11 @@ async function downloadAsPdf(doc: LibraryDoc) {
     }
   }
 
-  const rawLines = (doc.content ?? "").split("\n")
-  const titleIndex = docTitleLineIndex(doc.content ?? "")
+  const content = signedContent(doc)
+  const rawLines = content.split("\n")
+  const titleIndex = docTitleLineIndex(content)
   const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
-  const signatureLineIndex = signed ? findSignatureLineIndex(doc.content ?? "", doc.signerName!) : null
+  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
   const inlineImgHeight = 34
 
   rawLines.forEach((raw, i) => {
@@ -194,9 +205,10 @@ async function downloadAsJpeg(doc: LibraryDoc) {
 
   ctx.font = font
   const maxWidth = width - margin * 2
+  const content = signedContent(doc)
   const lines: string[] = []
   const sourceLineWrappedStart: number[] = []
-  for (const raw of (doc.content ?? "").split("\n")) {
+  for (const raw of content.split("\n")) {
     sourceLineWrappedStart.push(lines.length)
     if (raw === "") {
       lines.push("")
@@ -215,7 +227,7 @@ async function downloadAsJpeg(doc: LibraryDoc) {
     lines.push(current)
   }
 
-  const signatureLineIndex = signed ? findSignatureLineIndex(doc.content ?? "", doc.signerName!) : null
+  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
   const sigWrappedIdx = signatureLineIndex !== null ? sourceLineWrappedStart[signatureLineIndex] : null
   // the name line's last wrapped sub-line, i.e. right before the next source line begins
   const captionAfterWrappedIdx =
@@ -670,11 +682,11 @@ function DocCard({
 }
 
 function DocumentBody({ doc }: { doc: LibraryDoc }) {
-  const content = doc.content ?? ""
+  const content = signedContent(doc)
   const lines = content.split("\n")
   const titleIndex = docTitleLineIndex(content)
   const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
-  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!) : null
+  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
 
   return (
     <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
