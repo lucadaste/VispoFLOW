@@ -410,13 +410,15 @@ export function IncorporationApp() {
     })
   }
 
-  const handleRestart = () => {
+  // Server clears must resolve before the view remounts — otherwise the remounted view's
+  // own load-from-server effect can race the DELETE and re-hydrate the state we just reset.
+  const handleRestart = async () => {
     if (view === "chat") { restartFormation(); return }
     if (view === "home-chat") {
+      clearPersisted(STORAGE_KEYS.homeChat)
+      if (isSignedIn) await clearFromServer(STORAGE_KEYS.homeChat)
       setHomeChatSeed(undefined)
       setHomeChatKey((k) => k + 1)
-      clearPersisted(STORAGE_KEYS.homeChat)
-      if (isSignedIn) clearFromServer(STORAGE_KEYS.homeChat)
       return
     }
     if (view === "landing") { setLandingKey((k) => k + 1); return }
@@ -432,9 +434,9 @@ export function IncorporationApp() {
         return next
       })
       setComplianceDocs([])
-      setComplianceKey((k) => k + 1)
       clearPersisted(STORAGE_KEYS.compliance)
-      if (isSignedIn) clearFromServer(STORAGE_KEYS.compliance)
+      if (isSignedIn) await clearFromServer(STORAGE_KEYS.compliance)
+      setComplianceKey((k) => k + 1)
       return
     }
     if (view === "transactions") {
@@ -449,9 +451,9 @@ export function IncorporationApp() {
         return next
       })
       setTransactionDocs([])
-      setTransactionsKey((k) => k + 1)
       clearPersisted(STORAGE_KEYS.transactions)
-      if (isSignedIn) clearFromServer(STORAGE_KEYS.transactions)
+      if (isSignedIn) await clearFromServer(STORAGE_KEYS.transactions)
+      setTransactionsKey((k) => k + 1)
       return
     }
   }

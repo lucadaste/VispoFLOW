@@ -43,6 +43,8 @@ export function saveToServer<T>(key: string, value: T) {
   }).catch(() => {})
 }
 
-export function clearFromServer(key: string) {
-  fetch(`/api/state/${key}`, { method: "DELETE" }).catch(() => {})
+export function clearFromServer(key: string): Promise<void> {
+  return fetch(`/api/state/${key}`, { method: "DELETE" })
+    .then(() => {})
+    .catch(() => {})
 }
