@@ -61,10 +61,11 @@ export function ProductPillars() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            One studio, four stages of your company's life
+            One studio, every legal tool your company needs
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
-            Vispo Labs follows your company from its first filing through its first term sheet.
+            Form your company, stay compliant, paper your deals — and keep every document organized
+            in one place.
           </p>
         </div>
 
