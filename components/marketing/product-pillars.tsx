@@ -61,7 +61,7 @@ export function ProductPillars() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            One studio, every legal tool your company needs
+            One studio, every legal tool your company needs to succeed
           </h2>
           <p className="mt-4 text-pretty text-lg leading-relaxed text-muted-foreground">
             Form your company, stay compliant, paper your deals — and keep every document organized
