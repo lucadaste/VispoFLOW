@@ -16,7 +16,6 @@ import {
   type FlowAnswers,
   type Officer,
   type Allocation,
-  type OptionGrant,
   AUTHORIZED_SHARES,
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
@@ -59,8 +58,6 @@ export function ChatInput({
       return <AllocationsInput answers={answers} onSubmit={onSubmit} />
     case "vesting":
       return <VestingInput onSubmit={onSubmit} />
-    case "optionGrants":
-      return <OptionGrantsInput onSubmit={onSubmit} />
     case "continue":
       return <ContinueInput input={input} onSubmit={onSubmit} />
     default:
@@ -667,171 +664,6 @@ function Radio({ active }: { active: boolean }) {
     >
       {active && <span className="h-2 w-2 rounded-full bg-primary" />}
     </span>
-  )
-}
-
-/* ---------- option grants ---------- */
-
-function emptyGrant(): OptionGrant {
-  return {
-    name: "",
-    address: "",
-    grantDate: "",
-    exercisePrice: "",
-    shares: 0,
-    optionType: "ISO",
-    vestingCommencementDate: "",
-    expirationDate: "",
-  }
-}
-
-function OptionGrantsInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [grants, setGrants] = useState<OptionGrant[]>([emptyGrant()])
-
-  const update = (i: number, patch: Partial<OptionGrant>) =>
-    setGrants((arr) => arr.map((g, idx) => (idx === i ? { ...g, ...patch } : g)))
-  const addRow = () => setGrants((arr) => [...arr, emptyGrant()])
-  const removeRow = (i: number) => setGrants((arr) => arr.filter((_, idx) => idx !== i))
-
-  const rowValid = (g: OptionGrant) =>
-    g.name.trim() &&
-    g.grantDate &&
-    g.exercisePrice.trim() &&
-    g.shares > 0 &&
-    g.vestingCommencementDate &&
-    g.expirationDate
-  const allValid = grants.every(rowValid)
-
-  const submit = () => {
-    const clean = grants.map((g) => ({
-      ...g,
-      name: g.name.trim(),
-      address: g.address.trim(),
-      exercisePrice: g.exercisePrice.trim(),
-    }))
-    onSubmit(
-      clean
-        .map((g) => `${g.name}: ${g.shares.toLocaleString()} shares @ $${g.exercisePrice} (${g.optionType})`)
-        .join("\n"),
-      { optionGrants: clean },
-    )
-  }
-
-  const skip = () => onSubmit("No option grants yet — I'll add these later.", { optionGrants: [] })
-
-  return (
-    <Shell>
-      <div className="space-y-3">
-        {grants.map((g, i) => (
-          <div key={i} className="space-y-2 rounded-lg border border-border p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Grant {i + 1}
-              </span>
-              {grants.length > 1 && (
-                <button
-                  onClick={() => removeRow(i)}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-            <div>
-              <label className={labelClass}>Optionee name</label>
-              <input
-                value={g.name}
-                onChange={(e) => update(i, { name: e.target.value })}
-                placeholder="e.g. Jane Employee"
-                className={fieldClass}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Optionee address</label>
-              <textarea
-                value={g.address}
-                onChange={(e) => update(i, { address: e.target.value })}
-                rows={2}
-                className={cn(fieldClass, "resize-none")}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className={labelClass}>Date of grant</label>
-                <input
-                  type="date"
-                  value={g.grantDate}
-                  onChange={(e) => update(i, { grantDate: e.target.value })}
-                  className={fieldClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Exercise price per share (USD)</label>
-                <input
-                  value={g.exercisePrice}
-                  onChange={(e) => update(i, { exercisePrice: e.target.value })}
-                  placeholder="e.g. 0.10"
-                  className={fieldClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Total number of shares</label>
-                <input
-                  type="number"
-                  value={g.shares || ""}
-                  onChange={(e) => update(i, { shares: Math.max(0, Number(e.target.value)) })}
-                  className={cn(fieldClass, "tabular-nums")}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Option type</label>
-                <select
-                  value={g.optionType}
-                  onChange={(e) => update(i, { optionType: e.target.value as "ISO" | "NSO" })}
-                  className={fieldClass}
-                >
-                  <option value="ISO">Incentive Stock Option (ISO)</option>
-                  <option value="NSO">Nonstatutory Stock Option (NSO)</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelClass}>Vesting commencement date</label>
-                <input
-                  type="date"
-                  value={g.vestingCommencementDate}
-                  onChange={(e) => update(i, { vestingCommencementDate: e.target.value })}
-                  className={fieldClass}
-                />
-              </div>
-              <div>
-                <label className={labelClass}>Expiration date</label>
-                <input
-                  type="date"
-                  value={g.expirationDate}
-                  onChange={(e) => update(i, { expirationDate: e.target.value })}
-                  className={fieldClass}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-        <button
-          onClick={addRow}
-          className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-        >
-          <Plus className="h-3.5 w-3.5" /> Add another grant
-        </button>
-        <div className="flex items-center justify-between pt-1">
-          <button
-            onClick={skip}
-            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-          >
-            No grants yet — skip
-          </button>
-          <SubmitButton onClick={submit} disabled={!allValid} />
-        </div>
-      </div>
-    </Shell>
   )
 }
 
