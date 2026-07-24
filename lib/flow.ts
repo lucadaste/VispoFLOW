@@ -124,6 +124,8 @@ export type ComplianceItem = {
   title: string
   short: string
   description: string
+  /** Longer explanation shown in the info pop-up. Falls back to `description` if omitted. */
+  explainer?: string
   deadline: string
   fields: ComplianceField[]
 }
@@ -148,15 +150,27 @@ const EIN: ComplianceItem = {
   title: "EIN — Employer Identification Number",
   short: "EIN",
   description: "Apply for a federal Employer Identification Number with the IRS. Required to open a bank account, hire employees, and file taxes.",
+  explainer:
+    "This filing bundles two IRS-adjacent documents into one step: (1) Form SS-4, Application for Employer Identification Number, and (2) a Delegated Third Party Declaration authorizing Vispo's filing preparer to submit the SS-4 and receive the EIN on your company's behalf. Once you complete the fields below and sign, your preparer files electronically with the IRS — EINs are typically issued the same day. The fields shown are the subset of Form SS-4 that applies to a newly formed Delaware C-Corp with no employees yet (the IRS's own \"started a new business, no employees\" path); lines specific to LLCs, trusts, nonprofits, and existing businesses are skipped, and \"Corporation\" / \"Delaware\" are filled in automatically for lines 9a/9b.",
   deadline: "Before opening a bank account",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "incorporationDate", label: "Date of incorporation", type: "date" },
-    { name: "entityType", label: "Entity type", type: "select", options: ["C Corporation", "S Corporation", "LLC", "Partnership", "Sole Proprietor"] },
-    { name: "responsible", label: "Responsible party (full legal name)", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
-    { name: "ssn", label: "Responsible party SSN / ITIN", placeholder: "XXX-XX-XXXX" },
-    { name: "address", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "reason", label: "Reason for applying", type: "select", options: ["Started new business", "Hired employees", "Banking purpose", "Changed type of organization", "Purchased going business", "Created a trust", "Other"] },
+    { name: "companyName", label: "Legal name of entity (Line 1)", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "tradeName", label: "Trade name / DBA, if different (Line 2)", placeholder: "e.g. Acme", optional: true },
+    { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "county", label: "County and state of principal business (Line 6)", placeholder: "e.g. New Castle County, Delaware" },
+    { name: "responsible", label: "Responsible party — full legal name (Line 7a)", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
+    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", placeholder: "XXX-XX-XXXX" },
+    { name: "reason", label: "Reason for applying (Line 10)", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
+    { name: "incorporationDate", label: "Date business started or acquired (Line 11)", type: "date" },
+    {
+      name: "closingMonth",
+      label: "Closing month of accounting year (Line 12)",
+      type: "select",
+      options: ["December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November"],
+    },
+    { name: "employeesExpected", label: "Employees expected in next 12 months (Line 13)", placeholder: "0 if none expected yet" },
+    { name: "principalActivity", label: "Principal line of business (Lines 16–17)", placeholder: "e.g. Software development" },
+    { name: "previousEin", label: "Previous EIN, if this entity ever received one before (Line 18)", placeholder: "Leave blank if none", optional: true },
   ],
 }
 

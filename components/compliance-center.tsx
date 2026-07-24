@@ -9,6 +9,7 @@ import {
   ChevronRight,
   ShieldCheck,
   CalendarClock,
+  Info,
 } from "lucide-react"
 import {
   COMPLIANCE_GROUPS,
@@ -30,6 +31,7 @@ export function ComplianceCenter({
 }) {
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [active, setActive] = useState<ComplianceItem | null>(null)
+  const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
 
   const allItems = useMemo(() => COMPLIANCE_GROUPS.flatMap((g) => g.items), [])
   const doneCount = allItems.filter((i) => completed[i.id]).length
@@ -106,16 +108,36 @@ export function ComplianceCenter({
                     const isDone = !!completed[item.id]
                     return (
                       <li key={item.id}>
-                        <button
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => setActive(item)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              setActive(item)
+                            }
+                          }}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary/40",
+                            "flex w-full cursor-pointer items-center gap-3 rounded-xl border bg-card p-4 text-left shadow-sm transition-colors hover:border-primary/40",
                             isDone ? "border-success/30" : "border-border",
                           )}
                         >
                           <StatusDot done={isDone} />
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground">{item.title}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium text-foreground">{item.title}</p>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setInfoItem(item)
+                                }}
+                                aria-label={`What is ${item.title}?`}
+                                className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+                              >
+                                <Info className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
                             <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                               {item.description}
                             </p>
@@ -135,7 +157,7 @@ export function ComplianceCenter({
                             {isDone ? "Filed" : "Outstanding"}
                           </span>
                           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        </button>
+                        </div>
                       </li>
                     )
                   })}
@@ -158,8 +180,33 @@ export function ComplianceCenter({
             setCompleted((c) => ({ ...c, [active.id]: true }))
             setActive(null)
           }}
+          onShowInfo={() => setInfoItem(active)}
         />
       )}
+
+      {infoItem && <ComplianceInfoModal item={infoItem} onClose={() => setInfoItem(null)} />}
+    </div>
+  )
+}
+
+function ComplianceInfoModal({ item, onClose }: { item: ComplianceItem; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-balance text-foreground">{item.title}</h3>
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {item.explainer ?? item.description}
+        </p>
+      </div>
     </div>
   )
 }
@@ -183,17 +230,19 @@ function FilingDrawer({
   prefill,
   onClose,
   onComplete,
+  onShowInfo,
 }: {
   item: ComplianceItem
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
   onClose: () => void
   onComplete: () => void
+  onShowInfo: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)])),
   )
-  const valid = item.fields.every((f) => values[f.name]?.trim())
+  const valid = item.fields.every((f) => f.optional || values[f.name]?.trim())
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -201,7 +250,16 @@ function FilingDrawer({
       <div className="relative flex h-full w-full max-w-md flex-col bg-card shadow-xl animate-message-in">
         <div className="flex items-start justify-between border-b border-border px-5 py-4">
           <div className="pr-4">
-            <h3 className="text-base font-semibold text-foreground text-balance">{item.title}</h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-base font-semibold text-foreground text-balance">{item.title}</h3>
+              <button
+                onClick={onShowInfo}
+                aria-label={`What is ${item.title}?`}
+                className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">{item.deadline}</p>
           </div>
           <button
@@ -222,6 +280,7 @@ function FilingDrawer({
               <div key={f.name}>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">
                   {f.label}
+                  {f.optional && <span className="font-normal text-muted-foreground/60"> (optional)</span>}
                 </label>
                 {f.type === "textarea" ? (
                   <textarea
@@ -231,6 +290,21 @@ function FilingDrawer({
                     onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
                     className={cn(fieldClass, "resize-none")}
                   />
+                ) : f.type === "select" ? (
+                  <select
+                    value={values[f.name] ?? ""}
+                    onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                    className={fieldClass}
+                  >
+                    <option value="" disabled>
+                      Select…
+                    </option>
+                    {f.options?.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input
                     type={f.type === "date" ? "date" : "text"}

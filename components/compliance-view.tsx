@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ShieldCheck, CalendarClock } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, X } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -45,6 +45,7 @@ export function ComplianceView({
   const [expandedCategoryId, setExpandedCategoryId] = useState<ComplianceCategory["id"] | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
+  const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -182,6 +183,7 @@ export function ComplianceView({
       activeItemId={activeItemId}
       onItemClick={openItem}
       onCategoryClick={toggleCategory}
+      onInfoClick={setInfoItem}
     />
   )
 
@@ -208,6 +210,7 @@ export function ComplianceView({
                   done={!!completed[m.item.id]}
                   prefill={prefill}
                   onComplete={() => handleFilingComplete(m.item, m.groupTitle)}
+                  onInfoClick={() => setInfoItem(m.item)}
                 />
               )
               return null
@@ -265,6 +268,32 @@ export function ComplianceView({
       >
         {sidebarContent}
       </MobileSidebarTab>
+
+      {infoItem && <ComplianceInfoModal item={infoItem} onClose={() => setInfoItem(null)} />}
+    </div>
+  )
+}
+
+/* ── Info pop-up ── */
+
+function ComplianceInfoModal({ item, onClose }: { item: ComplianceItem; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-sm font-semibold text-balance text-foreground">{item.title}</h3>
+          <button
+            onClick={onClose}
+            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {item.explainer ?? item.description}
+        </p>
+      </div>
     </div>
   )
 }
@@ -272,7 +301,7 @@ export function ComplianceView({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick,
+  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick, onInfoClick,
 }: {
   activeCategory: ComplianceCategory | null
   expandedCategoryId: ComplianceCategory["id"] | null
@@ -280,6 +309,7 @@ function SidebarContent({
   activeItemId: string | null
   onItemClick: (item: ComplianceItem, groupTitle: string) => void
   onCategoryClick: (cat: ComplianceCategory) => void
+  onInfoClick: (item: ComplianceItem) => void
 }) {
   if (!activeCategory) {
     return (
@@ -333,10 +363,18 @@ function SidebarContent({
                           const isActive = activeItemId === item.id
                           return (
                             <li key={item.id}>
-                              <button
+                              <div
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => onItemClick(item, group.title)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault()
+                                    onItemClick(item, group.title)
+                                  }
+                                }}
                                 className={cn(
-                                  "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
+                                  "flex w-full cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
                                   isActive ? "bg-primary/10" : "hover:bg-secondary/60"
                                 )}
                               >
@@ -347,15 +385,27 @@ function SidebarContent({
                                   {done ? <Check className="h-3 w-3" strokeWidth={3} /> : <Circle className="h-3.5 w-3.5" />}
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
-                                  <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
-                                    {item.title}
-                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
+                                      {item.title}
+                                    </p>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        onInfoClick(item)
+                                      }}
+                                      aria-label={`What is ${item.title}?`}
+                                      className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+                                    >
+                                      <Info className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                                     <CalendarClock className="h-2.5 w-2.5 shrink-0" />
                                     <span className="truncate">{item.deadline}</span>
                                   </p>
                                 </div>
-                              </button>
+                              </div>
                             </li>
                           )
                         })}
@@ -375,13 +425,14 @@ function SidebarContent({
 /* ── Inline filing form card ── */
 
 function FilingFormCard({
-  item, groupTitle, done, prefill, onComplete,
+  item, groupTitle, done, prefill, onComplete, onInfoClick,
 }: {
   item: ComplianceItem
   groupTitle: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
   onComplete: () => void
+  onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
@@ -411,7 +462,16 @@ function FilingFormCard({
       {/* Card header */}
       <div className="border-b border-border bg-secondary/30 px-5 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{groupTitle}</p>
-        <h3 className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{item.title}</h3>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <h3 className="text-xl font-bold tracking-tight text-foreground">{item.title}</h3>
+          <button
+            onClick={onInfoClick}
+            aria-label={`What is ${item.title}?`}
+            className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
       </div>
 
