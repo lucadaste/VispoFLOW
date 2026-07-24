@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Send, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, findSignatureLineIndex, formatSignedDate } from "@/lib/signature"
@@ -573,7 +573,7 @@ function DocCard({
           <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
           {doc.pending && (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
-              <Send className="h-2 w-2" />
+              <Landmark className="h-2 w-2" />
               Pending
             </span>
           )}
