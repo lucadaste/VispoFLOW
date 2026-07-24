@@ -62,12 +62,19 @@ export function TransactionsOnboarding({
 
   const applyState = useCallback((saved: TransactionsPersisted) => {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-    setMessages(saved.messages)
+    // Don't restore document forms the user opened but never completed — reopening one
+    // implicitly re-runs autofill, so it must only happen from an explicit click, not on load.
+    const restoredMessages = saved.messages.filter(
+      (m) => m.role !== "doc" || saved.completed[m.item.id]
+    )
+    setMessages(restoredMessages)
     const restoredCategory = TRANSACTION_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
-    setActiveItemId(saved.activeItemId)
+    // activeItemId only ever points at an incomplete item (completion clears it), so
+    // it always refers to a form we just dropped above — nothing should read as "open".
+    setActiveItemId(null)
   }, [])
 
   useEffect(() => {
