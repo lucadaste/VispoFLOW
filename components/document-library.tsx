@@ -282,6 +282,7 @@ function downloadDoc(doc: LibraryDoc, format: DownloadFormat) {
 type Phase = "chat" | "compliance" | "transactions"
 
 export function DocumentLibrary({
+  companyName,
   incorporationDocs,
   complianceDocs,
   transactionDocs,
@@ -291,6 +292,7 @@ export function DocumentLibrary({
   onSign,
   savedSignature,
 }: {
+  companyName?: string
   incorporationDocs: LibraryDoc[]
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
@@ -313,7 +315,9 @@ export function DocumentLibrary({
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">Document Library</h1>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            {companyName ? `${companyName}'s Document Library` : "Document Library"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Every document generated across Incorporation, Compliance, and Transactions, all in one place.
             {total > 0 && ` ${total} document${total === 1 ? "" : "s"} so far.`}

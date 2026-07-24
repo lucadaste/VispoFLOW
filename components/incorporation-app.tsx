@@ -592,6 +592,7 @@ export function IncorporationApp() {
         <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
       ) : (
         <DocumentLibrary
+          companyName={effectiveAnswers.companyName}
           incorporationDocs={incorporationLibraryDocs}
           complianceDocs={complianceDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}
           transactionDocs={transactionDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}
