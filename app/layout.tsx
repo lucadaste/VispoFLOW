@@ -26,9 +26,9 @@ const clerkLocalization = {
 }
 
 export const metadata: Metadata = {
-  title: "Silicon Valley AI Camp — Silicon Valley Experience",
+  title: "Vispo Labs — Startup Legal Studio",
   description:
-    "A 3, 4, or 5-day immersive program where managers and innovators partner with Silicon Valley AI companies and entrepreneurs to transform their business, solve challenges, and grow revenue.",
+    "Vispo Labs guides founders through Delaware C-Corp incorporation, post-formation compliance filings, and startup transaction documents — all through a simple, AI-guided chat.",
 }
 
 export default function RootLayout({
