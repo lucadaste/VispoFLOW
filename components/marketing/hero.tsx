@@ -29,7 +29,7 @@ export function Hero() {
             </span>
 
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem]">
-              Incorporate, stay compliant, and paper every deal — guided step by step.
+              Incorporate, stay compliant, and document every deal — guided step by step.
             </h1>
 
             <p className="mt-6 max-w-lg text-pretty text-lg leading-relaxed text-muted-foreground">
