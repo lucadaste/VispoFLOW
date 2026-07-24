@@ -46,8 +46,22 @@ function AuthCta() {
   )
 }
 
+const HEADER_OFFSET = 64
+
+function scrollToSection(href: string) {
+  const target = document.querySelector(href)
+  if (!target) return
+  const top = target.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
+  window.scrollTo({ top, behavior: "smooth" })
+}
+
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault()
+    scrollToSection(href)
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
@@ -66,6 +80,7 @@ export function SiteHeader() {
             <a
               key={link.href}
               href={link.href}
+              onClick={(e) => handleNavClick(e, link.href)}
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               {link.label}
@@ -94,7 +109,10 @@ export function SiteHeader() {
               <a
                 key={link.href}
                 href={link.href}
-                onClick={() => setOpen(false)}
+                onClick={(e) => {
+                  setOpen(false)
+                  handleNavClick(e, link.href)
+                }}
                 className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 {link.label}

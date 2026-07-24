@@ -8,6 +8,16 @@ const CHECKLIST = [
   "E-signature built in",
 ]
 
+const HEADER_OFFSET = 64
+
+function handleAnchorClick(e: React.MouseEvent<HTMLAnchorElement>, href: string) {
+  e.preventDefault()
+  const target = document.querySelector(href)
+  if (!target) return
+  const top = target.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET
+  window.scrollTo({ top, behavior: "smooth" })
+}
+
 export function Hero() {
   return (
     <section id="top" className="relative overflow-hidden bg-background">
@@ -38,6 +48,7 @@ export function Hero() {
               </Link>
               <a
                 href="#how-it-works"
+                onClick={(e) => handleAnchorClick(e, "#how-it-works")}
                 className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-7 py-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
               >
                 See how it works
@@ -55,7 +66,11 @@ export function Hero() {
 
             <p className="mt-6 text-xs text-muted-foreground">
               Free to start. Vispo Labs is an AI-assisted guide, not a law firm — see{" "}
-              <a href="#trust" className="underline underline-offset-2 hover:text-foreground">
+              <a
+                href="#trust"
+                onClick={(e) => handleAnchorClick(e, "#trust")}
+                className="underline underline-offset-2 hover:text-foreground"
+              >
                 how we think about legal advice
               </a>
               .
