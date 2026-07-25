@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ArrowLeftRight } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import {
@@ -17,12 +17,14 @@ import {
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
+import { FieldComposer } from "@/components/field-composer"
 
 type TransactionsPersisted = {
   messages: ChatMsg[]
   activeCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
   activeItemId: string | null
+  inputMode?: "chat" | "form"
 }
 
 type ChatMsg =
@@ -30,8 +32,18 @@ type ChatMsg =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "doc"; item: TransactionItem; groupTitle: string }
 
+type ActiveFiling = {
+  item: TransactionItem
+  groupTitle: string
+  fieldIndex: number
+  values: Record<string, string>
+}
+
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 14))
 
 export function TransactionsOnboarding({
   answers = initialAnswers,
@@ -46,6 +58,9 @@ export function TransactionsOnboarding({
   const [expandedCategoryId, setExpandedCategoryId] = useState<TransactionCategory["id"] | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
+  const [inputMode, setInputMode] = useState<"chat" | "form">("chat")
+  const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
+  const [isTyping, setIsTyping] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -60,6 +75,14 @@ export function TransactionsOnboarding({
     setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
   }, [])
 
+  const pushBotTyped = useCallback(async (text: string) => {
+    setIsTyping(true)
+    await delay(typingTime(text))
+    setIsTyping(false)
+    setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
+    await delay(150)
+  }, [])
+
   const applyState = useCallback((saved: TransactionsPersisted) => {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
     // Don't restore document forms the user opened but never completed — reopening one
@@ -72,6 +95,7 @@ export function TransactionsOnboarding({
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
+    setInputMode(saved.inputMode ?? "chat")
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
     setActiveItemId(null)
@@ -115,10 +139,11 @@ export function TransactionsOnboarding({
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
+      inputMode,
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, inputMode, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -143,13 +168,24 @@ export function TransactionsOnboarding({
     pushBot("Happy to help. Feel free to fill out the form above or click any item in Transaction Documents to get started.")
   }, [value, pushBot, pushUser])
 
+  const fieldPrompt = (f: TransactionField) =>
+    `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     pushUser(item.title)
-    pushBot(`Let's prepare the ${item.title}. Fill out the form below — feel free to ask me any questions as you go.`)
-    setMessages((m) => [...m, { id: ++idRef.current, role: "doc", item, groupTitle }])
     setActiveItemId(item.id)
     setMobileOpen(false)
-  }, [pushBot, pushUser])
+    if (inputMode === "chat") {
+      setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
+      ;(async () => {
+        await pushBotTyped(`Let's prepare the ${item.title} — I'll ask you for each field one at a time.`)
+        await pushBotTyped(fieldPrompt(item.fields[0]))
+      })()
+    } else {
+      pushBot(`Let's prepare the ${item.title}. Fill out the form below — feel free to ask me any questions as you go.`)
+      setMessages((m) => [...m, { id: ++idRef.current, role: "doc", item, groupTitle }])
+    }
+  }, [pushBot, pushUser, pushBotTyped, inputMode])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string) => {
     setCompleted((c) => ({ ...c, [item.id]: true }))
@@ -157,6 +193,27 @@ export function TransactionsOnboarding({
     pushBot(`✓ ${item.title} has been saved. Select another document from the right to continue, or ask me anything.`)
     onDocumentReady?.({ id: item.id, title: item.title, subtitle: groupTitle })
   }, [pushBot, onDocumentReady])
+
+  const handleFieldSubmit = useCallback((raw: string) => {
+    if (!activeFiling) return
+    const { item, groupTitle, fieldIndex, values } = activeFiling
+    const field = item.fields[fieldIndex]
+    const val = raw.trim()
+    if (!field.optional && !val) return
+    pushUser(val || "Skipped")
+    const nextValues = { ...values, [field.name]: val }
+    const nextIndex = fieldIndex + 1
+    if (nextIndex < item.fields.length) {
+      setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues })
+      ;(async () => {
+        await delay(250)
+        await pushBotTyped(fieldPrompt(item.fields[nextIndex]))
+      })()
+    } else {
+      setActiveFiling(null)
+      handleDocComplete(item, groupTitle)
+    }
+  }, [activeFiling, pushUser, pushBotTyped, handleDocComplete])
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => {
     if (!key || key === "computed") return ""
@@ -184,8 +241,28 @@ export function TransactionsOnboarding({
       {/* ── Chat ── */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
             <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
+            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+              <button
+                onClick={() => setInputMode("chat")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setInputMode("form")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Questionnaire
+              </button>
+            </div>
           </div>
         </div>
 
@@ -219,27 +296,37 @@ export function TransactionsOnboarding({
                 ))}
               </div>
             )}
+            {isTyping && <TypingIndicator />}
           </div>
         </div>
 
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              <input
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Feel free to ask any questions…"
-                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+            {activeFiling ? (
+              <FieldComposer
+                key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
+                field={activeFiling.item.fields[activeFiling.fieldIndex]}
+                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex].prefillKey)}
+                onSubmit={handleFieldSubmit}
               />
-              <button
-                onClick={handleSend}
-                disabled={!value.trim()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-              >
-                Send <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+                <input
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder="Feel free to ask any questions…"
+                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!value.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+                >
+                  Send <Send className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

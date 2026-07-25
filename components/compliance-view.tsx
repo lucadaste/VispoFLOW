@@ -18,7 +18,6 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
-import { FieldComposer } from "@/components/field-composer"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
@@ -27,6 +26,7 @@ type CompliancePersisted = {
   activeItemId: string | null
   docs: Record<string, LibraryDoc>
   inputMode?: "chat" | "form"
+  activeFiling?: ActiveFiling | null
 }
 
 type ChatMsg =
@@ -34,6 +34,7 @@ type ChatMsg =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string }
   | { id: number; role: "categories" }
+  | { id: number; role: "fieldChoices"; item: ComplianceItem; groupTitle: string; fieldIndex: number }
 
 type ActiveFiling = {
   item: ComplianceItem
@@ -47,6 +48,17 @@ const inputClass =
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 14))
+
+/** Heuristic for whether a chat message sent mid-filing is a question rather than an answer. */
+const looksLikeQuestion = (text: string) =>
+  /\?\s*$/.test(text) ||
+  /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
+
+function prefillValue(answers: FlowAnswers, key?: keyof FlowAnswers | "computed"): string {
+  if (!key || key === "computed") return ""
+  const v = answers[key]
+  return typeof v === "string" ? v : ""
+}
 
 export function ComplianceView({
   answers,
@@ -108,6 +120,9 @@ export function ComplianceView({
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
     setActiveItemId(null)
+    // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
+    // reload — restore them so the flow keeps expecting the next field's answer.
+    setActiveFiling(saved.activeFiling ?? null)
   }, [])
 
   const openPostIncorporation = useCallback(() => {
@@ -170,10 +185,11 @@ export function ComplianceView({
       activeItemId,
       docs,
       inputMode,
+      activeFiling,
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, activeFiling, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -190,16 +206,24 @@ export function ComplianceView({
     setExpandedCategoryId((id) => (id === cat.id ? null : cat.id))
   }, [])
 
-  const handleSend = useCallback(() => {
-    const text = value.trim()
-    if (!text) return
-    setValue("")
-    pushUser(text)
-    pushBot("Happy to help. Feel free to fill out the form above or click any item in Compliance Documents to get started.")
-  }, [value, pushBot, pushUser])
+  const fieldPrompt = (f: ComplianceField) => {
+    const dateHint = f.type === "date" && !f.hint ? " — format: YYYY-MM-DD" : ""
+    return `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}${dateHint}`
+  }
 
-  const fieldPrompt = (f: ComplianceField) =>
-    `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+  const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
+
+  // Asks for one field in a chat-mode filing. Fields with a fixed option set, an optional
+  // skip, or a value we can prefill get a clickable-choice bubble alongside the free-text
+  // prompt so answering doesn't require typing — but the chat input stays available too.
+  const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
+    const field = item.fields[fieldIndex]
+    await pushBotTyped(fieldPrompt(field))
+    const hasSuggestion = field.type !== "select" && !!prefillValue(answers, field.prefillKey)
+    if (addChoices && (field.type === "select" || field.optional || hasSuggestion)) {
+      setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+    }
+  }, [pushBotTyped, answers])
 
   const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
     const doc: LibraryDoc = {
@@ -222,16 +246,16 @@ export function ComplianceView({
     if (inputMode === "chat") {
       setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
-        await pushBotTyped(`Let's complete the ${item.title} filing — I'll ask you for each field one at a time.`)
-        await pushBotTyped(fieldPrompt(item.fields[0]))
+        await pushBotTyped(`Let's complete the ${item.title} filing — I'll ask you for each field one at a time. Feel free to ask me anything along the way.`)
+        await promptField(item, groupTitle, 0)
       })()
     } else {
       pushBot(`Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`)
       setMessages((m) => [...m, { id: ++idRef.current, role: "filing", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, inputMode])
+  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
 
-  const handleFieldSubmit = useCallback((raw: string) => {
+  const submitFieldAnswer = useCallback((raw: string) => {
     if (!activeFiling) return
     const { item, groupTitle, fieldIndex, values } = activeFiling
     const field = item.fields[fieldIndex]
@@ -244,19 +268,37 @@ export function ComplianceView({
       setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues })
       ;(async () => {
         await delay(250)
-        await pushBotTyped(fieldPrompt(item.fields[nextIndex]))
+        await promptField(item, groupTitle, nextIndex)
       })()
     } else {
       setActiveFiling(null)
       handleFilingComplete(item, groupTitle, nextValues)
     }
-  }, [activeFiling, pushUser, pushBotTyped, handleFilingComplete])
+  }, [activeFiling, pushUser, promptField, handleFilingComplete])
 
-  const prefill = (key?: keyof FlowAnswers | "computed"): string => {
-    if (!key || key === "computed") return ""
-    const v = answers[key]
-    return typeof v === "string" ? v : ""
-  }
+  const handleSend = useCallback(() => {
+    const text = value.trim()
+    if (!text) return
+    setValue("")
+
+    if (activeFiling && !looksLikeQuestion(text)) {
+      submitFieldAnswer(text)
+      return
+    }
+
+    pushUser(text)
+    if (activeFiling) {
+      const { item, groupTitle, fieldIndex } = activeFiling
+      const field = item.fields[fieldIndex]
+      ;(async () => {
+        await pushBotTyped(field.hint ?? item.explainer ?? item.description)
+        // The choice bubble for this field (if any) is still live from before — don't duplicate it.
+        await promptField(item, groupTitle, fieldIndex, false)
+      })()
+    } else {
+      pushBot("Happy to help. Feel free to fill out the form above or click any item in Compliance Documents to get started.")
+    }
+  }, [value, activeFiling, pushUser, pushBot, pushBotTyped, promptField, submitFieldAnswer])
 
   const allItems = COMPLIANCE_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
@@ -324,6 +366,16 @@ export function ComplianceView({
               if (m.role === "categories") return (
                 <CategoryPickerBubble key={m.id} disabled={!!activeCategory} onSelect={selectCategory} />
               )
+              if (m.role === "fieldChoices") return (
+                <FieldChoicesBubble
+                  key={m.id}
+                  item={m.item}
+                  fieldIndex={m.fieldIndex}
+                  answers={answers}
+                  active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
+                  onChoose={(val) => submitFieldAnswer(val)}
+                />
+              )
               return null
             })}
             {isTyping && <TypingIndicator />}
@@ -332,31 +384,22 @@ export function ComplianceView({
 
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            {activeFiling ? (
-              <FilingFieldComposer
-                key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
-                field={activeFiling.item.fields[activeFiling.fieldIndex]}
-                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex].prefillKey)}
-                onSubmit={handleFieldSubmit}
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={activeFiling ? "Type your answer, or ask a question…" : "Feel free to ask any questions…"}
+                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
               />
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-                <input
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder="Feel free to ask any questions…"
-                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!value.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-                >
-                  Send <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
+              <button
+                onClick={handleSend}
+                disabled={!value.trim()}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+              >
+                Send <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -434,6 +477,55 @@ function CategoryPickerBubble({
           </button>
         </div>
       ))}
+    </div>
+  )
+}
+
+/* ── Clickable choices for a chat-mode filing field (select options, skip, or a suggested value) ── */
+
+function FieldChoicesBubble({
+  item, fieldIndex, answers, active, onChoose,
+}: {
+  item: ComplianceItem
+  fieldIndex: number
+  answers: FlowAnswers
+  active: boolean
+  onChoose: (val: string) => void
+}) {
+  const field = item.fields[fieldIndex]
+  const suggestion = field.type !== "select" ? prefillValue(answers, field.prefillKey) : ""
+
+  return (
+    <div className="flex flex-wrap gap-2 pl-12">
+      {field.type === "select" &&
+        field.options?.map((o) => (
+          <button
+            key={o}
+            onClick={() => onChoose(o)}
+            disabled={!active}
+            className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
+          >
+            {o}
+          </button>
+        ))}
+      {suggestion && (
+        <button
+          onClick={() => onChoose(suggestion)}
+          disabled={!active}
+          className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
+        >
+          Use &ldquo;{suggestion}&rdquo;
+        </button>
+      )}
+      {field.optional && (
+        <button
+          onClick={() => onChoose("")}
+          disabled={!active}
+          className="rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors enabled:hover:text-foreground disabled:cursor-default disabled:opacity-50"
+        >
+          Skip
+        </button>
+      )}
     </div>
   )
 }
@@ -675,67 +767,6 @@ function FiledSummaryCard({ groupTitle, item }: { groupTitle: string; item: Comp
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{groupTitle}</p>
         <p className="text-sm font-medium text-foreground">{item.title} — Filed</p>
       </div>
-    </div>
-  )
-}
-
-/* ── Composer widget for the active conversational filing field ── */
-
-function FilingFieldComposer({
-  field, initialValue, onSubmit,
-}: {
-  field: ComplianceField
-  initialValue: string
-  onSubmit: (v: string) => void
-}) {
-  const [value, setValue] = useState(initialValue)
-  const canSubmit = field.optional || !!value.trim()
-  return (
-    <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-      <div className="flex-1 px-1">
-        {field.type === "select" ? (
-          <select
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-full cursor-pointer bg-transparent py-1.5 text-sm text-foreground outline-none"
-          >
-            <option value="" disabled>Select…</option>
-            {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-          </select>
-        ) : field.type === "textarea" ? (
-          <textarea
-            rows={2}
-            value={value}
-            placeholder={field.placeholder}
-            onChange={(e) => setValue(e.target.value)}
-            className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
-          />
-        ) : (
-          <input
-            type={field.type === "date" ? "date" : "text"}
-            value={value}
-            placeholder={field.placeholder}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && canSubmit && onSubmit(value)}
-            className="w-full bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
-          />
-        )}
-      </div>
-      {field.optional && (
-        <button
-          onClick={() => onSubmit("")}
-          className="shrink-0 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Skip
-        </button>
-      )}
-      <button
-        onClick={() => onSubmit(value)}
-        disabled={!canSubmit}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <Send className="h-3.5 w-3.5" />
-      </button>
     </div>
   )
 }

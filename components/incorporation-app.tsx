@@ -20,11 +20,14 @@ import {
 import { NameCheckCard } from "@/components/name-check-card"
 import { FormedCard } from "@/components/formed-card"
 import { ChatInput } from "@/components/chat-inputs"
+import { FieldComposer } from "@/components/field-composer"
 import { DocumentTracker, DocumentTrackerEmpty } from "@/components/document-tracker"
 import { STEPS, type StepInput } from "@/lib/steps"
+import { getChatFields, assembleChatAnswers } from "@/lib/incorporation-chat-fields"
 import {
   type DocStatus,
   type FlowAnswers,
+  type ChatField,
   initialAnswers,
   docShorts,
   DOCUMENTS,
@@ -42,6 +45,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
 import { useProfile } from "@/lib/use-profile"
 import { ProfileSettingsModal } from "@/components/profile-settings-modal"
+import { cn } from "@/lib/utils"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -50,12 +54,21 @@ type ChatMessage =
   | { id: number; role: "widget"; widget: "name-check"; companyName: string }
   | { id: number; role: "widget"; widget: "formed" }
 
+type ActiveChatFields = {
+  input: StepInput
+  fields: ChatField[]
+  fieldIndex: number
+  values: Record<string, string>
+}
+
 type IncorporationPersisted = {
   messages: ChatMessage[]
   docStatuses: Record<string, DocStatus>
   answers: FlowAnswers
   activeStepIndex: number
   activeInput: StepInput | null
+  activeChatFields?: ActiveChatFields | null
+  inputMode?: "chat" | "form"
 }
 
 type SignatureStamp = { signatureDataUrl: string; signerName: string; signerRoles?: string[]; signedAt: string }
@@ -78,6 +91,8 @@ export function IncorporationApp() {
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
   const effectiveAnswers = profile.autofillEnabled ? mergeProfileIntoAnswers(answers, profile) : answers
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
+  const [activeChatFields, setActiveChatFields] = useState<ActiveChatFields | null>(null)
+  const [inputMode, setInputMode] = useState<"chat" | "form">("chat")
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false)
@@ -244,6 +259,13 @@ export function IncorporationApp() {
     await delay(260)
   }, [resolveMessage])
 
+  const pushUser = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: nextId(), role: "user", text }])
+  }, [])
+
+  const chatFieldPrompt = (f: ChatField) =>
+    `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+
   const animateDocs = useCallback(async (ids: string[]) => {
     setDocStatuses((s) => {
       const next = { ...s }
@@ -269,6 +291,7 @@ export function IncorporationApp() {
       if (!step) return
       setActiveStepIndex(index)
       setActiveInput(null)
+      setActiveChatFields(null)
 
       for (const msg of step.messages) {
         await pushBot(msg)
@@ -307,12 +330,18 @@ export function IncorporationApp() {
       }
 
       if (step.input && !step.autoAdvance) {
-        setActiveInput(step.input)
+        const decomposed = inputMode === "chat" ? getChatFields(step.input, answersRef.current) : null
+        if (decomposed) {
+          setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
+          await pushBot(chatFieldPrompt(decomposed.fields[0]))
+        } else {
+          setActiveInput(step.input)
+        }
       } else if (step.autoAdvance) {
         await playStep(index + 1)
       }
     },
-    [pushBot],
+    [pushBot, inputMode],
   )
 
   const applyIncorporationState = useCallback((saved: IncorporationPersisted) => {
@@ -322,6 +351,8 @@ export function IncorporationApp() {
     setAnswers({ ...initialAnswers, ...saved.answers })
     setActiveStepIndex(saved.activeStepIndex)
     setActiveInput(saved.activeInput)
+    setActiveChatFields(saved.activeChatFields ?? null)
+    setInputMode(saved.inputMode ?? "chat")
   }, [])
 
   useEffect(() => {
@@ -367,6 +398,8 @@ export function IncorporationApp() {
       answers,
       activeStepIndex,
       activeInput,
+      activeChatFields,
+      inputMode,
     }
     savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.incorporation, snapshot)
@@ -376,6 +409,8 @@ export function IncorporationApp() {
     answers,
     activeStepIndex,
     activeInput,
+    activeChatFields,
+    inputMode,
     isSignedIn,
     incorporationHydrated,
     incorporationServerLoaded,
@@ -383,7 +418,7 @@ export function IncorporationApp() {
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [messages, isTyping, activeInput])
+  }, [messages, isTyping, activeInput, activeChatFields])
 
   const handleSubmit = useCallback(
     async (displayText: string, patch: Partial<FlowAnswers>) => {
@@ -432,6 +467,30 @@ export function IncorporationApp() {
     [activeStepIndex, animateDocs, playStep, pushBot],
   )
 
+  const handleChatFieldSubmit = useCallback(
+    async (raw: string) => {
+      if (!activeChatFields) return
+      const { input, fields, fieldIndex, values } = activeChatFields
+      const field = fields[fieldIndex]
+      const val = raw.trim()
+      if (!field.optional && !val) return
+      pushUser(val || "Skipped")
+      await delay(250)
+      const nextValues = { ...values, [field.name]: val }
+      const nextIndex = fieldIndex + 1
+      if (nextIndex < fields.length) {
+        setActiveChatFields({ input, fields, fieldIndex: nextIndex, values: nextValues })
+        await pushBot(chatFieldPrompt(fields[nextIndex]))
+      } else {
+        setActiveChatFields(null)
+        const { patch, note } = assembleChatAnswers(input, nextValues, answersRef.current)
+        if (note) await pushBot(note)
+        await handleSubmit("", patch)
+      }
+    },
+    [activeChatFields, pushUser, pushBot, handleSubmit],
+  )
+
   const restartFormation = () => {
     startedRef.current = false
     idRef.current = 0
@@ -439,6 +498,7 @@ export function IncorporationApp() {
     setDocStatuses({})
     setAnswers(initialAnswers)
     setActiveInput(null)
+    setActiveChatFields(null)
     setActiveStepIndex(0)
     setIsTyping(false)
     setView("chat")
@@ -592,8 +652,28 @@ export function IncorporationApp() {
         <div className="flex w-full flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
-              <div className="mx-auto max-w-2xl">
+              <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
                 <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
+                <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+                  <button
+                    onClick={() => setInputMode("chat")}
+                    className={cn(
+                      "rounded-full px-3 py-1 font-medium transition-colors",
+                      inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    onClick={() => setInputMode("form")}
+                    className={cn(
+                      "rounded-full px-3 py-1 font-medium transition-colors",
+                      inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Questionnaire
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -618,10 +698,19 @@ export function IncorporationApp() {
               </div>
             </div>
 
-            {activeInput && (
+            {(activeInput || activeChatFields) && (
               <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl">
-                  <ChatInput input={activeInput} answers={effectiveAnswers} onSubmit={handleSubmit} />
+                  {activeChatFields ? (
+                    <FieldComposer
+                      key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
+                      field={activeChatFields.fields[activeChatFields.fieldIndex]}
+                      initialValue={activeChatFields.values[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
+                      onSubmit={handleChatFieldSubmit}
+                    />
+                  ) : (
+                    <ChatInput input={activeInput!} answers={effectiveAnswers} onSubmit={handleSubmit} />
+                  )}
                 </div>
               </div>
             )}

@@ -1,5 +1,16 @@
 export const AUTHORIZED_SHARES = 10_000_000
 
+/** Shared shape for a single field rendered by the one-at-a-time chat field composer. */
+export type ChatField = {
+  name: string
+  label: string
+  type?: "text" | "date" | "textarea" | "select"
+  options?: string[]
+  placeholder?: string
+  hint?: string
+  optional?: boolean
+}
+
 export type DocStatus = "pending" | "drafting" | "complete" | "filing"
 
 export type LegalDoc = {
