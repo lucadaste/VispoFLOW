@@ -213,20 +213,21 @@ export function ComplianceView({
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
 
-  // Asks for one field in a chat-mode filing. A fixed option set (select) gets a clickable
-  // choice bubble, and a date gets a calendar picker — those are the cases where picking from
-  // a bank of options (or a native date UI) beats typing. Any other prefillable value (e.g.
-  // saved profile info) is placed directly in the chat input instead, so accepting it is just
-  // hitting Enter rather than tapping a separate chip.
+  // Asks for one field in a chat-mode filing. A fixed option set (select) always gets a
+  // clickable choice bubble, and a date gets a calendar picker — unless we already have the
+  // answer from elsewhere (e.g. the vesting start date set earlier in onboarding), in which
+  // case it's treated like any other prefillable value: dropped straight into the chat input
+  // as text so accepting it is just hitting Enter, same as text/textarea fields.
   const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
     const field = item.fields[fieldIndex]
     await pushBotTyped(fieldPrompt(field))
-    if (field.type === "select" || field.type === "date") {
+    const prefilled = prefillValue(answers, field.prefillKey)
+    if (field.type === "select" || (field.type === "date" && !prefilled)) {
       if (addChoices) {
         setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
       }
     } else {
-      setValue(prefillValue(answers, field.prefillKey))
+      setValue(prefilled)
     }
   }, [pushBotTyped, answers])
 
@@ -629,7 +630,7 @@ function SidebarContent({
                                       className={cn(
                                         "text-[12px] font-medium",
                                         viewable
-                                          ? "text-foreground underline decoration-muted-foreground/30 underline-offset-2"
+                                          ? "text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 line-through"
                                           : done
                                           ? "text-muted-foreground line-through"
                                           : "text-foreground"
