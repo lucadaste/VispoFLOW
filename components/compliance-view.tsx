@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, X } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import {
@@ -25,15 +25,19 @@ type CompliancePersisted = {
   completed: Record<string, boolean>
   activeItemId: string | null
   docs: Record<string, LibraryDoc>
+  inputMode?: "chat" | "form"
 }
 
 type ChatMsg =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
-  | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string }
+  | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string; mode: "chat" | "form" }
 
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
+const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 14))
 
 export function ComplianceView({
   answers,
@@ -49,6 +53,7 @@ export function ComplianceView({
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
   const [docs, setDocs] = useState<Record<string, LibraryDoc>>({})
+  const [inputMode, setInputMode] = useState<"chat" | "form">("form")
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
   const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -78,6 +83,7 @@ export function ComplianceView({
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
     setDocs(saved.docs ?? {})
+    setInputMode(saved.inputMode ?? "form")
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
     setActiveItemId(null)
@@ -129,10 +135,11 @@ export function ComplianceView({
       completed,
       activeItemId,
       docs,
+      inputMode,
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -159,11 +166,15 @@ export function ComplianceView({
 
   const openItem = useCallback((item: ComplianceItem, groupTitle: string) => {
     pushUser(item.title)
-    pushBot(`Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`)
-    setMessages((m) => [...m, { id: ++idRef.current, role: "filing", item, groupTitle }])
+    pushBot(
+      inputMode === "chat"
+        ? `Let's complete the ${item.title} filing — I'll ask you for each field one at a time.`
+        : `Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`
+    )
+    setMessages((m) => [...m, { id: ++idRef.current, role: "filing", item, groupTitle, mode: inputMode }])
     setActiveItemId(item.id)
     setMobileOpen(false)
-  }, [pushBot, pushUser])
+  }, [pushBot, pushUser, inputMode])
 
   const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
     const doc: LibraryDoc = {
@@ -208,8 +219,28 @@ export function ComplianceView({
       {/* ── Chat ── */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
             <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
+            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+              <button
+                onClick={() => setInputMode("form")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Form
+              </button>
+              <button
+                onClick={() => setInputMode("chat")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Chat
+              </button>
+            </div>
           </div>
         </div>
 
@@ -218,7 +249,18 @@ export function ComplianceView({
             {messages.map((m) => {
               if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
               if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
-              if (m.role === "filing") return (
+              if (m.role === "filing") return m.mode === "chat" ? (
+                <FilingChatSequencer
+                  key={m.id}
+                  item={m.item}
+                  groupTitle={m.groupTitle}
+                  done={!!completed[m.item.id]}
+                  prefill={prefill}
+                  onComplete={(values) => handleFilingComplete(m.item, m.groupTitle, values)}
+                  onInfoClick={() => setInfoItem(m.item)}
+                  onProgress={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })}
+                />
+              ) : (
                 <FilingFormCard
                   key={m.id}
                   item={m.item}
@@ -474,19 +516,7 @@ function FilingFormCard({
   const valid = remaining === 0
   const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
 
-  if (done) {
-    return (
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{groupTitle}</p>
-          <p className="text-sm font-medium text-foreground">{item.title} — Filed</p>
-        </div>
-      </div>
-    )
-  }
+  if (done) return <FiledSummaryCard groupTitle={groupTitle} item={item} />
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -557,6 +587,190 @@ function FilingFormCard({
         >
           <Check className="h-4 w-4" />
           Save filing
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Filed summary (shared by both formats) ── */
+
+function FiledSummaryCard({ groupTitle, item }: { groupTitle: string; item: ComplianceItem }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{groupTitle}</p>
+        <p className="text-sm font-medium text-foreground">{item.title} — Filed</p>
+      </div>
+    </div>
+  )
+}
+
+/* ── Conversational filing sequencer ── */
+
+type SeqMsg = { id: number; role: "bot" | "user"; text: string }
+
+function FilingChatSequencer({
+  item, groupTitle, done, prefill, onComplete, onInfoClick, onProgress,
+}: {
+  item: ComplianceItem
+  groupTitle: string
+  done: boolean
+  prefill: (key?: keyof FlowAnswers | "computed") => string
+  onComplete: (values: Record<string, string>) => void
+  onInfoClick: () => void
+  onProgress?: () => void
+}) {
+  const [seq, setSeq] = useState<SeqMsg[]>([])
+  const [isTyping, setIsTyping] = useState(false)
+  const [fieldIndex, setFieldIndex] = useState(0)
+  const [finished, setFinished] = useState(false)
+  const [draft, setDraft] = useState("")
+  const valuesRef = useRef<Record<string, string>>({})
+  const idRef = useRef(0)
+  const startedRef = useRef(false)
+
+  const pushSeqBot = useCallback(async (text: string) => {
+    setIsTyping(true)
+    await delay(typingTime(text))
+    setIsTyping(false)
+    setSeq((s) => [...s, { id: ++idRef.current, role: "bot", text }])
+    await delay(150)
+  }, [])
+
+  const askField = useCallback(async (f: ComplianceField) => {
+    const suffix = f.optional ? " (optional)" : ""
+    await pushSeqBot(`${f.label}${suffix}${f.hint ? ` — ${f.hint}` : ""}`)
+    setDraft(prefill(f.prefillKey))
+  }, [pushSeqBot, prefill])
+
+  useEffect(() => {
+    if (done || startedRef.current) return
+    startedRef.current = true
+    ;(async () => {
+      await pushSeqBot(`Let's complete the ${item.title} filing — I'll ask you for each field one at a time.`)
+      await askField(item.fields[0])
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done])
+
+  useEffect(() => {
+    onProgress?.()
+  }, [seq, isTyping, onProgress])
+
+  const submitField = useCallback((raw: string) => {
+    const f = item.fields[fieldIndex]
+    const val = raw.trim()
+    if (!f.optional && !val) return
+    setSeq((s) => [...s, { id: ++idRef.current, role: "user", text: val || "Skipped" }])
+    valuesRef.current = { ...valuesRef.current, [f.name]: val }
+    setDraft("")
+    const nextIndex = fieldIndex + 1
+    if (nextIndex < item.fields.length) {
+      setFieldIndex(nextIndex)
+      ;(async () => {
+        await delay(250)
+        await askField(item.fields[nextIndex])
+      })()
+    } else {
+      setFinished(true)
+      ;(async () => {
+        await pushSeqBot(`Got it — that's everything for the ${item.title}.`)
+        onComplete(valuesRef.current)
+      })()
+    }
+  }, [fieldIndex, item, askField, pushSeqBot, onComplete])
+
+  if (done) return <FiledSummaryCard groupTitle={groupTitle} item={item} />
+
+  const field = item.fields[fieldIndex]
+  const lastMsg = seq[seq.length - 1]
+  const showInput = !isTyping && !finished && lastMsg?.role === "bot"
+
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="border-b border-border bg-secondary/30 px-5 py-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{groupTitle}</p>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <h3 className="text-xl font-bold tracking-tight text-foreground">{item.title}</h3>
+          <button
+            onClick={onInfoClick}
+            aria-label={`What is ${item.title}?`}
+            className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-3 px-5 py-5">
+        {seq.map((m) =>
+          m.role === "bot" ? <BotMessage key={m.id}>{m.text}</BotMessage> : <UserMessage key={m.id}>{m.text}</UserMessage>
+        )}
+        {isTyping && <TypingIndicator />}
+      </div>
+
+      {showInput && field && (
+        <FieldInput key={field.name} field={field} value={draft} onChange={setDraft} onSubmit={submitField} />
+      )}
+    </div>
+  )
+}
+
+function FieldInput({
+  field, value, onChange, onSubmit,
+}: {
+  field: ComplianceField
+  value: string
+  onChange: (v: string) => void
+  onSubmit: (v: string) => void
+}) {
+  const canSubmit = field.optional || !!value.trim()
+  return (
+    <div className="border-t border-border bg-secondary/20 px-5 py-3.5">
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          {field.type === "select" ? (
+            <select value={value} onChange={(e) => onChange(e.target.value)} className={cn(inputClass, "cursor-pointer")}>
+              <option value="" disabled>Select…</option>
+              {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+          ) : field.type === "textarea" ? (
+            <textarea
+              rows={2}
+              value={value}
+              placeholder={field.placeholder}
+              onChange={(e) => onChange(e.target.value)}
+              className={cn(inputClass, "resize-none")}
+            />
+          ) : (
+            <input
+              type={field.type === "date" ? "date" : "text"}
+              value={value}
+              placeholder={field.placeholder}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && canSubmit && onSubmit(value)}
+              className={inputClass}
+            />
+          )}
+        </div>
+        {field.optional && (
+          <button
+            onClick={() => onSubmit("")}
+            className="shrink-0 rounded-xl border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Skip
+          </button>
+        )}
+        <button
+          onClick={() => onSubmit(value)}
+          disabled={!canSubmit}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Send className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
