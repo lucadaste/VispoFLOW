@@ -207,21 +207,21 @@ export function ComplianceView({
   }, [])
 
   const fieldPrompt = (f: ComplianceField) => {
-    const dateHint = f.type === "date" && !f.hint ? " (format: YYYY-MM-DD)" : ""
     const optionalHint = f.optional ? " (optional)" : ""
-    return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}${dateHint}`
+    return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}`
   }
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
 
   // Asks for one field in a chat-mode filing. A fixed option set (select) gets a clickable
-  // choice bubble — that's the only case where picking from a bank of options applies. Any
-  // other prefillable value (e.g. saved profile info) is placed directly in the chat input
-  // instead, so accepting it is just hitting Enter rather than tapping a separate chip.
+  // choice bubble, and a date gets a calendar picker — those are the cases where picking from
+  // a bank of options (or a native date UI) beats typing. Any other prefillable value (e.g.
+  // saved profile info) is placed directly in the chat input instead, so accepting it is just
+  // hitting Enter rather than tapping a separate chip.
   const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
     const field = item.fields[fieldIndex]
     await pushBotTyped(fieldPrompt(field))
-    if (field.type === "select") {
+    if (field.type === "select" || field.type === "date") {
       if (addChoices) {
         setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
       }
@@ -490,51 +490,55 @@ function CategoryPickerBubble({
   )
 }
 
-/* ── Clickable choices for a chat-mode filing field (select options, skip, or a suggested value) ── */
+/* ── Clickable choices for a chat-mode filing field: a fixed option set, or a date picker ── */
 
 function FieldChoicesBubble({
-  item, fieldIndex, answers, active, onChoose,
+  item, fieldIndex, active, onChoose,
 }: {
   item: ComplianceItem
   fieldIndex: number
-  answers: FlowAnswers
   active: boolean
   onChoose: (val: string) => void
 }) {
   const field = item.fields[fieldIndex]
-  const suggestion = field.type !== "select" ? prefillValue(answers, field.prefillKey) : ""
+  const [date, setDate] = useState("")
+
+  if (field.type === "date") {
+    return (
+      <div className="flex items-center gap-2 pl-12">
+        <div className="relative">
+          <CalendarClock className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            disabled={!active}
+            className="rounded-full border border-border bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-card-foreground shadow-sm outline-none transition-colors focus:border-ring disabled:opacity-50"
+          />
+        </div>
+        <button
+          onClick={() => onChoose(date)}
+          disabled={!active || !date}
+          className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Use this date
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-wrap gap-2 pl-12">
-      {field.type === "select" &&
-        field.options?.map((o) => (
-          <button
-            key={o}
-            onClick={() => onChoose(o)}
-            disabled={!active}
-            className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
-          >
-            {o}
-          </button>
-        ))}
-      {suggestion && (
+      {field.options?.map((o) => (
         <button
-          onClick={() => onChoose(suggestion)}
+          key={o}
+          onClick={() => onChoose(o)}
           disabled={!active}
           className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
         >
-          Use &ldquo;{suggestion}&rdquo;
+          {o}
         </button>
-      )}
-      {field.optional && (
-        <button
-          onClick={() => onChoose("")}
-          disabled={!active}
-          className="rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors enabled:hover:text-foreground disabled:cursor-default disabled:opacity-50"
-        >
-          Skip
-        </button>
-      )}
+      ))}
     </div>
   )
 }
