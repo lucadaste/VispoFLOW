@@ -17,7 +17,7 @@ const STEPS = [
     icon: PenTool,
     title: "Sign, file, and stay organized",
     description:
-      "E-sign with a saved signature that autofills across every document. Everything lands in your Document Library, ready whenever compliance or a new deal comes up.",
+      "E-sign with a saved signature that autofills across every document. Everything lands in your Document Vault, ready whenever compliance or a new deal comes up.",
   },
 ]
 

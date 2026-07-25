@@ -123,7 +123,7 @@ export function IncorporationApp() {
     setSignedDocs(saved.signedDocs ?? {})
   }, [])
 
-  // Restore the document library (compliance/transaction docs) after mount
+  // Restore the document vault (compliance/transaction docs) after mount
   useEffect(() => {
     const saved = loadPersisted<LibraryPersisted>(STORAGE_KEYS.library)
     if (saved) applyLibraryState(saved)

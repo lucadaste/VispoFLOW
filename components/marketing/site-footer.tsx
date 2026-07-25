@@ -4,7 +4,7 @@ const PRODUCT_LINKS = [
   { label: "Formation", href: "/app" },
   { label: "Compliance Center", href: "/app" },
   { label: "Transactions", href: "/app" },
-  { label: "Document Library", href: "/app" },
+  { label: "Document Vault", href: "/app" },
 ]
 
 export function SiteFooter() {

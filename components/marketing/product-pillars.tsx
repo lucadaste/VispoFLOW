@@ -42,7 +42,7 @@ const PILLARS = [
   },
   {
     icon: FolderOpen,
-    name: "Document Library",
+    name: "Document Vault",
     tagline: "Every document, organized and signed",
     description:
       "Every document you generate — across formation, compliance, and transactions — lives in one place, ready to review, e-sign, or download.",

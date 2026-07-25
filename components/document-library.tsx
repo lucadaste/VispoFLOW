@@ -328,7 +328,7 @@ export function DocumentLibrary({
       <div className="mx-auto max-w-4xl">
         <div className="mb-8">
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            {companyName ? `${companyName}'s Document Library` : "Document Library"}
+            {companyName ? `${companyName}'s Document Vault` : "Document Vault"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Every document generated across Incorporation, Compliance, and Transactions, all in one place.

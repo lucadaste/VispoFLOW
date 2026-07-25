@@ -42,7 +42,7 @@ export function DocumentTracker({
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           Documents are drafted automatically as you answer. Every document you generate is saved to your
-          personal document library under My Docs.
+          personal document vault under My Docs.
         </p>
       </div>
 
