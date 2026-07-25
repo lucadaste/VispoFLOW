@@ -86,6 +86,13 @@ export function TopBar({
       <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
         <a
           href="/?site"
+          onClick={(e) => {
+            // Force navigation imperatively so no ambient global click listener
+            // (e.g. Clerk's dev-mode inspector widget) can silently cancel it
+            // by calling preventDefault on the anchor's native click.
+            e.preventDefault()
+            window.location.href = "/?site"
+          }}
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
