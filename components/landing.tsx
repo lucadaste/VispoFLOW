@@ -108,6 +108,9 @@ export function Landing({
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    // Skip on initial mount so the full welcome message is visible from the top;
+    // only snap to bottom once the conversation actually has something new in it.
+    if (messages.length === 0 && !isTyping) return
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, isTyping])
 
@@ -136,7 +139,7 @@ export function Landing({
     : `${incorporationStatus.completed} of ${incorporationStatus.total} documents drafted`
 
   return (
-    <div className="relative flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
+    <div className="relative flex flex-1 flex-col items-center bg-background px-4 pt-6 sm:px-6 overflow-hidden">
       {/* Soft ambient color wash behind the whole page */}
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] overflow-hidden">
         <div className="absolute -top-32 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-gradient-to-br from-violet-400/25 via-indigo-300/15 to-transparent blur-3xl" />
@@ -144,16 +147,16 @@ export function Landing({
         <div className="absolute -top-10 right-[10%] h-64 w-64 rounded-full bg-sky-300/15 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-xl shrink-0 space-y-1 pb-1 text-center">
+      <div className="w-full max-w-xl shrink-0 space-y-1 text-center">
         <p className="text-[11px] font-medium uppercase tracking-wider text-primary/70">Your startup, on rails</p>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Where do you want to start?</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">What would you like to take care of?</h1>
       </div>
 
       {/* Quick-access utility, pulled out of the main journey below */}
       <button
         type="button"
         onClick={onOpenProfile}
-        className="group mt-4 inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
+        className="group mt-3 inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
       >
         <UserRoundPen className={cn("h-3.5 w-3.5", profileComplete ? "text-success" : "text-primary")} />
         {profileComplete ? "Company info & signature saved" : "Save your company info and signature"}
@@ -161,7 +164,7 @@ export function Landing({
       </button>
 
       {/* The guided path through the 4 core sections of the product */}
-      <div className="mt-6 w-full max-w-xl shrink-0">
+      <div className="mt-4 w-full max-w-xl shrink-0">
         {[
           {
             path: "formation" as const,
@@ -205,7 +208,7 @@ export function Landing({
       </div>
 
       {/* Divider — fixed */}
-      <div className="w-full max-w-2xl flex items-center gap-3 mt-6 shrink-0">
+      <div className="w-full max-w-2xl flex items-center gap-3 mt-3 shrink-0">
         <div className="flex-1 border-t border-border/60" />
         <span className="text-[11px] font-medium text-muted-foreground/60 uppercase tracking-wider">or ask a question</span>
         <div className="flex-1 border-t border-border/60" />
@@ -214,7 +217,7 @@ export function Landing({
       {/* Chat area — scrollable, grows with messages */}
       <div ref={chatRef} className="flex-1 overflow-y-auto w-full max-w-2xl py-5 space-y-4">
         <BotMessage>
-          Hi, I&apos;m your AI guide to getting a startup legally off the ground. Here&apos;s everything Vispo Labs can help with: incorporating a Delaware C-Corp, filing post-formation compliance (EIN, 83(b), state registrations), preparing transaction documents for fundraising and equity grants, and keeping every signed document organized in your Doc Library. Save your company info once and it autofills everywhere. Choose a section above, or ask me anything before we begin.
+          Hi there — think of me as your legal co-pilot for getting a startup off the ground. I can help you incorporate as a Delaware C-Corp, stay on top of what comes after (EIN, 83(b), state filings), put together documents when you're raising money or granting equity, and keep everything signed and organized once it's done. Pick a section above, or just ask me a question to get your bearings.
         </BotMessage>
 
         {messages.map((m, i) =>
@@ -306,13 +309,13 @@ function StepRow({
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-stretch gap-4 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-card"
+      className="group flex w-full items-stretch gap-3.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-card"
     >
       {/* Node + connecting rail */}
       <div className="flex flex-col items-center">
         <span
           className={cn(
-            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm ring-4 ring-background transition-all group-hover:scale-105 group-hover:shadow-lg",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-sm ring-4 ring-background transition-all group-hover:scale-105 group-hover:shadow-lg",
             colors.ring,
             colors.glow,
           )}
@@ -324,13 +327,13 @@ function StepRow({
         )}
       </div>
 
-      <div className="min-w-0 flex-1 pb-3 pt-1.5">
+      <div className="min-w-0 flex-1 pb-2 pt-1">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-semibold text-foreground">{title}</p>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
-        <p className={cn("mt-1.5 flex items-center gap-1 text-[11px] font-medium", done ? colors.status : "text-muted-foreground")}>
+        <p className={cn("mt-1 flex items-center gap-1 text-[11px] font-medium", done ? colors.status : "text-muted-foreground")}>
           {done && <CheckCircle2 className="h-3 w-3" />}
           {status}
         </p>
