@@ -42,7 +42,6 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
 import { useProfile } from "@/lib/use-profile"
 import { ProfileSettingsModal } from "@/components/profile-settings-modal"
-import { ProfileNudge } from "@/components/profile-nudge"
 
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
@@ -96,7 +95,12 @@ export function IncorporationApp() {
   const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
   const [signedDocs, setSignedDocs] = useState<Record<string, SignatureStamp>>({})
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [nudgeDismissed, setNudgeDismissed] = useState(false)
+  // Gate the "save" effects below on these (state, not refs) so a save can never fire
+  // with the pre-load initial values — see the comment on the library save effect.
+  const [libraryLoaded, setLibraryLoaded] = useState(false)
+  const [libraryServerLoaded, setLibraryServerLoaded] = useState(false)
+  const [incorporationHydrated, setIncorporationHydrated] = useState(false)
+  const [incorporationServerLoaded, setIncorporationServerLoaded] = useState(false)
 
   // Restore saved view after mount so there is no SSR flash
   useEffect(() => {
@@ -123,6 +127,7 @@ export function IncorporationApp() {
   useEffect(() => {
     const saved = loadPersisted<LibraryPersisted>(STORAGE_KEYS.library)
     if (saved) applyLibraryState(saved)
+    setLibraryLoaded(true)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -133,14 +138,20 @@ export function IncorporationApp() {
     librarySyncedRef.current = true
     loadFromServer<LibraryPersisted>(STORAGE_KEYS.library).then((saved) => {
       if (saved) applyLibraryState(saved)
+      setLibraryServerLoaded(true)
     })
   }, [isSignedIn, applyLibraryState])
 
   useEffect(() => {
+    // Wait for the initial load (and, if signed in, the server's copy) before saving —
+    // otherwise this fires on mount with the empty initial state and can overwrite real
+    // data with a blank snapshot before the load above has a chance to land.
+    if (!libraryLoaded) return
+    if (isSignedIn && !libraryServerLoaded) return
     const snapshot: LibraryPersisted = { complianceDocs, transactionDocs, hiddenDocIds, signedDocs }
     savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
-  }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn])
+  }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -191,8 +202,13 @@ export function IncorporationApp() {
     setTransactionDocs((docs) => [...docs, doc])
   }, [])
 
-  const handleLandingSelect = (path: "formation" | "compliance" | "questions", message?: string) => {
+  const handleLandingSelect = (
+    path: "formation" | "compliance" | "transactions" | "documents" | "questions",
+    message?: string,
+  ) => {
     if (path === "compliance") { setView("compliance"); return }
+    if (path === "transactions") { setView("transactions"); return }
+    if (path === "documents") { setView("documents"); return }
     if (path === "questions") {
       setHomeChatSeed(message)
       setView("home-chat")
@@ -314,10 +330,12 @@ export function IncorporationApp() {
     const saved = loadPersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation)
     if (saved && saved.messages.length > 0) {
       applyIncorporationState(saved)
+      setIncorporationHydrated(true)
       return
     }
 
     playStep(0)
+    setIncorporationHydrated(true)
   }, [playStep, applyIncorporationState])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
@@ -330,11 +348,18 @@ export function IncorporationApp() {
         startedRef.current = true
         applyIncorporationState(saved)
       }
+      setIncorporationServerLoaded(true)
     })
   }, [isSignedIn, applyIncorporationState])
 
   useEffect(() => {
-    if (!startedRef.current) return
+    // startedRef alone isn't a safe gate here: restartFormation flips it back to true
+    // synchronously (by design, so incremental saves resume during the restart replay),
+    // but on the very first mount it's flipped true by the load effect above in the same
+    // commit this effect runs in — so without incorporationHydrated this would still fire
+    // once with the pre-load empty state and clobber whatever was actually saved.
+    if (!startedRef.current || !incorporationHydrated) return
+    if (isSignedIn && !incorporationServerLoaded) return
     const snapshot: IncorporationPersisted = {
       messages,
       docStatuses,
@@ -344,7 +369,16 @@ export function IncorporationApp() {
     }
     savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.incorporation, snapshot)
-  }, [messages, docStatuses, answers, activeStepIndex, activeInput, isSignedIn])
+  }, [
+    messages,
+    docStatuses,
+    answers,
+    activeStepIndex,
+    activeInput,
+    isSignedIn,
+    incorporationHydrated,
+    incorporationServerLoaded,
+  ])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -518,6 +552,11 @@ export function IncorporationApp() {
     }),
   )
 
+  const visibleDocsCount =
+    incorporationLibraryDocs.filter((d) => !d.hidden).length +
+    complianceDocs.filter((d) => !hiddenDocIds[d.id]).length +
+    transactionDocs.filter((d) => !hiddenDocIds[d.id]).length
+
   return (
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
@@ -531,14 +570,16 @@ export function IncorporationApp() {
       />
 
       {view === "loading" ? null : view === "landing" ? (
-        <>
-          {!nudgeDismissed && isProfileEmpty(profile) && (
-            <div className="shrink-0 px-4 pt-4 sm:px-6">
-              <ProfileNudge onOpen={() => setSettingsOpen(true)} onDismiss={() => setNudgeDismissed(true)} />
-            </div>
-          )}
-          <Landing key={landingKey} onSelect={handleLandingSelect} />
-        </>
+        <Landing
+          key={landingKey}
+          onSelect={handleLandingSelect}
+          onOpenProfile={() => setSettingsOpen(true)}
+          profileComplete={!isProfileEmpty(profile)}
+          incorporationStatus={{ started: hasDocs, completed: docsCompleted, total: docsTotal }}
+          complianceCount={complianceDocs.length}
+          transactionCount={transactionDocs.length}
+          docsCount={visibleDocsCount}
+        />
       ) : view === "home-chat" ? (
         <HomeChat
           key={homeChatKey}

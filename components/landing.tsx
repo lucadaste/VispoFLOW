@@ -1,10 +1,10 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { ArrowRight, Building2, ShieldCheck, Send } from "lucide-react"
+import { ArrowRight, Building2, ShieldCheck, ArrowLeftRight, FileText, UserRoundPen, Send } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 
-type Path = "formation" | "compliance" | "questions"
+type Path = "formation" | "compliance" | "transactions" | "documents" | "questions"
 type Message = { role: "user" | "assistant"; content: string }
 
 const FAQS: { keywords: string[]; answer: string }[] = [
@@ -75,16 +75,33 @@ function getLocalResponse(input: string): string {
   for (const faq of FAQS) {
     if (faq.keywords.some((k) => lower.includes(k))) return faq.answer
   }
-  return "That's a great question. For specifics on your situation, we'd recommend consulting a startup attorney — but feel free to keep asking and I'll help with what I can. When you're ready, click one of the paths above."
+  return "That's a great question. For specifics on your situation, we'd recommend consulting a startup attorney — but feel free to keep asking and I'll help with what I can. When you're ready, pick one of the sections above."
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
-export function Landing({ onSelect }: { onSelect: (path: Path, message?: string) => void }) {
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
+
+export function Landing({
+  onSelect,
+  onOpenProfile,
+  profileComplete,
+  incorporationStatus,
+  complianceCount,
+  transactionCount,
+  docsCount,
+}: {
+  onSelect: (path: Path, message?: string) => void
+  onOpenProfile: () => void
+  profileComplete: boolean
+  incorporationStatus: { started: boolean; completed: number; total: number }
+  complianceCount: number
+  transactionCount: number
+  docsCount: number
+}) {
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [value, setValue] = useState("")
-  const [highlighted, setHighlighted] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -110,40 +127,67 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
     sendMessage(t)
   }
 
+  const incorporationLabel = !incorporationStatus.started
+    ? "Not started"
+    : incorporationStatus.completed >= incorporationStatus.total
+    ? `All ${plural(incorporationStatus.total, "document")} complete`
+    : `${incorporationStatus.completed} of ${incorporationStatus.total} documents drafted`
+
   return (
     <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
-      {/* Cards — fixed at top */}
-      <div className="w-full max-w-2xl shrink-0">
-        <div className="flex items-center gap-3 rounded-xl bg-muted/70 px-5 py-4">
-          <div className="flex flex-1 flex-col items-center gap-1 text-center">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-            <p className="text-xs font-semibold text-foreground">Formation</p>
-            <p className="text-[11px] text-muted-foreground">Incorporate · File · Document</p>
-          </div>
-          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground" />
-          <div className="flex flex-1 flex-col items-center gap-1 text-center">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-primary text-xs font-bold text-primary">2</span>
-            <p className="text-xs font-semibold text-foreground">Compliance</p>
-            <p className="text-[11px] text-muted-foreground">EIN · 83(b) · State filings</p>
-          </div>
-        </div>
-
-        <div className="my-5 border-t border-border" />
-
+      {/* The 4 core sections of the product, plus account access */}
+      <div className="w-full max-w-2xl shrink-0 space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
-          <PathCard
+          <FeatureCard
             icon={<Building2 className="h-5 w-5" />}
-            title="Start a new incorporation"
-            description="Turn your startup into a legally incorporated Delaware C-Corp through a simple guided flow."
+            title="Incorporation"
+            description="Turn your startup into a legally incorporated Delaware C-Corp through a guided flow."
+            status={incorporationLabel}
             onClick={() => onSelect("formation")}
           />
-          <PathCard
+          <FeatureCard
             icon={<ShieldCheck className="h-5 w-5" />}
-            title="Manage compliance"
-            description="Already incorporated? Complete your required post-formation filings and stay legally compliant."
+            title="Compliance"
+            description="Complete your required post-formation filings — EIN, 83(b), state registrations."
+            status={complianceCount === 0 ? "Not started" : `${plural(complianceCount, "filing")} completed`}
             onClick={() => onSelect("compliance")}
           />
+          <FeatureCard
+            icon={<ArrowLeftRight className="h-5 w-5" />}
+            title="Transactions"
+            description="Prepare documents for fundraising, equity grants, and other company transactions."
+            status={transactionCount === 0 ? "No documents yet" : `${plural(transactionCount, "document")} prepared`}
+            onClick={() => onSelect("transactions")}
+          />
+          <FeatureCard
+            icon={<FileText className="h-5 w-5" />}
+            title="My Docs"
+            description="Every document you've generated, in one place — view, sign, and download."
+            status={docsCount === 0 ? "No documents saved yet" : `${plural(docsCount, "document")} saved`}
+            onClick={() => onSelect("documents")}
+          />
         </div>
+
+        <button
+          type="button"
+          onClick={onOpenProfile}
+          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/50"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <UserRoundPen className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-foreground">
+              {profileComplete ? "Company info & signature" : "Save your company info and signature"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {profileComplete
+                ? "Saved to your account — reused to autofill your documents."
+                : "Set it up once and it'll autofill into your documents going forward."}
+            </p>
+          </div>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+        </button>
       </div>
 
       {/* Divider — fixed */}
@@ -156,7 +200,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
       {/* Chat area — scrollable, grows with messages */}
       <div ref={chatRef} className="flex-1 overflow-y-auto w-full max-w-2xl py-5 space-y-4">
         <BotMessage>
-          Hi, I help guide founders through automated incorporation and legal compliance. Choose your desired path above, or feel free to ask me any questions you have before we begin.
+          Hi, I help guide founders through automated incorporation and legal compliance. Choose a section above, or feel free to ask me any questions you have before we begin.
         </BotMessage>
 
         {messages.map((m, i) =>
@@ -170,15 +214,7 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
 
       {/* Input — fixed at bottom */}
       <div className="w-full max-w-2xl pb-8 shrink-0">
-        <div className={`relative rounded-[0.875rem] p-[2px]${highlighted ? " overflow-hidden" : " bg-border"}`}>
-          {highlighted && (
-            <div
-              className="absolute beam-inner"
-              style={{ inset: "-50%" }}
-              aria-hidden
-              onAnimationEnd={() => setHighlighted(false)}
-            />
-          )}
+        <div className="relative rounded-[0.875rem] bg-border p-[2px]">
           <div className="relative z-10 flex items-center gap-2 rounded-xl bg-card p-1.5 shadow-sm">
             <input
               ref={inputRef}
@@ -206,29 +242,35 @@ export function Landing({ onSelect }: { onSelect: (path: Path, message?: string)
   )
 }
 
-function PathCard({
+function FeatureCard({
   icon,
   title,
   description,
+  status,
   onClick,
 }: {
   icon: React.ReactNode
   title: string
   description: string
+  status: string
   onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      className="flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
+      className="group flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
     >
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        {icon}
+      <div className="flex items-start justify-between">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          {icon}
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground">{title}</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
+      <p className="text-[11px] font-medium text-primary">{status}</p>
     </button>
   )
 }

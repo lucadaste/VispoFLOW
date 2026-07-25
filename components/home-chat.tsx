@@ -139,6 +139,7 @@ export function HomeChat({
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
   const syncedRef = useRef(false)
+  const [serverLoaded, setServerLoaded] = useState(false)
   useEffect(() => {
     if (!isSignedIn || syncedRef.current) return
     syncedRef.current = true
@@ -147,14 +148,18 @@ export function HomeChat({
         sentInitial.current = true
         setMessages(saved.messages)
       }
+      setServerLoaded(true)
     })
   }, [isSignedIn])
 
   useEffect(() => {
     if (messages.length === 0) return
     savePersisted(STORAGE_KEYS.homeChat, { messages })
-    if (isSignedIn) saveToServer(STORAGE_KEYS.homeChat, { messages })
-  }, [messages, isSignedIn])
+    // Wait for the server's own copy to load first — otherwise signing in with local
+    // history already present would push it and clobber real server data before the
+    // load above resolves.
+    if (isSignedIn && serverLoaded) saveToServer(STORAGE_KEYS.homeChat, { messages })
+  }, [messages, isSignedIn, serverLoaded])
 
   const handleSubmit = () => {
     const t = input.trim()
