@@ -247,6 +247,8 @@ export function IncorporationApp() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
   answersRef.current = answers
+  const effectiveAnswersRef = useRef(effectiveAnswers)
+  effectiveAnswersRef.current = effectiveAnswers
 
   const nextId = () => ++idRef.current
 
@@ -330,7 +332,7 @@ export function IncorporationApp() {
       }
 
       if (step.input && !step.autoAdvance) {
-        const decomposed = inputMode === "chat" ? getChatFields(step.input, answersRef.current) : null
+        const decomposed = inputMode === "chat" ? getChatFields(step.input, effectiveAnswersRef.current) : null
         if (decomposed) {
           setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
           await pushBot(chatFieldPrompt(decomposed.fields[0]))

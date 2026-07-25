@@ -62,31 +62,36 @@ export function DocumentTracker({
                     : null
                 const viewable = !!content
 
+                // Only a drafted doc has a primary action (view it) — the row itself is inert
+                // until then, so it doesn't duplicate what the (i) icon already does.
                 const openRow = () =>
-                  viewable
-                    ? setViewing({
-                        id: doc.id,
-                        title: doc.label,
-                        subtitle: doc.group,
-                        content: content ?? undefined,
-                        pending: status === "filing",
-                      })
-                    : setInfoDoc(doc)
+                  setViewing({
+                    id: doc.id,
+                    title: doc.label,
+                    subtitle: doc.group,
+                    content: content ?? undefined,
+                    pending: status === "filing",
+                  })
 
                 return (
                   <li
                     key={doc.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={openRow}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        openRow()
-                      }
-                    }}
+                    role={viewable ? "button" : undefined}
+                    tabIndex={viewable ? 0 : undefined}
+                    onClick={viewable ? openRow : undefined}
+                    onKeyDown={
+                      viewable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault()
+                              openRow()
+                            }
+                          }
+                        : undefined
+                    }
                     className={cn(
-                      "flex cursor-pointer items-start gap-2.5 rounded-lg px-2 py-2 transition-colors hover:bg-secondary",
+                      "flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors",
+                      viewable && "cursor-pointer hover:bg-secondary",
                       status === "drafting" && "bg-accent/10",
                       status === "filing" && "bg-primary/5",
                     )}

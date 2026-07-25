@@ -14,6 +14,7 @@ export function FieldComposer({
 }) {
   const [value, setValue] = useState(initialValue)
   const canSubmit = field.optional || !!value.trim()
+  const placeholder = field.placeholder ?? (field.optional ? "Type an answer, or press Enter to skip…" : "Type your answer…")
   return (
     <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
       <div className="flex-1 px-1">
@@ -30,7 +31,7 @@ export function FieldComposer({
           <textarea
             rows={2}
             value={value}
-            placeholder={field.placeholder}
+            placeholder={placeholder}
             onChange={(e) => setValue(e.target.value)}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
@@ -38,7 +39,7 @@ export function FieldComposer({
           <input
             type={field.type === "date" ? "date" : "text"}
             value={value}
-            placeholder={field.placeholder}
+            placeholder={placeholder}
             onChange={(e) => setValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && canSubmit && onSubmit(value)}
             className="w-full bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
