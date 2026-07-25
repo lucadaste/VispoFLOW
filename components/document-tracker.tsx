@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, X } from "lucide-react"
+import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, Info } from "lucide-react"
 import { DOCUMENTS, type DocStatus, type FlowAnswers, type LegalDoc } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
 import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { cn } from "@/lib/utils"
 
 export function DocumentTracker({
@@ -92,14 +93,26 @@ export function DocumentTracker({
                   >
                     <StatusIcon status={status} />
                     <div className="min-w-0 flex-1 leading-tight">
-                      <p
-                        className={cn(
-                          "truncate text-[13px] font-medium",
-                          status === "pending" ? "text-muted-foreground" : "text-foreground",
-                        )}
-                      >
-                        {doc.label}
-                      </p>
+                      <div className="flex items-center gap-1">
+                        <p
+                          className={cn(
+                            "truncate text-[13px] font-medium",
+                            status === "pending" ? "text-muted-foreground" : "text-foreground",
+                          )}
+                        >
+                          {doc.label}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setInfoDoc(doc)
+                          }}
+                          aria-label={`What is ${doc.label}?`}
+                          className={infoButtonClass}
+                        >
+                          <Info className="h-3 w-3" />
+                        </button>
+                      </div>
                       <p className="truncate font-mono text-[10px] text-muted-foreground">
                         {doc.short}
                       </p>
@@ -114,30 +127,18 @@ export function DocumentTracker({
       </div>
 
       {viewing && <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />}
-      {infoDoc && <DocInfoModal doc={infoDoc} onClose={() => setInfoDoc(null)} />}
-    </div>
-  )
-}
-
-function DocInfoModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold text-balance text-foreground">{doc.label}</h3>
-          <button
-            onClick={onClose}
-            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{doc.description}</p>
-        <p className="mt-3 text-[11px] font-medium text-primary">
-          This document hasn't been drafted yet — it'll appear here once the flow reaches it.
-        </p>
-      </div>
+      {infoDoc && (
+        <InfoModal
+          title={infoDoc.label}
+          description={infoDoc.description}
+          footnote={
+            statuses[infoDoc.id] === "complete" || statuses[infoDoc.id] === "filing"
+              ? undefined
+              : "This document hasn't been drafted yet — it'll appear here once the flow reaches it."
+          }
+          onClose={() => setInfoDoc(null)}
+        />
+      )}
     </div>
   )
 }

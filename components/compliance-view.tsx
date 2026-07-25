@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, X } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { InfoModal, infoButtonClass } from "@/components/info-modal"
+import { ConfirmModal } from "@/components/confirm-modal"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
@@ -81,6 +83,7 @@ export function ComplianceView({
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
   const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
+  const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -326,6 +329,7 @@ export function ComplianceView({
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onViewClick={setViewingDoc}
+      onRedoRequest={(item, groupTitle) => setRedoConfirm({ item, groupTitle })}
     />
   )
 
@@ -437,32 +441,27 @@ export function ComplianceView({
         {sidebarContent}
       </MobileSidebarTab>
 
-      {infoItem && <ComplianceInfoModal item={infoItem} onClose={() => setInfoItem(null)} />}
+      {infoItem && (
+        <InfoModal
+          title={infoItem.title}
+          description={infoItem.explainer ?? infoItem.description}
+          onClose={() => setInfoItem(null)}
+        />
+      )}
       {viewingDoc && <DocumentViewer doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
-    </div>
-  )
-}
-
-/* ── Info pop-up ── */
-
-function ComplianceInfoModal({ item, onClose }: { item: ComplianceItem; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-xl border border-border bg-card p-5 shadow-xl">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold text-balance text-foreground">{item.title}</h3>
-          <button
-            onClick={onClose}
-            className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          {item.explainer ?? item.description}
-        </p>
-      </div>
+      {redoConfirm && (
+        <ConfirmModal
+          title="Redo this filing?"
+          description={`"${redoConfirm.item.title}" has already been completed. Redoing it will ask the questions again and replace your saved answers.`}
+          confirmLabel="Redo filing"
+          onConfirm={() => {
+            const { item, groupTitle } = redoConfirm
+            setRedoConfirm(null)
+            openItem(item, groupTitle)
+          }}
+          onCancel={() => setRedoConfirm(null)}
+        />
+      )}
     </div>
   )
 }
@@ -547,7 +546,7 @@ function FieldChoicesBubble({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
+  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick, onRedoRequest,
 }: {
   expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
@@ -557,6 +556,7 @@ function SidebarContent({
   onCategoryClick: (cat: ComplianceCategory) => void
   onInfoClick: (item: ComplianceItem) => void
   onViewClick: (doc: LibraryDoc) => void
+  onRedoRequest: (item: ComplianceItem, groupTitle: string) => void
 }) {
   return (
     <>
@@ -600,7 +600,11 @@ function SidebarContent({
                           const doc = docs[item.id]
                           const viewable = done && !!doc?.content
                           const isActive = activeItemId === item.id
-                          const handleClick = () => (viewable ? onViewClick(doc) : onItemClick(item, group.title))
+                          const handleClick = () => {
+                            if (viewable) return onViewClick(doc)
+                            if (done) return onRedoRequest(item, group.title)
+                            return onItemClick(item, group.title)
+                          }
                           return (
                             <li key={item.id}>
                               <div
@@ -644,7 +648,7 @@ function SidebarContent({
                                         onInfoClick(item)
                                       }}
                                       aria-label={`What is ${item.title}?`}
-                                      className="shrink-0 rounded-full p-0.5 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary"
+                                      className={infoButtonClass}
                                     >
                                       <Info className="h-3.5 w-3.5" />
                                     </button>
@@ -704,7 +708,7 @@ function FilingFormCard({
           <button
             onClick={onInfoClick}
             aria-label={`What is ${item.title}?`}
-            className="shrink-0 rounded-full p-0.5 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary"
+            className={infoButtonClass}
           >
             <Info className="h-4 w-4" />
           </button>

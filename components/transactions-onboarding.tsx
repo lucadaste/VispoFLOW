@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight } from "lucide-react"
+import { Send, Check, Circle, ArrowLeftRight, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { FieldComposer } from "@/components/field-composer"
+import { InfoModal, infoButtonClass } from "@/components/info-modal"
+import { ConfirmModal } from "@/components/confirm-modal"
 
 type TransactionsPersisted = {
   messages: ChatMsg[]
@@ -61,6 +63,8 @@ export function TransactionsOnboarding({
   const [inputMode, setInputMode] = useState<"chat" | "form">("chat")
   const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
   const [isTyping, setIsTyping] = useState(false)
+  const [infoItem, setInfoItem] = useState<TransactionItem | null>(null)
+  const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -233,6 +237,8 @@ export function TransactionsOnboarding({
       activeItemId={activeItemId}
       onItemClick={openItem}
       onCategoryClick={toggleCategory}
+      onInfoClick={setInfoItem}
+      onRedoRequest={(item, groupTitle) => setRedoConfirm({ item, groupTitle })}
     />
   )
 
@@ -279,6 +285,7 @@ export function TransactionsOnboarding({
                   done={!!completed[m.item.id]}
                   prefill={prefill}
                   onComplete={() => handleDocComplete(m.item, m.groupTitle)}
+                  onInfoClick={() => setInfoItem(m.item)}
                 />
               )
               return null
@@ -346,6 +353,27 @@ export function TransactionsOnboarding({
       >
         {sidebarContent}
       </MobileSidebarTab>
+
+      {infoItem && (
+        <InfoModal
+          title={infoItem.title}
+          description={infoItem.description}
+          onClose={() => setInfoItem(null)}
+        />
+      )}
+      {redoConfirm && (
+        <ConfirmModal
+          title="Redo this document?"
+          description={`"${redoConfirm.item.title}" has already been completed. Redoing it will ask the questions again and replace your saved answers.`}
+          confirmLabel="Redo document"
+          onConfirm={() => {
+            const { item, groupTitle } = redoConfirm
+            setRedoConfirm(null)
+            openItem(item, groupTitle)
+          }}
+          onCancel={() => setRedoConfirm(null)}
+        />
+      )}
     </div>
   )
 }
@@ -353,7 +381,7 @@ export function TransactionsOnboarding({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick,
+  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick, onInfoClick, onRedoRequest,
 }: {
   activeCategory: TransactionCategory | null
   expandedCategoryId: TransactionCategory["id"] | null
@@ -361,6 +389,8 @@ function SidebarContent({
   activeItemId: string | null
   onItemClick: (item: TransactionItem, groupTitle: string) => void
   onCategoryClick: (cat: TransactionCategory) => void
+  onInfoClick: (item: TransactionItem) => void
+  onRedoRequest: (item: TransactionItem, groupTitle: string) => void
 }) {
   if (!activeCategory) {
     return (
@@ -411,12 +441,21 @@ function SidebarContent({
                         {group.items.map((item) => {
                           const done = !!completed[item.id]
                           const isActive = activeItemId === item.id
+                          const handleClick = () => (done ? onRedoRequest(item, group.title) : onItemClick(item, group.title))
                           return (
                             <li key={item.id}>
-                              <button
-                                onClick={() => onItemClick(item, group.title)}
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={handleClick}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter" || e.key === " ") {
+                                    e.preventDefault()
+                                    handleClick()
+                                  }
+                                }}
                                 className={cn(
-                                  "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
+                                  "flex w-full cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
                                   isActive ? "bg-primary/10" : "hover:bg-secondary/60"
                                 )}
                               >
@@ -427,12 +466,24 @@ function SidebarContent({
                                   {done ? <Check className="h-3 w-3" strokeWidth={3} /> : <Circle className="h-3.5 w-3.5" />}
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
-                                  <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
-                                    {item.title}
-                                  </p>
+                                  <div className="flex items-center gap-1">
+                                    <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
+                                      {item.title}
+                                    </p>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        onInfoClick(item)
+                                      }}
+                                      aria-label={`What is ${item.title}?`}
+                                      className={infoButtonClass}
+                                    >
+                                      <Info className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                   <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{item.description}</p>
                                 </div>
-                              </button>
+                              </div>
                             </li>
                           )
                         })}
@@ -452,13 +503,14 @@ function SidebarContent({
 /* ── Inline transaction document form card ── */
 
 function TransactionFormCard({
-  item, groupTitle, done, prefill, onComplete,
+  item, groupTitle, done, prefill, onComplete, onInfoClick,
 }: {
   item: TransactionItem
   groupTitle: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
   onComplete: () => void
+  onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
@@ -488,7 +540,16 @@ function TransactionFormCard({
       {/* Card header */}
       <div className="border-b border-border bg-secondary/30 px-5 py-4">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{groupTitle}</p>
-        <h3 className="mt-0.5 text-xl font-bold tracking-tight text-foreground">{item.title}</h3>
+        <div className="mt-0.5 flex items-center gap-1.5">
+          <h3 className="text-xl font-bold tracking-tight text-foreground">{item.title}</h3>
+          <button
+            onClick={onInfoClick}
+            aria-label={`What is ${item.title}?`}
+            className={infoButtonClass}
+          >
+            <Info className="h-4 w-4" />
+          </button>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">{item.description}</p>
       </div>
 
