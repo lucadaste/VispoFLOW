@@ -14,7 +14,11 @@ export function FieldComposer({
 }) {
   const [value, setValue] = useState(initialValue)
   const canSubmit = field.optional || !!value.trim()
-  const placeholder = field.placeholder ?? (field.optional ? "Type an answer, or press Enter to skip…" : "Type your answer…")
+  const placeholder =
+    field.placeholder ??
+    (field.optional
+      ? "Type an answer, ask a question, or press Enter to skip…"
+      : "Type your answer, or feel free to ask a question…")
   return (
     <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
       <div className="flex-1 px-1">
@@ -59,7 +63,7 @@ export function FieldComposer({
         disabled={!canSubmit}
         className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        <Send className="h-3.5 w-3.5" />
+        Send <Send className="h-3.5 w-3.5" />
       </button>
     </div>
   )
