@@ -193,14 +193,20 @@ const EIGHTY_THREE_B: ComplianceItem = {
   title: "83(b) Elections",
   short: "83(b) Elections",
   description: "File 83(b) elections for founders holding stock subject to vesting, within 30 days of grant.",
+  explainer:
+    "IRS Form 15620, Section 83(b) Election. Filing this within 30 days of a founder's stock grant locks in today's value — typically at or near $0 — as the taxable event, instead of the higher value the shares will be worth as they vest later. Because a founder's purchase price is normally equal to the stock's fair market value at grant, this election usually results in $0 of taxable income. The 30-day deadline cannot be extended for any reason, so the signed form must be mailed to the IRS promptly, with a copy kept for the founder's and company's records.",
   deadline: "Within 30 days of stock purchase",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "taxpayer", label: "Taxpayer (founder) full legal name", question: "Whose stock grant is this election for — what's their full legal name?", prefillKey: "incorporatorName" },
-    { name: "grantDate", label: "Date of stock grant / purchase", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The 83(b) election must be filed within 30 days of this date." },
-    { name: "shares", label: "Number of shares purchased", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
-    { name: "pricePerShare", label: "Price paid per share (USD)", question: "What price per share was paid?", placeholder: "e.g. 0.0001" },
-    { name: "vestingSchedule", label: "Vesting schedule", question: "What's the vesting schedule for these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
+    { name: "taxpayer", label: "Taxpayer's full legal name (Box 1)", question: "Whose stock grant is this election for — what's their full legal name?", prefillKey: "incorporatorName" },
+    { name: "taxpayerTin", label: "Taxpayer's SSN or ITIN (Box 1)", question: "What's the taxpayer's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX" },
+    { name: "taxpayerAddress", label: "Taxpayer's address (Box 1)", question: "What's the taxpayer's mailing address?", type: "textarea", prefillKey: "incorporatorAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "grantDate", label: "Date property was transferred (Box 3)", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The election must be filed within 30 days of this date." },
+    { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
+    { name: "pricePerShare", label: "Price paid per share, in USD (Boxes 6a, 7a)", question: "What price per share was paid? This is normally also the shares' fair market value at grant.", placeholder: "e.g. 0.0001" },
+    { name: "vestingSchedule", label: "Restrictions on the property (Box 5)", question: "What vesting schedule or restrictions apply to these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
+    { name: "companyAddress", label: "Company's address, for Box 9 (optional)", question: "What's the company's principal address? This is optional — Box 9 isn't required to make a valid election.", type: "textarea", prefillKey: "corpAddress", optional: true },
+    { name: "companyEin", label: "Company's EIN, if issued yet, for Box 9 (optional)", question: "Has the company's EIN been issued yet? If so, what is it?", optional: true },
   ],
 }
 

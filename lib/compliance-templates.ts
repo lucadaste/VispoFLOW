@@ -2,6 +2,27 @@ function today(): string {
   return new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
 }
 
+function prettyDate(iso: string): string {
+  if (!iso) return ""
+  const d = new Date(`${iso}T00:00:00`)
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
+}
+
+function num(v: string): number {
+  const n = parseFloat((v || "").replace(/[^0-9.-]/g, ""))
+  return Number.isFinite(n) ? n : 0
+}
+
+function money(n: number): string {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// Per-share prices are routinely fractions of a cent (e.g. $0.0001 par value) — rounding
+// to 2 decimals like a dollar total would silently display them as $0.00.
+function perShare(n: number): string {
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 })
+}
+
 function ein(v: Record<string, string>): string {
   return `FORM SS-4 APPLICATION & DELEGATED THIRD PARTY DECLARATION
 
@@ -42,8 +63,72 @@ ${v.responsible}
 Date: ${today()}`
 }
 
+function eightyThreeB(v: Record<string, string>): string {
+  const shares = num(v.shares)
+  const pricePerShare = num(v.pricePerShare)
+  // A founder's purchase price is normally also the shares' fair market value at grant,
+  // so Box 6 (FMV) and Box 7 (amount paid) use the same per-share price, and Box 8 is $0.
+  const fmvTotal = shares * pricePerShare
+  const paidTotal = shares * pricePerShare
+  const grossIncome = fmvTotal - paidTotal
+
+  return `FORM 15620 — SECTION 83(b) ELECTION
+
+Prepared for: ${v.taxpayer}
+Date prepared: ${today()}
+
+The undersigned taxpayer hereby elects, pursuant to § 83(b) of the Internal Revenue Code of 1986, as amended, to include in gross income as compensation for services the excess (if any) of the fair market value of the property described below over the amount paid for the property.
+
+1. Taxpayer's name, TIN, and address
+Name: ${v.taxpayer}
+TIN: ${v.taxpayerTin}
+Address: ${v.taxpayerAddress}
+
+2. The property subject to this election is
+${shares.toLocaleString()} shares of common stock of ${v.companyName}
+
+3. The date the property is transferred
+${prettyDate(v.grantDate)}
+
+4. Taxable year for which the election is being made
+Calendar year ${v.grantDate ? new Date(`${v.grantDate}T00:00:00`).getFullYear() : ""}
+
+5. The property is subject to the following restrictions
+${v.vestingSchedule}
+
+6. The total fair market value of the property at the time of transfer is
+   a. Value per share: $${perShare(pricePerShare)}
+   b. Quantity: ${shares.toLocaleString()}
+   c. Total fair market value: $${money(fmvTotal)}
+
+7. The total amount paid for the property is
+   a. Price paid per share: $${perShare(pricePerShare)}
+   b. Quantity: ${shares.toLocaleString()}
+   c. Total price paid: $${money(paidTotal)}
+
+8. The total amount to include in gross income for the taxable year is (Box 6c minus Box 7c)
+$${money(grossIncome)}
+
+9. Name, TIN, and address of the person for whom the taxpayer is providing services (optional)
+Name: ${v.companyName}
+TIN: ${v.companyEin || "N/A"}
+Address: ${v.companyAddress || "N/A"}
+
+The undersigned taxpayer is the person performing the services in connection with which the property is transferred. The undersigned taxpayer agrees to provide a copy of the election to (i) the person for whom the services are performed and (ii) the transferee of the property, if the taxpayer and the transferee of the property are not the same person.
+
+Under penalties of perjury, the undersigned taxpayer declares that, to the best of the undersigned taxpayer's knowledge and belief, the information entered on this Form 15620 is true, correct, and complete.
+
+
+_________________________
+${v.taxpayer}
+Date signed: ${today()}
+
+This election must be mailed to the IRS office where the taxpayer files their federal income tax return, no later than 30 days after the date in Box 3, with a copy provided to ${v.companyName || "the company"}.`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   ein,
+  "83b": eightyThreeB,
 }
 
 /** Renders the filled document for a completed compliance filing, from its submitted field

@@ -644,9 +644,9 @@ function SidebarContent({
                                         onInfoClick(item)
                                       }}
                                       aria-label={`What is ${item.title}?`}
-                                      className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+                                      className="shrink-0 rounded-full p-0.5 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary"
                                     >
-                                      <Info className="h-3 w-3" />
+                                      <Info className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -704,7 +704,7 @@ function FilingFormCard({
           <button
             onClick={onInfoClick}
             aria-label={`What is ${item.title}?`}
-            className="shrink-0 rounded-full p-0.5 text-muted-foreground/50 transition-colors hover:text-foreground"
+            className="shrink-0 rounded-full p-0.5 text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary"
           >
             <Info className="h-4 w-4" />
           </button>
