@@ -88,6 +88,7 @@ export function IncorporationApp() {
   const [homeChatSeed, setHomeChatSeed] = useState<string | undefined>()
   const [homeChatKey, setHomeChatKey] = useState(0)
   const [complianceKey, setComplianceKey] = useState(0)
+  const [complianceFromFlow, setComplianceFromFlow] = useState(false)
   const [landingKey, setLandingKey] = useState(0)
   const [transactionsKey, setTransactionsKey] = useState(0)
   const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
@@ -157,7 +158,7 @@ export function IncorporationApp() {
     if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
     if (phase === "transactions") { setView("transactions"); return }
-    if (phase === "compliance") { setView("compliance"); return }
+    if (phase === "compliance") { setComplianceFromFlow(false); setView("compliance"); return }
     if (phase === "documents") { setView("documents"); return }
   }
 
@@ -206,7 +207,7 @@ export function IncorporationApp() {
     path: "formation" | "compliance" | "transactions" | "documents" | "questions",
     message?: string,
   ) => {
-    if (path === "compliance") { setView("compliance"); return }
+    if (path === "compliance") { setComplianceFromFlow(false); setView("compliance"); return }
     if (path === "transactions") { setView("transactions"); return }
     if (path === "documents") { setView("documents"); return }
     if (path === "questions") {
@@ -421,6 +422,7 @@ export function IncorporationApp() {
         }
         await pushBot("Now let's head to the Compliance Center to complete the regulatory filings required for your incorporation.")
         await delay(300)
+        setComplianceFromFlow(true)
         setView("compliance")
         return
       }
@@ -642,7 +644,12 @@ export function IncorporationApp() {
           </MobileSidebarTab>
         </div>
       ) : view === "compliance" ? (
-        <ComplianceView key={complianceKey} answers={effectiveAnswers} onItemComplete={handleComplianceDocComplete} />
+        <ComplianceView
+          key={complianceKey}
+          answers={effectiveAnswers}
+          onItemComplete={handleComplianceDocComplete}
+          startExpanded={complianceFromFlow}
+        />
       ) : view === "transactions" ? (
         <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
       ) : (

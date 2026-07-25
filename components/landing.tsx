@@ -309,7 +309,7 @@ function StepRow({
   return (
     <button
       onClick={onClick}
-      className="group flex w-full items-stretch gap-3.5 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-card"
+      className="group flex w-full items-stretch gap-3.5 rounded-xl border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border"
     >
       {/* Node + connecting rail */}
       <div className="flex flex-col items-center">

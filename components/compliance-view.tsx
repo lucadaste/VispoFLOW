@@ -32,6 +32,7 @@ type ChatMsg =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
   | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string }
+  | { id: number; role: "categories" }
 
 type ActiveFiling = {
   item: ComplianceItem
@@ -49,9 +50,11 @@ const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 
 export function ComplianceView({
   answers,
   onItemComplete,
+  startExpanded = false,
 }: {
   answers: FlowAnswers
   onItemComplete?: (doc: LibraryDoc) => void
+  startExpanded?: boolean
 }) {
   const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
@@ -117,19 +120,25 @@ export function ComplianceView({
     }
 
     const name = user?.firstName
-    pushBot(
-      name
-        ? `Hi ${name}, let's get your post-incorporation compliance started.`
-        : "Hi! Let's get your post-incorporation compliance started."
-    )
 
-    const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
-    if (initialCategory) {
-      pushBot(initialCategory.chatResponse)
-      setActiveCategory(initialCategory)
-      setExpandedCategoryId(initialCategory.id)
+    if (startExpanded) {
+      pushBot(
+        name
+          ? `Hi ${name}, let's get your post-incorporation compliance started.`
+          : "Hi! Let's get your post-incorporation compliance started."
+      )
+      const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
+      if (initialCategory) {
+        pushBot(initialCategory.chatResponse)
+        setActiveCategory(initialCategory)
+        setExpandedCategoryId(initialCategory.id)
+      }
+      return
     }
-  }, [pushBot, user, applyState])
+
+    pushBot(name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started.")
+    setMessages((m) => [...m, { id: ++idRef.current, role: "categories" }])
+  }, [pushBot, user, applyState, startExpanded])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
   const syncedRef = useRef(false)
@@ -247,7 +256,6 @@ export function ComplianceView({
 
   const sidebarContent = (
     <SidebarContent
-      activeCategory={activeCategory}
       expandedCategoryId={expandedCategoryId}
       completed={completed}
       docs={docs}
@@ -305,22 +313,12 @@ export function ComplianceView({
                   onInfoClick={() => setInfoItem(m.item)}
                 />
               )
+              if (m.role === "categories") return (
+                <CategoryPickerBubble key={m.id} disabled={!!activeCategory} onSelect={selectCategory} />
+              )
               return null
             })}
             {isTyping && <TypingIndicator />}
-            {!activeCategory && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {COMPLIANCE_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => selectCategory(cat)}
-                    className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
@@ -401,12 +399,42 @@ function ComplianceInfoModal({ item, onClose }: { item: ComplianceItem; onClose:
   )
 }
 
+/* ── Category picker bubbles ── */
+
+function CategoryPickerBubble({
+  disabled, onSelect,
+}: {
+  disabled: boolean
+  onSelect: (cat: ComplianceCategory) => void
+}) {
+  return (
+    <div className="space-y-2">
+      {COMPLIANCE_CATEGORIES.map((cat, i) => (
+        <div key={cat.id} className="flex animate-message-in items-start gap-3">
+          <div className="mt-0.5 h-9 w-9 shrink-0">
+            {i === 0 && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src="/brand/beaker.png" alt="" className="h-9 w-9 object-contain" />
+            )}
+          </div>
+          <button
+            onClick={() => onSelect(cat)}
+            disabled={disabled}
+            className="max-w-[88%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-left text-sm font-medium leading-relaxed text-card-foreground shadow-sm ring-1 ring-border transition-colors enabled:hover:ring-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-60"
+          >
+            {cat.label}
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
+  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
 }: {
-  activeCategory: ComplianceCategory | null
   expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
   docs: Record<string, LibraryDoc>
@@ -416,16 +444,6 @@ function SidebarContent({
   onInfoClick: (item: ComplianceItem) => void
   onViewClick: (doc: LibraryDoc) => void
 }) {
-  if (!activeCategory) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-        <ShieldCheck className="h-8 w-8 text-muted-foreground/40" />
-        <p className="mt-3 text-sm font-medium text-foreground">No documents yet</p>
-        <p className="mt-1 text-xs text-muted-foreground">Select a compliance category and your checklist will appear here.</p>
-      </div>
-    )
-  }
-
   return (
     <>
       <div className="border-b border-border px-4 py-4">
