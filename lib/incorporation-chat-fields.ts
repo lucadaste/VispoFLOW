@@ -10,7 +10,7 @@ import { AUTHORIZED_SHARES, type Allocation, type ChatField, type FlowAnswers } 
 export function getChatFields(
   input: StepInput,
   answers: FlowAnswers,
-): { fields: ChatField[]; defaults: Record<string, string> } | null {
+): { fields: ChatField[]; defaults: Record<string, string>; skipFirstPrompt?: boolean } | null {
   switch (input.kind) {
     case "incorporator":
       return {
@@ -38,6 +38,9 @@ export function getChatFields(
           label: `What is the name of director ${i + 1}?`,
         })),
         defaults: {},
+        // The step's own lead-in ("Great. What are their names?") already asks this —
+        // repeating it as "What is the name of director 1?" right after is redundant.
+        skipFirstPrompt: true,
       }
     case "officers": {
       // Only prefilled when the signer's saved profile says they actually hold that title —

@@ -71,6 +71,10 @@ export function TopBar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmingRestart, setConfirmingRestart] = useState(false)
+  // Signed-in users reach the same profile form via the avatar's "Company Profile" tab —
+  // the gear is only needed as a fallback while there's no avatar/account menu to hold it.
+  const { isSignedIn, isLoaded } = useAuth()
+  const showSettingsGear = isLoaded && !isSignedIn
 
   const handleRestartClick = () => {
     if (restartWarning) {
@@ -127,14 +131,16 @@ export function TopBar({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="Your profile"
-            className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </button>
+          {showSettingsGear && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              title="Your profile"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          )}
 
           <AuthControls profile={profile} onSaveProfile={onSaveProfile} />
         </div>

@@ -45,6 +45,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
 import { useProfile } from "@/lib/use-profile"
 import { ProfileSettingsModal } from "@/components/profile-settings-modal"
+import { SignedOutGate } from "@/components/signed-out-gate"
 import { cn } from "@/lib/utils"
 
 type ChatMessage =
@@ -335,7 +336,9 @@ export function IncorporationApp() {
         const decomposed = inputMode === "chat" ? getChatFields(step.input, effectiveAnswersRef.current) : null
         if (decomposed) {
           setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
-          await pushBot(chatFieldPrompt(decomposed.fields[0]))
+          if (!decomposed.skipFirstPrompt) {
+            await pushBot(chatFieldPrompt(decomposed.fields[0]))
+          }
         } else {
           setActiveInput(step.input)
         }
@@ -651,6 +654,7 @@ export function IncorporationApp() {
           onStartFormation={() => setView("chat")}
         />
       ) : view === "chat" ? (
+        <SignedOutGate>
         <div className="flex w-full flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
@@ -734,15 +738,20 @@ export function IncorporationApp() {
             {hasDocs ? <DocumentTracker statuses={docStatuses} answers={effectiveAnswers} /> : <DocumentTrackerEmpty />}
           </MobileSidebarTab>
         </div>
+        </SignedOutGate>
       ) : view === "compliance" ? (
-        <ComplianceView
-          key={complianceKey}
-          answers={effectiveAnswers}
-          onItemComplete={handleComplianceDocComplete}
-          startExpanded={complianceFromFlow}
-        />
+        <SignedOutGate>
+          <ComplianceView
+            key={complianceKey}
+            answers={effectiveAnswers}
+            onItemComplete={handleComplianceDocComplete}
+            startExpanded={complianceFromFlow}
+          />
+        </SignedOutGate>
       ) : view === "transactions" ? (
-        <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
+        <SignedOutGate>
+          <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
+        </SignedOutGate>
       ) : (
         <DocumentLibrary
           companyName={effectiveAnswers.companyName}
