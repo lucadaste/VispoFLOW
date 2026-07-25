@@ -9,9 +9,14 @@ import { FaqSection } from "@/components/marketing/faq-section"
 import { FinalCta } from "@/components/marketing/final-cta"
 import { SiteFooter } from "@/components/marketing/site-footer"
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const { userId } = await auth()
-  if (userId) redirect("/app")
+  const params = await searchParams
+  if (userId && params.site === undefined) redirect("/app")
 
   return (
     <main className="min-h-screen bg-background">
