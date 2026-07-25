@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { FieldComposer } from "@/components/field-composer"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
@@ -109,6 +110,14 @@ export function ComplianceView({
     setActiveItemId(null)
   }, [])
 
+  const openPostIncorporation = useCallback(() => {
+    const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
+    if (initialCategory) {
+      setActiveCategory(initialCategory)
+      setExpandedCategoryId(initialCategory.id)
+    }
+  }, [])
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
@@ -116,6 +125,7 @@ export function ComplianceView({
     const saved = loadPersisted<CompliancePersisted>(STORAGE_KEYS.compliance)
     if (saved && saved.messages.length > 0) {
       applyState(saved)
+      if (startExpanded) openPostIncorporation()
       return
     }
 
@@ -128,17 +138,14 @@ export function ComplianceView({
           : "Hi! Let's get your post-incorporation compliance started."
       )
       const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
-      if (initialCategory) {
-        pushBot(initialCategory.chatResponse)
-        setActiveCategory(initialCategory)
-        setExpandedCategoryId(initialCategory.id)
-      }
+      if (initialCategory) pushBot(initialCategory.chatResponse)
+      openPostIncorporation()
       return
     }
 
     pushBot(name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started.")
     setMessages((m) => [...m, { id: ++idRef.current, role: "categories" }])
-  }, [pushBot, user, applyState, startExpanded])
+  }, [pushBot, user, applyState, startExpanded, openPostIncorporation])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
   const syncedRef = useRef(false)
@@ -149,9 +156,10 @@ export function ComplianceView({
       if (saved && saved.messages.length > 0) {
         startedRef.current = true
         applyState(saved)
+        if (startExpanded) openPostIncorporation()
       }
     })
-  }, [isSignedIn, applyState])
+  }, [isSignedIn, applyState, startExpanded, openPostIncorporation])
 
   useEffect(() => {
     if (!startedRef.current) return
