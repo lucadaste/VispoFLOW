@@ -9,6 +9,8 @@ import { FaqSection } from "@/components/marketing/faq-section"
 import { FinalCta } from "@/components/marketing/final-cta"
 import { SiteFooter } from "@/components/marketing/site-footer"
 
+export const dynamic = "force-dynamic"
+
 export default async function Page({
   searchParams,
 }: {
