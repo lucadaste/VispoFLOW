@@ -122,6 +122,8 @@ export function docShorts(ids: string[]): string {
 export type ComplianceField = {
   name: string
   label: string
+  /** How this field is asked in chat mode — a natural question. Falls back to `label` if omitted. */
+  question?: string
   type?: "text" | "date" | "textarea" | "select"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
@@ -165,23 +167,24 @@ const EIN: ComplianceItem = {
     "This filing bundles two IRS-adjacent documents into one step: (1) Form SS-4, Application for Employer Identification Number, and (2) a Delegated Third Party Declaration authorizing Vispo's filing preparer to submit the SS-4 and receive the EIN on your company's behalf. Once you complete the fields below and sign, your preparer files electronically with the IRS — EINs are typically issued the same day. The fields shown are the subset of Form SS-4 that applies to a newly formed Delaware C-Corp with no employees yet (the IRS's own \"started a new business, no employees\" path); lines specific to LLCs, trusts, nonprofits, and existing businesses are skipped, and \"Corporation\" / \"Delaware\" are filled in automatically for lines 9a/9b.",
   deadline: "Before opening a bank account",
   fields: [
-    { name: "companyName", label: "Legal name of entity (Line 1)", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "tradeName", label: "Trade name / DBA, if different (Line 2)", placeholder: "e.g. Acme", optional: true },
-    { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "county", label: "County and state of principal business (Line 6)", placeholder: "e.g. New Castle County, Delaware" },
-    { name: "responsible", label: "Responsible party — full legal name (Line 7a)", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
-    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", placeholder: "XXX-XX-XXXX" },
-    { name: "reason", label: "Reason for applying (Line 10)", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
-    { name: "incorporationDate", label: "Date business started or acquired (Line 11)", type: "date" },
+    { name: "companyName", label: "Legal name of entity (Line 1)", question: "What's the official legal name of your entity?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "tradeName", label: "Trade name / DBA, if different (Line 2)", question: "Does the business go by a trade name or DBA that's different from its legal name?", placeholder: "e.g. Acme", optional: true },
+    { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", placeholder: "e.g. New Castle County, Delaware" },
+    { name: "responsible", label: "Responsible party — full legal name (Line 7a)", question: "Who's the responsible party — what's their full legal name?", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
+    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX" },
+    { name: "reason", label: "Reason for applying (Line 10)", question: "Why are you applying for an EIN?", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
+    { name: "incorporationDate", label: "Date business started or acquired (Line 11)", question: "When did the business start or get acquired?", type: "date" },
     {
       name: "closingMonth",
       label: "Closing month of accounting year (Line 12)",
+      question: "Which month does your accounting year close?",
       type: "select",
       options: ["December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November"],
     },
-    { name: "employeesExpected", label: "Employees expected in next 12 months (Line 13)", placeholder: "0 if none expected yet" },
-    { name: "principalActivity", label: "Principal line of business (Lines 16–17)", placeholder: "e.g. Software development" },
-    { name: "previousEin", label: "Previous EIN, if this entity ever received one before (Line 18)", placeholder: "Leave blank if none", optional: true },
+    { name: "employeesExpected", label: "Employees expected in next 12 months (Line 13)", question: "How many employees do you expect to hire in the next 12 months?", placeholder: "0 if none expected yet" },
+    { name: "principalActivity", label: "Principal line of business (Lines 16–17)", question: "What's the company's principal line of business?", placeholder: "e.g. Software development" },
+    { name: "previousEin", label: "Previous EIN, if this entity ever received one before (Line 18)", question: "Has this entity ever received an EIN before? If so, what was it?", placeholder: "Leave blank if none", optional: true },
   ],
 }
 
@@ -192,12 +195,12 @@ const EIGHTY_THREE_B: ComplianceItem = {
   description: "File 83(b) elections for founders holding stock subject to vesting, within 30 days of grant.",
   deadline: "Within 30 days of stock purchase",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "taxpayer", label: "Taxpayer (founder) full legal name", prefillKey: "incorporatorName" },
-    { name: "grantDate", label: "Date of stock grant / purchase", type: "date", prefillKey: "vestingStartDate", hint: "The 83(b) election must be filed within 30 days of this date." },
-    { name: "shares", label: "Number of shares purchased", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
-    { name: "pricePerShare", label: "Price paid per share (USD)", placeholder: "e.g. 0.0001" },
-    { name: "vestingSchedule", label: "Vesting schedule", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "taxpayer", label: "Taxpayer (founder) full legal name", question: "Whose stock grant is this election for — what's their full legal name?", prefillKey: "incorporatorName" },
+    { name: "grantDate", label: "Date of stock grant / purchase", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The 83(b) election must be filed within 30 days of this date." },
+    { name: "shares", label: "Number of shares purchased", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
+    { name: "pricePerShare", label: "Price paid per share (USD)", question: "What price per share was paid?", placeholder: "e.g. 0.0001" },
+    { name: "vestingSchedule", label: "Vesting schedule", question: "What's the vesting schedule for these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
   ],
 }
 
@@ -208,10 +211,10 @@ const DE_REGISTERED_AGENT: ComplianceItem = {
   description: "Appoint a registered agent authorized to accept service of process in Delaware.",
   deadline: "At incorporation",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "deFileNumber", label: "Delaware file number", placeholder: "e.g. 1234567", optional: true },
-    { name: "agentName", label: "Registered agent name", placeholder: "e.g. Corporation Service Company" },
-    { name: "agentAddress", label: "Registered agent Delaware address", type: "textarea" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "deFileNumber", label: "Delaware file number", question: "Do you have a Delaware file number yet?", placeholder: "e.g. 1234567", optional: true },
+    { name: "agentName", label: "Registered agent name", question: "Who's serving as the registered agent?", placeholder: "e.g. Corporation Service Company" },
+    { name: "agentAddress", label: "Registered agent Delaware address", question: "What's the registered agent's Delaware address?", type: "textarea" },
   ],
 }
 
@@ -222,11 +225,11 @@ const CA_QUALIFICATION: ComplianceItem = {
   description: "Qualify your out-of-state corporation to transact business in California (Form S&DC-S/N).",
   deadline: "Before transacting business in CA",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "stateOfIncorp", label: "State of incorporation", placeholder: "e.g. Delaware" },
-    { name: "principalAddress", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "caAddress", label: "California office address (if any)", type: "textarea", optional: true },
-    { name: "ceoName", label: "Chief executive officer name", prefillKey: "incorporatorName" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "stateOfIncorp", label: "State of incorporation", question: "Which state is the company incorporated in?", placeholder: "e.g. Delaware" },
+    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "caAddress", label: "California office address (if any)", question: "Does the company have a California office address? If so, what is it?", type: "textarea", optional: true },
+    { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
   ],
 }
 
@@ -237,9 +240,9 @@ const CA_REGISTERED_AGENT: ComplianceItem = {
   description: "Designate an agent for service of process in California.",
   deadline: "Concurrent with CA qualification",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "California agent name" },
-    { name: "agentAddress", label: "California agent street address", type: "textarea" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "California agent name", question: "Who's serving as the California agent?" },
+    { name: "agentAddress", label: "California agent street address", question: "What's the California agent's street address?", type: "textarea" },
   ],
 }
 
@@ -250,10 +253,10 @@ const NOTICE_25102F: ComplianceItem = {
   description: "Limited offering exemption notice for securities sold in California (Section 25102(f)).",
   deadline: "Within 15 days of first sale",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "firstSaleDate", label: "Date of first sale of securities", type: "date" },
-    { name: "amount", label: "Aggregate amount raised in California (USD)" },
-    { name: "purchasers", label: "Number of California purchasers" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "firstSaleDate", label: "Date of first sale of securities", question: "What date was the first sale of securities?", type: "date" },
+    { name: "amount", label: "Aggregate amount raised in California (USD)", question: "What's the aggregate amount raised from California purchasers?" },
+    { name: "purchasers", label: "Number of California purchasers", question: "How many California purchasers were there?" },
   ],
 }
 
@@ -264,10 +267,10 @@ const NOTICE_25102O: ComplianceItem = {
   description: "Notice of exemption for securities issued under a compensatory benefit plan (Section 25102(o)).",
   deadline: "Within 30 days of plan adoption",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "planName", label: "Equity incentive plan name", placeholder: "e.g. 2025 Equity Incentive Plan" },
-    { name: "adoptionDate", label: "Plan adoption date", type: "date" },
-    { name: "poolShares", label: "Shares reserved under the plan", prefillKey: "poolShares" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "planName", label: "Equity incentive plan name", question: "What's the equity incentive plan called?", placeholder: "e.g. 2025 Equity Incentive Plan" },
+    { name: "adoptionDate", label: "Plan adoption date", question: "When was the plan adopted?", type: "date" },
+    { name: "poolShares", label: "Shares reserved under the plan", question: "How many shares are reserved under the plan?", prefillKey: "poolShares" },
   ],
 }
 
@@ -278,11 +281,11 @@ const DE_ANNUAL_REPORT: ComplianceItem = {
   description: "File the Delaware annual report and pay the annual franchise tax.",
   deadline: "March 1 each year",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "reportYear", label: "Report year", placeholder: "e.g. 2025" },
-    { name: "authorizedShares", label: "Total authorized shares" },
-    { name: "grossAssets", label: "Total gross assets (USD)", hint: "Used to calculate franchise tax under the assumed par value method." },
-    { name: "directors", label: "Names and addresses of all directors", type: "textarea" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "reportYear", label: "Report year", question: "Which year is this report for?", placeholder: "e.g. 2025" },
+    { name: "authorizedShares", label: "Total authorized shares", question: "How many total authorized shares does the company have?" },
+    { name: "grossAssets", label: "Total gross assets (USD)", question: "What are the company's total gross assets?", hint: "Used to calculate franchise tax under the assumed par value method." },
+    { name: "directors", label: "Names and addresses of all directors", question: "Who are the company's directors, and what are their addresses?", type: "textarea" },
   ],
 }
 
@@ -293,9 +296,9 @@ const DE_AGENT_RENEWAL: ComplianceItem = {
   description: "Renew your Delaware registered agent for the coming year.",
   deadline: "Annually",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "Registered agent name" },
-    { name: "renewalPeriod", label: "Renewal period", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "Registered agent name", question: "Who's the registered agent being renewed?" },
+    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
   ],
 }
 
@@ -306,12 +309,12 @@ const CA_SOI: ComplianceItem = {
   description: "File the California Statement of Information (Form SI-550).",
   deadline: "Within 90 days of CA qualification, then biennially",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "caEntityNumber", label: "California entity number", placeholder: "e.g. C1234567", optional: true },
-    { name: "principalAddress", label: "Principal business address", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "ceoName", label: "Chief executive officer name", prefillKey: "incorporatorName" },
-    { name: "secretaryName", label: "Secretary name" },
-    { name: "agent", label: "Agent for service of process" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "caEntityNumber", label: "California entity number", question: "What's the company's California entity number, if you have it?", placeholder: "e.g. C1234567", optional: true },
+    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
+    { name: "secretaryName", label: "Secretary name", question: "Who's the secretary?" },
+    { name: "agent", label: "Agent for service of process", question: "Who's the agent for service of process?" },
   ],
 }
 
@@ -322,9 +325,9 @@ const CA_AGENT_RENEWAL: ComplianceItem = {
   description: "Renew the California agent for service of process.",
   deadline: "Annually",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "California agent name" },
-    { name: "renewalPeriod", label: "Renewal period", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "agentName", label: "California agent name", question: "Who's the California agent being renewed?" },
+    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
   ],
 }
 
@@ -335,10 +338,10 @@ const ANNUAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
   description: "Annual written consent of stockholders in lieu of a meeting.",
   deadline: "Annually",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
-    { name: "directors", label: "Directors elected for the coming year", type: "textarea" },
-    { name: "otherMatters", label: "Other matters approved", type: "textarea", placeholder: "e.g. ratification of prior board actions", optional: true },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
+    { name: "directors", label: "Directors elected for the coming year", question: "Which directors are being elected for the coming year?", type: "textarea" },
+    { name: "otherMatters", label: "Other matters approved", question: "Anything else being approved alongside this?", type: "textarea", placeholder: "e.g. ratification of prior board actions", optional: true },
   ],
 }
 
@@ -349,10 +352,10 @@ const ANNUAL_BOARD_CONSENT: ComplianceItem = {
   description: "Annual written consent of the board of directors in lieu of a meeting.",
   deadline: "Annually",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
-    { name: "officers", label: "Officers appointed", type: "textarea" },
-    { name: "otherMatters", label: "Other matters approved", type: "textarea", optional: true },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
+    { name: "officers", label: "Officers appointed", question: "Which officers are being appointed?", type: "textarea" },
+    { name: "otherMatters", label: "Other matters approved", question: "Anything else being approved alongside this?", type: "textarea", optional: true },
   ],
 }
 
@@ -363,10 +366,10 @@ const SPECIAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
   description: "Special written consent of stockholders for a specific matter.",
   deadline: "As needed",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
-    { name: "matter", label: "Matter being approved", type: "textarea", placeholder: "e.g. approval of a financing round" },
-    { name: "sharesVoting", label: "Shares voting in favor" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
+    { name: "matter", label: "Matter being approved", question: "What matter is being approved?", type: "textarea", placeholder: "e.g. approval of a financing round" },
+    { name: "sharesVoting", label: "Shares voting in favor", question: "How many shares are voting in favor?" },
   ],
 }
 
@@ -377,10 +380,10 @@ const SPECIAL_BOARD_CONSENT: ComplianceItem = {
   description: "Special written consent of the board for a specific matter.",
   deadline: "As needed",
   fields: [
-    { name: "companyName", label: "Legal company name", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "effectiveDate", label: "Effective date of consent", type: "date" },
-    { name: "matter", label: "Matter being approved", type: "textarea", placeholder: "e.g. approval of stock option grants" },
-    { name: "directors", label: "Directors approving", type: "textarea" },
+    { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
+    { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
+    { name: "matter", label: "Matter being approved", question: "What matter is being approved?", type: "textarea", placeholder: "e.g. approval of stock option grants" },
+    { name: "directors", label: "Directors approving", question: "Which directors are approving this?", type: "textarea" },
   ],
 }
 

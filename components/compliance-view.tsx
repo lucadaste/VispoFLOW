@@ -207,21 +207,26 @@ export function ComplianceView({
   }, [])
 
   const fieldPrompt = (f: ComplianceField) => {
-    const dateHint = f.type === "date" && !f.hint ? " — format: YYYY-MM-DD" : ""
-    return `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}${dateHint}`
+    const dateHint = f.type === "date" && !f.hint ? " (format: YYYY-MM-DD)" : ""
+    const optionalHint = f.optional ? " (optional)" : ""
+    return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}${dateHint}`
   }
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
 
-  // Asks for one field in a chat-mode filing. Fields with a fixed option set, an optional
-  // skip, or a value we can prefill get a clickable-choice bubble alongside the free-text
-  // prompt so answering doesn't require typing — but the chat input stays available too.
+  // Asks for one field in a chat-mode filing. A fixed option set (select) gets a clickable
+  // choice bubble — that's the only case where picking from a bank of options applies. Any
+  // other prefillable value (e.g. saved profile info) is placed directly in the chat input
+  // instead, so accepting it is just hitting Enter rather than tapping a separate chip.
   const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
     const field = item.fields[fieldIndex]
     await pushBotTyped(fieldPrompt(field))
-    const hasSuggestion = field.type !== "select" && !!prefillValue(answers, field.prefillKey)
-    if (addChoices && (field.type === "select" || field.optional || hasSuggestion)) {
-      setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+    if (field.type === "select") {
+      if (addChoices) {
+        setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+      }
+    } else {
+      setValue(prefillValue(answers, field.prefillKey))
     }
   }, [pushBotTyped, answers])
 
@@ -278,7 +283,13 @@ export function ComplianceView({
 
   const handleSend = useCallback(() => {
     const text = value.trim()
-    if (!text) return
+    const activeField = activeFiling ? activeFiling.item.fields[activeFiling.fieldIndex] : undefined
+
+    if (!text) {
+      // Nothing typed: the only valid send is skipping an optional field.
+      if (activeFiling && activeField?.optional) submitFieldAnswer("")
+      return
+    }
     setValue("")
 
     if (activeFiling && !looksLikeQuestion(text)) {
@@ -371,7 +382,6 @@ export function ComplianceView({
                   key={m.id}
                   item={m.item}
                   fieldIndex={m.fieldIndex}
-                  answers={answers}
                   active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
                   onChoose={(val) => submitFieldAnswer(val)}
                 />
@@ -389,12 +399,18 @@ export function ComplianceView({
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={activeFiling ? "Type your answer, or ask a question…" : "Feel free to ask any questions…"}
+                placeholder={
+                  activeFiling
+                    ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                      ? "Type an answer, or press Enter to skip…"
+                      : "Type your answer, or ask a question…"
+                    : "Feel free to ask any questions…"
+                }
                 className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
               />
               <button
                 onClick={handleSend}
-                disabled={!value.trim()}
+                disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
               >
                 Send <Send className="h-3.5 w-3.5" />
@@ -459,23 +475,16 @@ function CategoryPickerBubble({
   onSelect: (cat: ComplianceCategory) => void
 }) {
   return (
-    <div className="space-y-2">
-      {COMPLIANCE_CATEGORIES.map((cat, i) => (
-        <div key={cat.id} className="flex animate-message-in items-start gap-3">
-          <div className="mt-0.5 h-9 w-9 shrink-0">
-            {i === 0 && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src="/brand/beaker.png" alt="" className="h-9 w-9 object-contain" />
-            )}
-          </div>
-          <button
-            onClick={() => onSelect(cat)}
-            disabled={disabled}
-            className="max-w-[88%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-left text-sm font-medium leading-relaxed text-card-foreground shadow-sm ring-1 ring-border transition-colors enabled:hover:ring-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-60"
-          >
-            {cat.label}
-          </button>
-        </div>
+    <div className="flex flex-wrap gap-2 pl-12">
+      {COMPLIANCE_CATEGORIES.map((cat) => (
+        <button
+          key={cat.id}
+          onClick={() => onSelect(cat)}
+          disabled={disabled}
+          className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors enabled:hover:border-primary enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
+        >
+          {cat.label}
+        </button>
       ))}
     </div>
   )
