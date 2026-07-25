@@ -16,7 +16,7 @@ export function getChatFields(
       return {
         fields: [
           { name: "incorporatorName", label: "What's your full name?" },
-          { name: "incorporatorAddress", label: "What's your mailing address?", type: "textarea" },
+          { name: "incorporatorAddress", label: "What's your mailing address?", type: "address" },
         ],
         defaults: {
           incorporatorName: answers.incorporatorName,
@@ -27,7 +27,7 @@ export function getChatFields(
       return {
         fields: [
           { name: "registeredAgentName", label: "Who's serving as your registered agent?", placeholder: "e.g. Corporation Service Company" },
-          { name: "registeredAgentAddress", label: "What's the registered agent's Delaware address?", type: "textarea" },
+          { name: "registeredAgentAddress", label: "What's the registered agent's Delaware address?", type: "address" },
         ],
         defaults: {},
       }

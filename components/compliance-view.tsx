@@ -6,6 +6,7 @@ import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import {
   COMPLIANCE_CATEGORIES,
   type ComplianceCategory,
@@ -400,19 +401,30 @@ export function ComplianceView({
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
             <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              <input
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={
-                  activeFiling
-                    ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                      ? "Type an answer, or press Enter to skip…"
-                      : "Type your answer, or ask a question…"
-                    : "Feel free to ask any questions…"
-                }
-                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-              />
+              {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
+                <AddressAutocomplete
+                  value={value}
+                  onChange={setValue}
+                  onEnter={handleSend}
+                  placeholder="Type your answer, or ask a question…"
+                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                  rows={1}
+                />
+              ) : (
+                <input
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder={
+                    activeFiling
+                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                        ? "Type an answer, or press Enter to skip…"
+                        : "Type your answer, or ask a question…"
+                      : "Feel free to ask any questions…"
+                  }
+                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                />
+              )}
               <button
                 onClick={handleSend}
                 disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
@@ -740,6 +752,14 @@ function FilingFormCard({
                 placeholder={f.placeholder}
                 onChange={(e) => set(f.name, e.target.value)}
                 className={cn(inputClass, "resize-none")}
+              />
+            ) : f.type === "address" ? (
+              <AddressAutocomplete
+                value={values[f.name] ?? ""}
+                onChange={(v) => set(f.name, v)}
+                placeholder={f.placeholder}
+                className={inputClass}
+                rows={3}
               />
             ) : (
               <input

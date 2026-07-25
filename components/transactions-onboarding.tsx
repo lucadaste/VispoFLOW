@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { FieldComposer } from "@/components/field-composer"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -577,6 +578,14 @@ function TransactionFormCard({
                 placeholder={f.placeholder}
                 onChange={(e) => set(f.name, e.target.value)}
                 className={cn(inputClass, "resize-none")}
+              />
+            ) : f.type === "address" ? (
+              <AddressAutocomplete
+                value={values[f.name] ?? ""}
+                onChange={(v) => set(f.name, v)}
+                placeholder={f.placeholder}
+                className={inputClass}
+                rows={3}
               />
             ) : (
               <input

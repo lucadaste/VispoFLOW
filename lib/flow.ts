@@ -4,7 +4,7 @@ export const AUTHORIZED_SHARES = 10_000_000
 export type ChatField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select"
+  type?: "text" | "date" | "textarea" | "select" | "address"
   options?: string[]
   placeholder?: string
   hint?: string
@@ -124,7 +124,7 @@ export type ComplianceField = {
   label: string
   /** How this field is asked in chat mode — a natural question. Falls back to `label` if omitted. */
   question?: string
-  type?: "text" | "date" | "textarea" | "select"
+  type?: "text" | "date" | "textarea" | "select" | "address"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -169,7 +169,7 @@ const EIN: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal name of entity (Line 1)", question: "What's the official legal name of your entity?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "tradeName", label: "Trade name / DBA, if different (Line 2)", question: "Does the business go by a trade name or DBA that's different from its legal name?", placeholder: "e.g. Acme", optional: true },
-    { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", placeholder: "e.g. New Castle County, Delaware" },
     { name: "responsible", label: "Responsible party — full legal name (Line 7a)", question: "Who's the responsible party — what's their full legal name?", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
     { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX" },
@@ -200,12 +200,12 @@ const EIGHTY_THREE_B: ComplianceItem = {
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "taxpayer", label: "Taxpayer's full legal name (Box 1)", question: "Whose stock grant is this election for — what's their full legal name?", prefillKey: "incorporatorName" },
     { name: "taxpayerTin", label: "Taxpayer's SSN or ITIN (Box 1)", question: "What's the taxpayer's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX" },
-    { name: "taxpayerAddress", label: "Taxpayer's address (Box 1)", question: "What's the taxpayer's mailing address?", type: "textarea", prefillKey: "incorporatorAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "taxpayerAddress", label: "Taxpayer's address (Box 1)", question: "What's the taxpayer's mailing address?", type: "address", prefillKey: "incorporatorAddress", placeholder: "Street, City, State, ZIP" },
     { name: "grantDate", label: "Date property was transferred (Box 3)", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The election must be filed within 30 days of this date." },
     { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
     { name: "pricePerShare", label: "Price paid per share, in USD (Boxes 6a, 7a)", question: "What price per share was paid? This is normally also the shares' fair market value at grant.", placeholder: "e.g. 0.0001" },
     { name: "vestingSchedule", label: "Restrictions on the property (Box 5)", question: "What vesting schedule or restrictions apply to these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
-    { name: "companyAddress", label: "Company's address, for Box 9 (optional)", question: "What's the company's principal address? This is optional — Box 9 isn't required to make a valid election.", type: "textarea", prefillKey: "corpAddress", optional: true },
+    { name: "companyAddress", label: "Company's address, for Box 9 (optional)", question: "What's the company's principal address? This is optional — Box 9 isn't required to make a valid election.", type: "address", prefillKey: "corpAddress", optional: true },
     { name: "companyEin", label: "Company's EIN, if issued yet, for Box 9 (optional)", question: "Has the company's EIN been issued yet? If so, what is it?", optional: true },
   ],
 }
@@ -220,7 +220,7 @@ const DE_REGISTERED_AGENT: ComplianceItem = {
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "deFileNumber", label: "Delaware file number", question: "Do you have a Delaware file number yet?", placeholder: "e.g. 1234567", optional: true },
     { name: "agentName", label: "Registered agent name", question: "Who's serving as the registered agent?", placeholder: "e.g. Corporation Service Company" },
-    { name: "agentAddress", label: "Registered agent Delaware address", question: "What's the registered agent's Delaware address?", type: "textarea" },
+    { name: "agentAddress", label: "Registered agent Delaware address", question: "What's the registered agent's Delaware address?", type: "address" },
   ],
 }
 
@@ -233,8 +233,8 @@ const CA_QUALIFICATION: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "stateOfIncorp", label: "State of incorporation", question: "Which state is the company incorporated in?", placeholder: "e.g. Delaware" },
-    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "caAddress", label: "California office address (if any)", question: "Does the company have a California office address? If so, what is it?", type: "textarea", optional: true },
+    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "caAddress", label: "California office address (if any)", question: "Does the company have a California office address? If so, what is it?", type: "address", optional: true },
     { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
   ],
 }
@@ -248,7 +248,7 @@ const CA_REGISTERED_AGENT: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "agentName", label: "California agent name", question: "Who's serving as the California agent?" },
-    { name: "agentAddress", label: "California agent street address", question: "What's the California agent's street address?", type: "textarea" },
+    { name: "agentAddress", label: "California agent street address", question: "What's the California agent's street address?", type: "address" },
   ],
 }
 
@@ -317,7 +317,7 @@ const CA_SOI: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "caEntityNumber", label: "California entity number", question: "What's the company's California entity number, if you have it?", placeholder: "e.g. C1234567", optional: true },
-    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "textarea", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
     { name: "secretaryName", label: "Secretary name", question: "Who's the secretary?" },
     { name: "agent", label: "Agent for service of process", question: "Who's the agent for service of process?" },
@@ -434,7 +434,7 @@ export const COMPLIANCE_GROUPS: ComplianceGroup[] = COMPLIANCE_CATEGORIES.flatMa
 export type TransactionField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select"
+  type?: "text" | "date" | "textarea" | "select" | "address"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string

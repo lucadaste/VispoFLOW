@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { COMPANY_ROLES, type UserProfile } from "@/lib/profile"
 import { SignaturePad } from "@/components/signature-pad"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { cn } from "@/lib/utils"
 
 const fieldClass =
@@ -44,23 +45,21 @@ export function ProfileForm({
 
       <div>
         <label className={labelClass}>Company address</label>
-        <textarea
+        <AddressAutocomplete
           value={form.companyAddress}
-          onChange={(e) => setForm((f) => ({ ...f, companyAddress: e.target.value }))}
-          rows={2}
+          onChange={(v) => setForm((f) => ({ ...f, companyAddress: v }))}
           placeholder="Street, City, State, ZIP"
-          className={`${fieldClass} resize-none`}
+          className={fieldClass}
         />
       </div>
 
       <div>
         <label className={labelClass}>Your personal / mailing address</label>
-        <textarea
+        <AddressAutocomplete
           value={form.personalAddress}
-          onChange={(e) => setForm((f) => ({ ...f, personalAddress: e.target.value }))}
-          rows={2}
+          onChange={(v) => setForm((f) => ({ ...f, personalAddress: v }))}
           placeholder="Street, City, State, ZIP"
-          className={`${fieldClass} resize-none`}
+          className={fieldClass}
         />
       </div>
 

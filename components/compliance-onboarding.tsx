@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send } from "lucide-react"
 import { BotMessage, UserMessage } from "@/components/chat-message"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { type FlowAnswers, initialAnswers } from "@/lib/flow"
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -136,15 +137,26 @@ export function ComplianceOnboarding({
             </div>
           )}
           <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-            <input
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-              placeholder={phase === "start" ? "Type a message…" : "Type your answer…"}
-              disabled={phase === "done"}
-              autoFocus={phase !== "start"}
-              className={`${fieldClass} disabled:opacity-60`}
-            />
+            {phase === "address" ? (
+              <AddressAutocomplete
+                value={value}
+                onChange={setValue}
+                onEnter={handleSubmit}
+                placeholder="Type your answer…"
+                className={fieldClass}
+                rows={1}
+              />
+            ) : (
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+                placeholder={phase === "start" ? "Type a message…" : "Type your answer…"}
+                disabled={phase === "done"}
+                autoFocus={phase !== "start"}
+                className={`${fieldClass} disabled:opacity-60`}
+              />
+            )}
             <button
               onClick={handleSubmit}
               disabled={!value.trim() || phase === "done"}

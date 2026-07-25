@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Send } from "lucide-react"
 import type { ChatField } from "@/lib/flow"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 
 /** One-at-a-time input for a single field in a conversational (chat mode) flow. */
 export function FieldComposer({
@@ -37,6 +38,13 @@ export function FieldComposer({
             value={value}
             placeholder={placeholder}
             onChange={(e) => setValue(e.target.value)}
+            className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+          />
+        ) : field.type === "address" ? (
+          <AddressAutocomplete
+            value={value}
+            onChange={setValue}
+            placeholder={placeholder}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         ) : (

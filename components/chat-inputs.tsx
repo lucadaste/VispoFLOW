@@ -18,6 +18,7 @@ import {
   type Allocation,
   AUTHORIZED_SHARES,
 } from "@/lib/flow"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { cn } from "@/lib/utils"
 
 const KNOWN_FOUNDERS: string[] = []
@@ -215,12 +216,7 @@ function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubm
         </div>
         <div>
           <label className={labelClass}>Mailing address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={2}
-            className={cn(fieldClass, "resize-none")}
-          />
+          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
         </div>
         <div className="flex justify-end">
           <SubmitButton onClick={submit} disabled={!name.trim() || !address.trim()} />
@@ -256,12 +252,7 @@ function RegisteredAgentInput({ onSubmit }: { onSubmit: SubmitFn }) {
         </div>
         <div>
           <label className={labelClass}>Registered agent Delaware address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={2}
-            className={cn(fieldClass, "resize-none")}
-          />
+          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
         </div>
         <div className="flex justify-end">
           <SubmitButton onClick={submit} disabled={!name.trim() || !address.trim()} />
@@ -280,12 +271,7 @@ function CorpAddressInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmi
       <div className="space-y-3">
         <div>
           <label className={labelClass}>Corporation's principal address</label>
-          <textarea
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            rows={2}
-            className={cn(fieldClass, "resize-none")}
-          />
+          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">No address yet? Buy one in the Compliance Center.</span>
