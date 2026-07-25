@@ -13,15 +13,18 @@ import {
   type ComplianceField,
   type FlowAnswers,
 } from "@/lib/flow"
+import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
+import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
   activeCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
   activeItemId: string | null
+  docs: Record<string, LibraryDoc>
 }
 
 type ChatMsg =
@@ -37,7 +40,7 @@ export function ComplianceView({
   onItemComplete,
 }: {
   answers: FlowAnswers
-  onItemComplete?: (doc: { id: string; title: string; subtitle: string }) => void
+  onItemComplete?: (doc: LibraryDoc) => void
 }) {
   const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
@@ -45,7 +48,9 @@ export function ComplianceView({
   const [expandedCategoryId, setExpandedCategoryId] = useState<ComplianceCategory["id"] | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Record<string, LibraryDoc>>({})
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -72,6 +77,7 @@ export function ComplianceView({
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
+    setDocs(saved.docs ?? {})
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
     setActiveItemId(null)
@@ -122,10 +128,11 @@ export function ComplianceView({
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
+      docs,
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -158,11 +165,18 @@ export function ComplianceView({
     setMobileOpen(false)
   }, [pushBot, pushUser])
 
-  const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string) => {
+  const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
+    const doc: LibraryDoc = {
+      id: item.id,
+      title: item.title,
+      subtitle: groupTitle,
+      content: renderComplianceDocument(item.id, values) ?? undefined,
+    }
     setCompleted((c) => ({ ...c, [item.id]: true }))
+    setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
     pushBot(`✓ ${item.title} has been saved. Select another filing from the right to continue, or ask me anything.`)
-    onItemComplete?.({ id: item.id, title: item.title, subtitle: groupTitle })
+    onItemComplete?.(doc)
   }, [pushBot, onItemComplete])
 
   const prefill = (key?: keyof FlowAnswers | "computed"): string => {
@@ -180,10 +194,12 @@ export function ComplianceView({
       activeCategory={activeCategory}
       expandedCategoryId={expandedCategoryId}
       completed={completed}
+      docs={docs}
       activeItemId={activeItemId}
       onItemClick={openItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
+      onViewClick={setViewingDoc}
     />
   )
 
@@ -209,7 +225,7 @@ export function ComplianceView({
                   groupTitle={m.groupTitle}
                   done={!!completed[m.item.id]}
                   prefill={prefill}
-                  onComplete={() => handleFilingComplete(m.item, m.groupTitle)}
+                  onComplete={(values) => handleFilingComplete(m.item, m.groupTitle, values)}
                   onInfoClick={() => setInfoItem(m.item)}
                 />
               )
@@ -270,6 +286,7 @@ export function ComplianceView({
       </MobileSidebarTab>
 
       {infoItem && <ComplianceInfoModal item={infoItem} onClose={() => setInfoItem(null)} />}
+      {viewingDoc && <DocumentViewer doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
     </div>
   )
 }
@@ -301,15 +318,17 @@ function ComplianceInfoModal({ item, onClose }: { item: ComplianceItem; onClose:
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick, onInfoClick,
+  activeCategory, expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
 }: {
   activeCategory: ComplianceCategory | null
   expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
+  docs: Record<string, LibraryDoc>
   activeItemId: string | null
   onItemClick: (item: ComplianceItem, groupTitle: string) => void
   onCategoryClick: (cat: ComplianceCategory) => void
   onInfoClick: (item: ComplianceItem) => void
+  onViewClick: (doc: LibraryDoc) => void
 }) {
   if (!activeCategory) {
     return (
@@ -360,17 +379,20 @@ function SidebarContent({
                       <ul className="space-y-0.5">
                         {group.items.map((item) => {
                           const done = !!completed[item.id]
+                          const doc = docs[item.id]
+                          const viewable = done && !!doc?.content
                           const isActive = activeItemId === item.id
+                          const handleClick = () => (viewable ? onViewClick(doc) : onItemClick(item, group.title))
                           return (
                             <li key={item.id}>
                               <div
                                 role="button"
                                 tabIndex={0}
-                                onClick={() => onItemClick(item, group.title)}
+                                onClick={handleClick}
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault()
-                                    onItemClick(item, group.title)
+                                    handleClick()
                                   }
                                 }}
                                 className={cn(
@@ -386,7 +408,16 @@ function SidebarContent({
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
                                   <div className="flex items-center gap-1">
-                                    <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
+                                    <p
+                                      className={cn(
+                                        "text-[12px] font-medium",
+                                        viewable
+                                          ? "text-foreground underline decoration-muted-foreground/30 underline-offset-2"
+                                          : done
+                                          ? "text-muted-foreground line-through"
+                                          : "text-foreground"
+                                      )}
+                                    >
                                       {item.title}
                                     </p>
                                     <button
@@ -402,7 +433,7 @@ function SidebarContent({
                                   </div>
                                   <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
                                     <CalendarClock className="h-2.5 w-2.5 shrink-0" />
-                                    <span className="truncate">{item.deadline}</span>
+                                    <span className="truncate">{viewable ? "View document" : item.deadline}</span>
                                   </p>
                                 </div>
                               </div>
@@ -431,7 +462,7 @@ function FilingFormCard({
   groupTitle: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
-  onComplete: () => void
+  onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -520,7 +551,7 @@ function FilingFormCard({
           {valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
         </p>
         <button
-          onClick={onComplete}
+          onClick={() => onComplete(values)}
           disabled={!valid}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
