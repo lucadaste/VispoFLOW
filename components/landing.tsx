@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { ArrowRight, Building2, ShieldCheck, ArrowLeftRight, FileText, UserRoundPen, Send } from "lucide-react"
+import { ArrowRight, Building2, ShieldCheck, ArrowLeftRight, FileText, UserRoundPen, Send, CheckCircle2 } from "lucide-react"
 import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { cn } from "@/lib/utils"
 
 type Path = "formation" | "compliance" | "transactions" | "documents" | "questions"
 type Message = { role: "user" | "assistant"; content: string }
@@ -99,6 +100,7 @@ export function Landing({
   transactionCount: number
   docsCount: number
 }) {
+  const incorporationDone = incorporationStatus.started && incorporationStatus.completed >= incorporationStatus.total
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
   const [value, setValue] = useState("")
@@ -134,60 +136,72 @@ export function Landing({
     : `${incorporationStatus.completed} of ${incorporationStatus.total} documents drafted`
 
   return (
-    <div className="flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
-      {/* The 4 core sections of the product, plus account access */}
-      <div className="w-full max-w-2xl shrink-0 space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <FeatureCard
-            icon={<Building2 className="h-5 w-5" />}
-            title="Incorporation"
-            description="Turn your startup into a legally incorporated Delaware C-Corp through a guided flow."
-            status={incorporationLabel}
-            onClick={() => onSelect("formation")}
-          />
-          <FeatureCard
-            icon={<ShieldCheck className="h-5 w-5" />}
-            title="Compliance"
-            description="Complete your required post-formation filings — EIN, 83(b), state registrations."
-            status={complianceCount === 0 ? "Not started" : `${plural(complianceCount, "filing")} completed`}
-            onClick={() => onSelect("compliance")}
-          />
-          <FeatureCard
-            icon={<ArrowLeftRight className="h-5 w-5" />}
-            title="Transactions"
-            description="Prepare documents for fundraising, equity grants, and other company transactions."
-            status={transactionCount === 0 ? "No documents yet" : `${plural(transactionCount, "document")} prepared`}
-            onClick={() => onSelect("transactions")}
-          />
-          <FeatureCard
-            icon={<FileText className="h-5 w-5" />}
-            title="My Docs"
-            description="Every document you've generated, in one place — view, sign, and download."
-            status={docsCount === 0 ? "No documents saved yet" : `${plural(docsCount, "document")} saved`}
-            onClick={() => onSelect("documents")}
-          />
-        </div>
+    <div className="relative flex flex-1 flex-col items-center bg-background px-4 pt-8 sm:px-6 overflow-hidden">
+      {/* Soft ambient color wash behind the whole page */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[480px] overflow-hidden">
+        <div className="absolute -top-32 left-1/2 h-[420px] w-[720px] -translate-x-1/2 rounded-full bg-gradient-to-br from-violet-400/25 via-indigo-300/15 to-transparent blur-3xl" />
+        <div className="absolute -top-20 left-[8%] h-64 w-64 rounded-full bg-amber-300/15 blur-3xl" />
+        <div className="absolute -top-10 right-[10%] h-64 w-64 rounded-full bg-sky-300/15 blur-3xl" />
+      </div>
 
-        <button
-          type="button"
-          onClick={onOpenProfile}
-          className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/50"
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <UserRoundPen className="h-4 w-4" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-foreground">
-              {profileComplete ? "Company info & signature" : "Save your company info and signature"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {profileComplete
-                ? "Saved to your account — reused to autofill your documents."
-                : "Set it up once and it'll autofill into your documents going forward."}
-            </p>
-          </div>
-          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-        </button>
+      <div className="w-full max-w-xl shrink-0 space-y-1 pb-1 text-center">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-primary/70">Your startup, on rails</p>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">Where do you want to start?</h1>
+      </div>
+
+      {/* Quick-access utility, pulled out of the main journey below */}
+      <button
+        type="button"
+        onClick={onOpenProfile}
+        className="group mt-4 inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary/40 hover:text-foreground"
+      >
+        <UserRoundPen className={cn("h-3.5 w-3.5", profileComplete ? "text-success" : "text-primary")} />
+        {profileComplete ? "Company info & signature saved" : "Save your company info and signature"}
+        <ArrowRight className="h-3 w-3 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5" />
+      </button>
+
+      {/* The guided path through the 4 core sections of the product */}
+      <div className="mt-6 w-full max-w-xl shrink-0">
+        {[
+          {
+            path: "formation" as const,
+            accent: "violet" as const,
+            icon: <Building2 className="h-5 w-5" />,
+            title: "Incorporation",
+            description: "Turn your startup into a legally incorporated Delaware C-Corp through a guided flow.",
+            status: incorporationLabel,
+            done: incorporationDone,
+          },
+          {
+            path: "compliance" as const,
+            accent: "emerald" as const,
+            icon: <ShieldCheck className="h-5 w-5" />,
+            title: "Compliance",
+            description: "Complete your required post-formation filings — EIN, 83(b), state registrations.",
+            status: complianceCount === 0 ? "Not started" : `${plural(complianceCount, "filing")} completed`,
+            done: complianceCount > 0,
+          },
+          {
+            path: "transactions" as const,
+            accent: "amber" as const,
+            icon: <ArrowLeftRight className="h-5 w-5" />,
+            title: "Transactions",
+            description: "Prepare documents for fundraising, equity grants, and other company transactions.",
+            status: transactionCount === 0 ? "No documents yet" : `${plural(transactionCount, "document")} prepared`,
+            done: transactionCount > 0,
+          },
+          {
+            path: "documents" as const,
+            accent: "sky" as const,
+            icon: <FileText className="h-5 w-5" />,
+            title: "My Docs",
+            description: "Every document you've generated, in one place — view, sign, and download.",
+            status: docsCount === 0 ? "No documents saved yet" : `${plural(docsCount, "document")} saved`,
+            done: docsCount > 0,
+          },
+        ].map((step, i, arr) => (
+          <StepRow key={step.path} {...step} isLast={i === arr.length - 1} onClick={() => onSelect(step.path)} />
+        ))}
       </div>
 
       {/* Divider — fixed */}
@@ -200,7 +214,7 @@ export function Landing({
       {/* Chat area — scrollable, grows with messages */}
       <div ref={chatRef} className="flex-1 overflow-y-auto w-full max-w-2xl py-5 space-y-4">
         <BotMessage>
-          Hi, I help guide founders through automated incorporation and legal compliance. Choose a section above, or feel free to ask me any questions you have before we begin.
+          Hi, I&apos;m your AI guide to getting a startup legally off the ground. Here&apos;s everything Vispo Labs can help with: incorporating a Delaware C-Corp, filing post-formation compliance (EIN, 83(b), state registrations), preparing transaction documents for fundraising and equity grants, and keeping every signed document organized in your Doc Library. Save your company info once and it autofills everywhere. Choose a section above, or ask me anything before we begin.
         </BotMessage>
 
         {messages.map((m, i) =>
@@ -242,35 +256,85 @@ export function Landing({
   )
 }
 
-function FeatureCard({
+const ACCENTS = {
+  violet: {
+    ring: "bg-violet-500/10 text-violet-600 group-hover:bg-violet-500/15",
+    line: "bg-violet-400",
+    status: "text-violet-600",
+    glow: "group-hover:shadow-violet-500/20",
+  },
+  emerald: {
+    ring: "bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-500/15",
+    line: "bg-emerald-400",
+    status: "text-emerald-600",
+    glow: "group-hover:shadow-emerald-500/20",
+  },
+  amber: {
+    ring: "bg-amber-500/10 text-amber-600 group-hover:bg-amber-500/15",
+    line: "bg-amber-400",
+    status: "text-amber-600",
+    glow: "group-hover:shadow-amber-500/20",
+  },
+  sky: {
+    ring: "bg-sky-500/10 text-sky-600 group-hover:bg-sky-500/15",
+    line: "bg-sky-400",
+    status: "text-sky-600",
+    glow: "group-hover:shadow-sky-500/20",
+  },
+} as const
+
+function StepRow({
   icon,
   title,
   description,
   status,
+  accent,
+  done,
+  isLast,
   onClick,
 }: {
   icon: React.ReactNode
   title: string
   description: string
   status: string
+  accent: keyof typeof ACCENTS
+  done: boolean
+  isLast: boolean
   onClick: () => void
 }) {
+  const colors = ACCENTS[accent]
   return (
     <button
       onClick={onClick}
-      className="group flex flex-col gap-2.5 rounded-xl border border-border bg-card p-4 text-left shadow-sm transition-all hover:border-primary/50 hover:shadow-md"
+      className="group flex w-full items-stretch gap-4 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-card"
     >
-      <div className="flex items-start justify-between">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      {/* Node + connecting rail */}
+      <div className="flex flex-col items-center">
+        <span
+          className={cn(
+            "flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-sm ring-4 ring-background transition-all group-hover:scale-105 group-hover:shadow-lg",
+            colors.ring,
+            colors.glow,
+          )}
+        >
           {icon}
+        </span>
+        {!isLast && (
+          <span className={cn("mt-1 w-0.5 flex-1 rounded-full transition-colors", done ? colors.line : "bg-border")} />
+        )}
+      </div>
+
+      <div className="min-w-0 flex-1 pb-3 pt-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
-        <ArrowRight className="h-4 w-4 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-foreground">{title}</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
+        <p className={cn("mt-1.5 flex items-center gap-1 text-[11px] font-medium", done ? colors.status : "text-muted-foreground")}>
+          {done && <CheckCircle2 className="h-3 w-3" />}
+          {status}
+        </p>
       </div>
-      <p className="text-[11px] font-medium text-primary">{status}</p>
     </button>
   )
 }
