@@ -15,8 +15,8 @@ export function getChatFields(
     case "incorporator":
       return {
         fields: [
-          { name: "incorporatorName", label: "Your full name" },
-          { name: "incorporatorAddress", label: "Mailing address", type: "textarea" },
+          { name: "incorporatorName", label: "What's your full name?" },
+          { name: "incorporatorAddress", label: "What's your mailing address?", type: "textarea" },
         ],
         defaults: {
           incorporatorName: answers.incorporatorName,
@@ -26,8 +26,8 @@ export function getChatFields(
     case "registeredAgent":
       return {
         fields: [
-          { name: "registeredAgentName", label: "Registered agent name", placeholder: "e.g. Corporation Service Company" },
-          { name: "registeredAgentAddress", label: "Registered agent Delaware address", type: "textarea" },
+          { name: "registeredAgentName", label: "Who's serving as your registered agent?", placeholder: "e.g. Corporation Service Company" },
+          { name: "registeredAgentAddress", label: "What's the registered agent's Delaware address?", type: "textarea" },
         ],
         defaults: {},
       }
@@ -35,22 +35,20 @@ export function getChatFields(
       return {
         fields: Array.from({ length: answers.directorCount }, (_, i) => ({
           name: `director_${i}`,
-          label: `Director ${i + 1}`,
+          label: `What is the name of director ${i + 1}?`,
         })),
         defaults: {},
       }
     case "officers":
       return {
         fields: [
-          { name: "CEO", label: "CEO name" },
-          { name: "CFO", label: "CFO name" },
-          { name: "Secretary", label: "Secretary name" },
+          { name: "CEO", label: "Who will be the CEO?" },
+          { name: "CFO", label: "Who will be the CFO?" },
+          { name: "Secretary", label: "Who will be the Secretary?" },
         ],
-        defaults: {
-          CEO: answers.directors[1] ?? "",
-          CFO: answers.directors[0] ?? "",
-          Secretary: "",
-        },
+        // Director order doesn't reliably predict who holds which officer title, so unlike
+        // the fields above, these are deliberately left blank rather than guessed.
+        defaults: { CEO: "", CFO: "", Secretary: "" },
       }
     case "allocations": {
       const founders = answers.directors.length ? answers.directors : ["Founder"]
@@ -58,7 +56,7 @@ export function getChatFields(
       return {
         fields: founders.map((name, i) => ({
           name: `alloc_${i}`,
-          label: `${name} — how many shares?`,
+          label: `How many shares will ${name} hold?`,
           placeholder: String(founderDefault),
           hint: `Suggested: ${founderDefault.toLocaleString()} shares. The remainder goes to the option pool.`,
         })),
