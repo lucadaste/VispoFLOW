@@ -432,10 +432,13 @@ function DirectorNamesInput({ answers, onSubmit }: { answers: FlowAnswers; onSub
 /* ---------- officers ---------- */
 
 function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
+  // Only prefilled when the signer's saved profile says they actually hold that title —
+  // director order doesn't reliably predict who's CEO/CFO/Secretary, so no more guessing.
+  const savedName = (title: string) => answers.officers.find((o) => o.title === title)?.name ?? ""
   const defaults: Record<string, string> = {
-    CEO: answers.directors[1] ?? "",
-    CFO: answers.directors[0] ?? "",
-    Secretary: "",
+    CEO: savedName("CEO"),
+    CFO: savedName("CFO"),
+    Secretary: savedName("Secretary"),
   }
   const [officers, setOfficers] = useState<Officer[]>([
     { title: "CEO", name: defaults.CEO },

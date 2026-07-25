@@ -39,17 +39,19 @@ export function getChatFields(
         })),
         defaults: {},
       }
-    case "officers":
+    case "officers": {
+      // Only prefilled when the signer's saved profile says they actually hold that title —
+      // director order doesn't reliably predict who's CEO/CFO/Secretary, so no more guessing.
+      const savedName = (title: string) => answers.officers.find((o) => o.title === title)?.name ?? ""
       return {
         fields: [
           { name: "CEO", label: "Who will be the CEO?" },
           { name: "CFO", label: "Who will be the CFO?" },
           { name: "Secretary", label: "Who will be the Secretary?" },
         ],
-        // Director order doesn't reliably predict who holds which officer title, so unlike
-        // the fields above, these are deliberately left blank rather than guessed.
-        defaults: { CEO: "", CFO: "", Secretary: "" },
+        defaults: { CEO: savedName("CEO"), CFO: savedName("CFO"), Secretary: savedName("Secretary") },
       }
+    }
     case "allocations": {
       const founders = answers.directors.length ? answers.directors : ["Founder"]
       const founderDefault = Math.floor((AUTHORIZED_SHARES * 0.8) / founders.length)
@@ -57,10 +59,12 @@ export function getChatFields(
         fields: founders.map((name, i) => ({
           name: `alloc_${i}`,
           label: `How many shares will ${name} hold?`,
+          // A computed even split, shown only as a placeholder/hint (never pre-filled as a
+          // real value) — it's a suggestion, not data from the profile or an earlier answer.
           placeholder: String(founderDefault),
           hint: `Suggested: ${founderDefault.toLocaleString()} shares. The remainder goes to the option pool.`,
         })),
-        defaults: Object.fromEntries(founders.map((_, i) => [`alloc_${i}`, String(founderDefault)])),
+        defaults: {},
       }
     }
     default:
