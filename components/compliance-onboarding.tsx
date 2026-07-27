@@ -38,6 +38,9 @@ const START_RESPONSES: Record<string, string> = {
 const fieldClass =
   "flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
 
+const addressFieldClass =
+  "w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+
 export function ComplianceOnboarding({
   onComplete,
 }: {
@@ -136,16 +139,18 @@ export function ComplianceOnboarding({
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+          <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
             {phase === "address" ? (
-              <AddressAutocomplete
-                value={value}
-                onChange={setValue}
-                onEnter={handleSubmit}
-                placeholder="Type your answer…"
-                className={fieldClass}
-                rows={1}
-              />
+              <div className="flex-1">
+                <AddressAutocomplete
+                  value={value}
+                  onChange={setValue}
+                  onEnter={handleSubmit}
+                  placeholder="Type your answer…"
+                  className={addressFieldClass}
+                  rows={1}
+                />
+              </div>
             ) : (
               <input
                 value={value}

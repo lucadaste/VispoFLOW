@@ -336,6 +336,12 @@ export function IncorporationApp() {
 
   const handleComplianceDocComplete = useCallback((doc: LibraryDoc) => {
     setComplianceDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs.map((d) => (d.id === doc.id ? doc : d)) : [...docs, doc]))
+    setHiddenDocIds((ids) => {
+      if (!ids[doc.id]) return ids
+      const next = { ...ids }
+      delete next[doc.id]
+      return next
+    })
   }, [])
 
   // "Delete & restart" from the sidebar preview: remove the old doc (and any signature/hidden
@@ -414,6 +420,12 @@ export function IncorporationApp() {
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
     setTransactionDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs.map((d) => (d.id === doc.id ? doc : d)) : [...docs, doc]))
+    setHiddenDocIds((ids) => {
+      if (!ids[doc.id]) return ids
+      const next = { ...ids }
+      delete next[doc.id]
+      return next
+    })
   }, [])
 
   // "Delete & restart" from the sidebar preview: remove the old doc (and any signature/hidden

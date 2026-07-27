@@ -421,16 +421,18 @@ export function ComplianceView({
 
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
               {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
-                <AddressAutocomplete
-                  value={value}
-                  onChange={setValue}
-                  onEnter={handleSend}
-                  placeholder="Type your answer, or ask a question…"
-                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                  rows={1}
-                />
+                <div className="flex-1">
+                  <AddressAutocomplete
+                    value={value}
+                    onChange={setValue}
+                    onEnter={handleSend}
+                    placeholder="Type your answer, or ask a question…"
+                    className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                    rows={1}
+                  />
+                </div>
               ) : (
                 <input
                   value={value}

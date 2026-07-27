@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { MapPin } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -27,7 +27,17 @@ export function AddressAutocomplete({
   const [loading, setLoading] = useState(false)
   const [open, setOpen] = useState(false)
   const [highlighted, setHighlighted] = useState(0)
+  const [dropUp, setDropUp] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Grow the textarea to fit wrapped text instead of clipping it to `rows`.
+  useLayoutEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }, [value])
 
   useEffect(() => {
     const text = value.trim()
@@ -76,9 +86,19 @@ export function AddressAutocomplete({
 
   const showDropdown = open && (suggestions.length > 0 || (loading && value.trim().length >= 3))
 
+  // Flip the dropdown above the field when there isn't enough room below (e.g. a chat
+  // composer pinned near the bottom of the viewport), so suggestions don't render off-page.
+  useLayoutEffect(() => {
+    if (!showDropdown || !containerRef.current) return
+    const rect = containerRef.current.getBoundingClientRect()
+    const estimatedHeight = Math.min(suggestions.length || 1, 5) * 40 + 8
+    setDropUp(window.innerHeight - rect.bottom < estimatedHeight && rect.top > estimatedHeight)
+  }, [showDropdown, suggestions.length])
+
   return (
     <div ref={containerRef} className="relative">
       <textarea
+        ref={textareaRef}
         value={value}
         rows={rows}
         placeholder={placeholder}
@@ -111,10 +131,15 @@ export function AddressAutocomplete({
             select(suggestions[highlighted])
           }
         }}
-        className={cn(className, "resize-none")}
+        className={cn(className, "resize-none overflow-hidden")}
       />
       {showDropdown && (
-        <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+        <ul
+          className={cn(
+            "absolute z-20 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg",
+            dropUp ? "bottom-full mb-1" : "top-full mt-1",
+          )}
+        >
           {suggestions.length === 0 && (
             <li className="px-3 py-2 text-sm text-muted-foreground">Searching…</li>
           )}

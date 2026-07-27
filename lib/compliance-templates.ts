@@ -126,9 +126,63 @@ Date signed: ${today()}
 This election must be mailed to the IRS office where the taxpayer files their federal income tax return, no later than 30 days after the date in Box 3, with a copy provided to ${v.companyName || "the company"}.`
 }
 
+function caQualification(v: Record<string, string>): string {
+  return `CALIFORNIA SECRETARY OF STATE — FORM S&DC-S/N
+STATEMENT AND DESIGNATION BY FOREIGN CORPORATION
+
+Prepared for: ${v.companyName}
+Date prepared: ${today()}
+
+Must be submitted together with a current Certificate of Good Standing issued by the government agency where the corporation was formed.
+
+1. Corporate name
+${v.companyName}
+
+2. Jurisdiction (state, foreign country, or place where this corporation is formed — must match the Certificate of Good Standing provided)
+${v.stateOfIncorp}
+
+3. Business addresses
+   a. Principal executive office (do not enter a P.O. box)
+      ${v.principalAddress}
+   b. Street address of principal office in California, if any (do not enter a P.O. box)
+      ${v.caAddress || "N/A — no California office"}
+
+5. Read and sign
+I am a corporate officer and am authorized to sign on behalf of the foreign corporation.
+
+
+_________________________
+${v.ceoName}
+Chief Executive Officer
+Date: ${today()}`
+}
+
+function caRegisteredAgent(v: Record<string, string>): string {
+  return `CALIFORNIA SECRETARY OF STATE — FORM S&DC-S/N
+DESIGNATION OF AGENT FOR SERVICE OF PROCESS (ITEM 4)
+
+Prepared for: ${v.companyName}
+Date prepared: ${today()}
+
+This designation is filed as part of the Statement and Designation by Foreign Corporation (Form S&DC-S/N) submitted to the California Secretary of State, and appoints the agent named below to accept service of process on behalf of ${v.companyName} in California.
+
+4. California agent for service of process
+Name: ${v.agentName}
+California street address: ${v.agentAddress}
+
+Note: if the designated agent is itself a corporation authorized to act as agent for service of process in California, only its name is required on the form (Item 4c) and no street address is listed (Items 4a/4b are left blank in that case). If the agent is a natural person, both name and street address are required (Items 4a and 4b).
+
+
+_________________________
+${v.companyName}, by its authorized officer
+Date: ${today()}`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   ein,
   "83b": eightyThreeB,
+  "ca-qualification": caQualification,
+  "ca-registered-agent": caRegisteredAgent,
 }
 
 /** Renders the filled document for a completed compliance filing, from its submitted field
