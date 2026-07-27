@@ -66,11 +66,13 @@ function prefillValue(answers: FlowAnswers, key?: keyof FlowAnswers | "computed"
 export function ComplianceView({
   answers,
   onItemComplete,
+  onItemDeleted,
   startExpanded = false,
   onGoToLibrary,
 }: {
   answers: FlowAnswers
   onItemComplete?: (doc: LibraryDoc) => void
+  onItemDeleted?: (id: string) => void
   startExpanded?: boolean
   onGoToLibrary?: () => void
 }) {
@@ -499,6 +501,15 @@ export function ComplianceView({
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
+            setCompleted((c) => {
+              const { [item.id]: _removed, ...rest } = c
+              return rest
+            })
+            setDocs((d) => {
+              const { [item.id]: _removed, ...rest } = d
+              return rest
+            })
+            onItemDeleted?.(item.id)
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}

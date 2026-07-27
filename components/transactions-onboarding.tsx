@@ -53,10 +53,12 @@ const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 
 export function TransactionsOnboarding({
   answers = initialAnswers,
   onDocumentReady,
+  onItemDeleted,
   onGoToLibrary,
 }: {
   answers?: FlowAnswers
   onDocumentReady?: (doc: LibraryDoc) => void
+  onItemDeleted?: (id: string) => void
   onGoToLibrary?: () => void
 } = {}) {
   const { user, isSignedIn } = useUser()
@@ -411,6 +413,14 @@ export function TransactionsOnboarding({
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
+            setCompleted((c) => {
+              const { [item.id]: _removed, ...rest } = c
+              return rest
+            })
+            setDocs((d) => {
+              const { [item.id]: _removed, ...rest } = d
+              return rest
+            })
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}

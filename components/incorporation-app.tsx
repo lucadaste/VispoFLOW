@@ -48,6 +48,46 @@ import { ProfileSettingsModal } from "@/components/profile-settings-modal"
 import { SignedOutGate } from "@/components/signed-out-gate"
 import { cn } from "@/lib/utils"
 
+/** Shape shared by CompliancePersisted/TransactionsPersisted — the bits Document Library
+ *  deletion/restoration needs to keep in sync, even while that flow's own view isn't mounted. */
+type FlowPersistedShape = { completed: Record<string, boolean>; docs: Record<string, LibraryDoc> }
+
+function clearItemInPersisted(key: string, id: string) {
+  const saved = loadPersisted<FlowPersistedShape>(key)
+  if (saved && (saved.completed[id] || saved.docs[id])) {
+    delete saved.completed[id]
+    delete saved.docs[id]
+    savePersisted(key, saved)
+  }
+}
+
+async function clearItemOnServer(key: string, id: string) {
+  const saved = await loadFromServer<FlowPersistedShape>(key)
+  if (saved && (saved.completed[id] || saved.docs[id])) {
+    delete saved.completed[id]
+    delete saved.docs[id]
+    saveToServer(key, saved)
+  }
+}
+
+function restoreItemInPersisted(key: string, doc: LibraryDoc) {
+  const saved = loadPersisted<FlowPersistedShape>(key)
+  if (saved) {
+    saved.completed[doc.id] = true
+    saved.docs[doc.id] = doc
+    savePersisted(key, saved)
+  }
+}
+
+async function restoreItemOnServer(key: string, doc: LibraryDoc) {
+  const saved = await loadFromServer<FlowPersistedShape>(key)
+  if (saved) {
+    saved.completed[doc.id] = true
+    saved.docs[doc.id] = doc
+    saveToServer(key, saved)
+  }
+}
+
 type ChatMessage =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
@@ -251,12 +291,45 @@ export function IncorporationApp() {
   }
 
   const handleComplianceDocComplete = useCallback((doc: LibraryDoc) => {
-    setComplianceDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs : [...docs, doc]))
+    setComplianceDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs.map((d) => (d.id === doc.id ? doc : d)) : [...docs, doc]))
   }, [])
+
+  // "Delete & restart" from the sidebar preview: remove the old doc (and any signature/hidden
+  // state tied to it) right away, rather than waiting for the redo to finish and overwrite it.
+  const handleComplianceDocDeleted = useCallback((id: string) => {
+    setComplianceDocs((docs) => docs.filter((d) => d.id !== id))
+    setSignedDocs((docs) => {
+      if (!docs[id]) return docs
+      const next = { ...docs }
+      delete next[id]
+      return next
+    })
+    setHiddenDocIds((ids) => {
+      if (!ids[id]) return ids
+      const next = { ...ids }
+      delete next[id]
+      return next
+    })
+  }, [])
+
+  // Deleting from the Document Library only hides the doc there (restorable) — but the
+  // Compliance/Transactions flow that produced it isn't mounted right now, so its own
+  // "completed" record has to be patched directly in storage or it'll still show as done
+  // next time that flow is opened. Restoring undoes exactly this.
+  const flowStorageKeyFor = useCallback((id: string): string | null => {
+    if (complianceDocs.some((d) => d.id === id)) return STORAGE_KEYS.compliance
+    if (transactionDocs.some((d) => d.id === id)) return STORAGE_KEYS.transactions
+    return null
+  }, [complianceDocs, transactionDocs])
 
   const handleDeleteLibraryDoc = useCallback((doc: LibraryDoc) => {
     setHiddenDocIds((ids) => ({ ...ids, [doc.id]: true }))
-  }, [])
+    const key = flowStorageKeyFor(doc.id)
+    if (key) {
+      clearItemInPersisted(key, doc.id)
+      if (isSignedIn) clearItemOnServer(key, doc.id)
+    }
+  }, [flowStorageKeyFor, isSignedIn])
 
   const handleRestoreLibraryDoc = useCallback((doc: LibraryDoc) => {
     setHiddenDocIds((ids) => {
@@ -264,7 +337,12 @@ export function IncorporationApp() {
       delete next[doc.id]
       return next
     })
-  }, [])
+    const key = flowStorageKeyFor(doc.id)
+    if (key) {
+      restoreItemInPersisted(key, doc)
+      if (isSignedIn) restoreItemOnServer(key, doc)
+    }
+  }, [flowStorageKeyFor, isSignedIn])
 
   const handleSignLibraryDoc = useCallback(
     (doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string; roles?: string[] }) => {
@@ -288,7 +366,25 @@ export function IncorporationApp() {
   )
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
-    setTransactionDocs((docs) => [...docs, doc])
+    setTransactionDocs((docs) => (docs.some((d) => d.id === doc.id) ? docs.map((d) => (d.id === doc.id ? doc : d)) : [...docs, doc]))
+  }, [])
+
+  // "Delete & restart" from the sidebar preview: remove the old doc (and any signature/hidden
+  // state tied to it) right away, rather than waiting for the redo to finish and overwrite it.
+  const handleTransactionDocDeleted = useCallback((id: string) => {
+    setTransactionDocs((docs) => docs.filter((d) => d.id !== id))
+    setSignedDocs((docs) => {
+      if (!docs[id]) return docs
+      const next = { ...docs }
+      delete next[id]
+      return next
+    })
+    setHiddenDocIds((ids) => {
+      if (!ids[id]) return ids
+      const next = { ...ids }
+      delete next[id]
+      return next
+    })
   }, [])
 
   const handleLandingSelect = (
@@ -817,6 +913,7 @@ export function IncorporationApp() {
             key={complianceKey}
             answers={effectiveAnswers}
             onItemComplete={handleComplianceDocComplete}
+            onItemDeleted={handleComplianceDocDeleted}
             startExpanded={complianceFromFlow}
             onGoToLibrary={() => handlePhaseClick("documents")}
           />
@@ -827,6 +924,7 @@ export function IncorporationApp() {
             key={transactionsKey}
             answers={effectiveAnswers}
             onDocumentReady={handleTransactionDocReady}
+            onItemDeleted={handleTransactionDocDeleted}
             onGoToLibrary={() => handlePhaseClick("documents")}
           />
         </SignedOutGate>
