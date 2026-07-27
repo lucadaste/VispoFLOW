@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { FileText } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -74,6 +74,18 @@ type IncorporationPersisted = {
 
 type SignatureStamp = { signatureDataUrl: string; signerName: string; signerRoles?: string[]; signedAt: string }
 
+type SignRequest = {
+  id: string
+  docId: string
+  recipientEmail: string
+  recipientName: string | null
+  status: "sent" | "viewed" | "signed"
+  signerName: string | null
+  signerRoles: string[] | null
+  signatureDataUrl: string | null
+  signedAt: string | null
+}
+
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
@@ -111,6 +123,7 @@ export function IncorporationApp() {
   const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
   const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
   const [signedDocs, setSignedDocs] = useState<Record<string, SignatureStamp>>({})
+  const [signRequests, setSignRequests] = useState<SignRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Gate the "save" effects below on these (state, not refs) so a save can never fire
   // with the pre-load initial values — see the comment on the library save effect.
@@ -169,6 +182,65 @@ export function IncorporationApp() {
     savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
   }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
+
+  // Refresh outstanding "sent to sign" requests whenever the Doc Library is open, so a
+  // document signed elsewhere (by the recipient) shows up without a manual reload.
+  useEffect(() => {
+    if (!isSignedIn || view !== "documents") return
+    fetch("/api/sign-requests")
+      .then((r) => r.json())
+      .then((data) => setSignRequests(data.requests ?? []))
+      .catch(() => {})
+  }, [isSignedIn, view])
+
+  // Once a sent-out request comes back signed, fold it into signedDocs exactly like a
+  // self-signed doc so downloads/rendering treat it the same way.
+  useEffect(() => {
+    for (const req of signRequests) {
+      if (req.status !== "signed" || !req.signerName || !req.signatureDataUrl || !req.signedAt) continue
+      if (signedDocs[req.docId]?.signedAt === req.signedAt) continue
+      setSignedDocs((docs) => ({
+        ...docs,
+        [req.docId]: {
+          signatureDataUrl: req.signatureDataUrl!,
+          signerName: req.signerName!,
+          signerRoles: req.signerRoles ?? undefined,
+          signedAt: req.signedAt!,
+        },
+      }))
+    }
+  }, [signRequests, signedDocs])
+
+  const pendingSignRequestsByDocId = useMemo(() => {
+    const map: Record<string, { recipientEmail: string; recipientName?: string | null }> = {}
+    for (const req of signRequests) {
+      if (req.status === "signed") continue
+      map[req.docId] = { recipientEmail: req.recipientEmail, recipientName: req.recipientName }
+    }
+    return map
+  }, [signRequests])
+
+  const handleSendToSign = useCallback(
+    async (doc: LibraryDoc, payload: { recipientEmail: string; recipientName?: string }) => {
+      const res = await fetch("/api/sign-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          docId: doc.id,
+          docTitle: doc.title,
+          docContent: doc.content ?? "",
+          recipientEmail: payload.recipientEmail,
+          recipientName: payload.recipientName,
+          senderCompanyName: effectiveAnswers.companyName,
+        }),
+      })
+      if (res.ok) {
+        const { request } = await res.json()
+        setSignRequests((reqs) => [...reqs, request])
+      }
+    },
+    [effectiveAnswers.companyName],
+  )
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -762,11 +834,13 @@ export function IncorporationApp() {
           onDelete={handleDeleteLibraryDoc}
           onRestore={handleRestoreLibraryDoc}
           onSign={handleSignLibraryDoc}
+          onSendToSign={handleSendToSign}
           savedSignature={
             profile.signatureDataUrl
               ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName, roles: profile.roles }
               : null
           }
+          pendingSignRequests={pendingSignRequestsByDocId}
         />
       )}
 

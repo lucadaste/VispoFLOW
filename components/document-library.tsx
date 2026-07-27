@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, findSignatureLineIndex, fillCompanyExecutionBlock, formatSignedDate } from "@/lib/signature"
@@ -26,6 +26,9 @@ export type LibraryDoc = {
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[] }
+type SendToSignPayload = { recipientEmail: string; recipientName?: string }
+/** The most recent outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
+export type PendingSignRequest = { recipientEmail: string; recipientName?: string | null }
 
 /** The document text as actually signed — blank Name:/Title: lines in a company execution block
  *  filled in from the signer's roles, so the printed block matches who's signing. */
@@ -302,7 +305,9 @@ export function DocumentLibrary({
   onDelete,
   onRestore,
   onSign,
+  onSendToSign,
   savedSignature,
+  pendingSignRequests = {},
 }: {
   companyName?: string
   incorporationDocs: LibraryDoc[]
@@ -312,7 +317,9 @@ export function DocumentLibrary({
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
+  pendingSignRequests?: Record<string, PendingSignRequest>
 }) {
   const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
   const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
@@ -348,7 +355,9 @@ export function DocumentLibrary({
             onDelete={onDelete}
             onRestore={onRestore}
             onSign={handleSign}
+            onSendToSign={onSendToSign}
             savedSignature={savedSignature}
+            pendingSignRequests={pendingSignRequests}
           />
           <DocSection
             icon={ShieldCheck}
@@ -361,7 +370,9 @@ export function DocumentLibrary({
             onDelete={onDelete}
             onRestore={onRestore}
             onSign={handleSign}
+            onSendToSign={onSendToSign}
             savedSignature={savedSignature}
+            pendingSignRequests={pendingSignRequests}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -374,7 +385,9 @@ export function DocumentLibrary({
             onDelete={onDelete}
             onRestore={onRestore}
             onSign={handleSign}
+            onSendToSign={onSendToSign}
             savedSignature={savedSignature}
+            pendingSignRequests={pendingSignRequests}
           />
         </div>
       </div>
@@ -384,7 +397,9 @@ export function DocumentLibrary({
           doc={viewing}
           onClose={() => setViewing(null)}
           onSign={handleSign}
+          onSendToSign={onSendToSign}
           savedSignature={savedSignature}
+          pendingSignRequest={pendingSignRequests[viewing.id]}
         />
       )}
     </div>
@@ -402,7 +417,9 @@ function DocSection({
   onDelete,
   onRestore,
   onSign,
+  onSendToSign,
   savedSignature,
+  pendingSignRequests,
 }: {
   icon: LucideIcon
   title: string
@@ -414,7 +431,9 @@ function DocSection({
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
+  pendingSignRequests: Record<string, PendingSignRequest>
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const visible = docs.filter((d) => !d.hidden)
@@ -446,7 +465,16 @@ function DocSection({
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((doc) => (
-            <DocCard key={doc.id} doc={doc} onView={onView} onDelete={onDelete} onSign={onSign} savedSignature={savedSignature} />
+            <DocCard
+              key={doc.id}
+              doc={doc}
+              onView={onView}
+              onDelete={onDelete}
+              onSign={onSign}
+              onSendToSign={onSendToSign}
+              savedSignature={savedSignature}
+              pendingSignRequest={pendingSignRequests[doc.id]}
+            />
           ))}
         </div>
       )}
@@ -553,18 +581,90 @@ function SignButton({
   )
 }
 
+function SendToSignButton({
+  doc,
+  onSendToSign,
+  variant = "icon",
+}: {
+  doc: LibraryDoc
+  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  variant?: "icon" | "full"
+}) {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+
+  const send = () => {
+    if (!email.trim()) return
+    onSendToSign(doc, { recipientEmail: email.trim(), recipientName: name.trim() || undefined })
+    setOpen(false)
+    setEmail("")
+    setName("")
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Send to sign"
+        className={
+          variant === "icon"
+            ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+        }
+      >
+        <Mail className="h-3.5 w-3.5" />
+        {variant === "full" && "Send to sign"}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 w-72 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
+            <p className="text-xs font-medium text-foreground">Send for e-signature</p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="recipient@email.com"
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+            />
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Their name (optional)"
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+            />
+            <button
+              onClick={send}
+              disabled={!email.trim()}
+              className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+            >
+              Send signing link
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function DocCard({
   doc,
   onView,
   onDelete,
   onSign,
+  onSendToSign,
   savedSignature,
+  pendingSignRequest,
 }: {
   doc: LibraryDoc
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
+  pendingSignRequest?: PendingSignRequest
 }) {
   const [confirming, setConfirming] = useState(false)
   const [formatMenuOpen, setFormatMenuOpen] = useState(false)
@@ -622,11 +722,17 @@ function DocCard({
         ) : viewable ? (
           <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
         ) : null}
+        {!doc.signed && pendingSignRequest && (
+          <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">
+            Sent to {pendingSignRequest.recipientName || pendingSignRequest.recipientEmail} — awaiting signature
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1">
         {viewable && !doc.signed && (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
             <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} />
+            {onSendToSign && <SendToSignButton doc={doc} onSendToSign={onSendToSign} />}
           </div>
         )}
         {downloadable && (
@@ -729,12 +835,16 @@ export function DocumentViewer({
   doc,
   onClose,
   onSign,
+  onSendToSign,
   savedSignature = null,
+  pendingSignRequest,
 }: {
   doc: LibraryDoc
   onClose: () => void
   onSign?: (doc: LibraryDoc, signature: SignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature?: SavedSignature | null
+  pendingSignRequest?: PendingSignRequest
 }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -744,10 +854,18 @@ export function DocumentViewer({
           <div className="pr-4">
             <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
             <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
+            {!doc.signed && pendingSignRequest && (
+              <p className="mt-1 text-[11px] font-medium text-muted-foreground">
+                Sent to {pendingSignRequest.recipientName || pendingSignRequest.recipientEmail} — awaiting signature
+              </p>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {doc.content && !doc.signed && onSign && (
               <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} variant="full" />
+            )}
+            {doc.content && !doc.signed && onSendToSign && (
+              <SendToSignButton doc={doc} onSendToSign={onSendToSign} variant="full" />
             )}
             <button
               onClick={onClose}

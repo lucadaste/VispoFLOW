@@ -85,6 +85,11 @@ export function ComplianceView({
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
   const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
+  const [switchConfirm, setSwitchConfirm] = useState<
+    | { mode: "restart"; item: ComplianceItem; groupTitle: string }
+    | { mode: "abandon"; fromItem: ComplianceItem; item: ComplianceItem; groupTitle: string }
+    | null
+  >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -320,13 +325,26 @@ export function ComplianceView({
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
 
+  // Guard against accidentally interrupting a filing that's already open: re-clicking the
+  // same in-progress item asks to restart it, clicking a different one asks to abandon it.
+  const requestOpenItem = useCallback((item: ComplianceItem, groupTitle: string) => {
+    if (!activeItemId) return openItem(item, groupTitle)
+    if (activeItemId === item.id) {
+      setSwitchConfirm({ mode: "restart", item, groupTitle })
+      return
+    }
+    const fromItem = allItems.find((i) => i.id === activeItemId)
+    if (!fromItem) return openItem(item, groupTitle)
+    setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
+  }, [activeItemId, allItems, openItem])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
       completed={completed}
       docs={docs}
       activeItemId={activeItemId}
-      onItemClick={openItem}
+      onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onViewClick={setViewingDoc}
@@ -472,6 +490,23 @@ export function ComplianceView({
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}
+        />
+      )}
+      {switchConfirm && (
+        <ConfirmModal
+          title={switchConfirm.mode === "restart" ? "Restart this filing?" : "Switch filings?"}
+          description={
+            switchConfirm.mode === "restart"
+              ? `You're partway through "${switchConfirm.item.title}". Continuing will restart it from the first question.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Switching to "${switchConfirm.item.title}" will abandon your progress on it.`
+          }
+          confirmLabel={switchConfirm.mode === "restart" ? "Restart filing" : "Switch filing"}
+          onConfirm={() => {
+            const { item, groupTitle } = switchConfirm
+            setSwitchConfirm(null)
+            openItem(item, groupTitle)
+          }}
+          onCancel={() => setSwitchConfirm(null)}
         />
       )}
     </div>

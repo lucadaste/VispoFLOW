@@ -44,7 +44,9 @@ export function FieldComposer({
           <AddressAutocomplete
             value={value}
             onChange={setValue}
+            onEnter={() => canSubmit && onSubmit(value)}
             placeholder={placeholder}
+            rows={1}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         ) : (

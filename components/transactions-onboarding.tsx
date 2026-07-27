@@ -66,6 +66,11 @@ export function TransactionsOnboarding({
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<TransactionItem | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
+  const [switchConfirm, setSwitchConfirm] = useState<
+    | { mode: "restart"; item: TransactionItem; groupTitle: string }
+    | { mode: "abandon"; fromItem: TransactionItem; item: TransactionItem; groupTitle: string }
+    | null
+  >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -230,13 +235,26 @@ export function TransactionsOnboarding({
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
 
+  // Guard against accidentally interrupting a document that's already open: re-clicking the
+  // same in-progress item asks to restart it, clicking a different one asks to abandon it.
+  const requestOpenItem = useCallback((item: TransactionItem, groupTitle: string) => {
+    if (!activeItemId) return openItem(item, groupTitle)
+    if (activeItemId === item.id) {
+      setSwitchConfirm({ mode: "restart", item, groupTitle })
+      return
+    }
+    const fromItem = allItems.find((i) => i.id === activeItemId)
+    if (!fromItem) return openItem(item, groupTitle)
+    setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
+  }, [activeItemId, allItems, openItem])
+
   const sidebarContent = (
     <SidebarContent
       activeCategory={activeCategory}
       expandedCategoryId={expandedCategoryId}
       completed={completed}
       activeItemId={activeItemId}
-      onItemClick={openItem}
+      onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onRedoRequest={(item, groupTitle) => setRedoConfirm({ item, groupTitle })}
@@ -373,6 +391,23 @@ export function TransactionsOnboarding({
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}
+        />
+      )}
+      {switchConfirm && (
+        <ConfirmModal
+          title={switchConfirm.mode === "restart" ? "Restart this document?" : "Switch documents?"}
+          description={
+            switchConfirm.mode === "restart"
+              ? `You're partway through "${switchConfirm.item.title}". Continuing will restart it from the first question.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Switching to "${switchConfirm.item.title}" will abandon your progress on it.`
+          }
+          confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Switch document"}
+          onConfirm={() => {
+            const { item, groupTitle } = switchConfirm
+            setSwitchConfirm(null)
+            openItem(item, groupTitle)
+          }}
+          onCancel={() => setSwitchConfirm(null)}
         />
       )}
     </div>
