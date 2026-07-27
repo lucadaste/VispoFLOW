@@ -418,13 +418,13 @@ export function TransactionsOnboarding({
       )}
       {switchConfirm && (
         <ConfirmModal
-          title={switchConfirm.mode === "restart" ? "Restart this document?" : "Switch documents?"}
+          title={switchConfirm.mode === "restart" ? "Would you like to restart this document?" : "Would you like to abandon the document you're currently working on?"}
           description={
             switchConfirm.mode === "restart"
-              ? `You're partway through "${switchConfirm.item.title}". Continuing will restart it from the first question.`
-              : `You're partway through "${switchConfirm.fromItem.title}". Switching to "${switchConfirm.item.title}" will abandon your progress on it.`
+              ? `You're partway through "${switchConfirm.item.title}". Restarting will erase your progress and start over from the first question.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
           }
-          confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Switch document"}
+          confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Abandon & switch"}
           onConfirm={() => {
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
