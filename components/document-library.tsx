@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
@@ -469,6 +469,7 @@ export function DocumentLibrary({
           onClose={() => setViewing(null)}
           onSign={handleSign}
           onSendToSign={onSendToSign}
+          onDelete={(doc) => { onDelete(doc); setViewing(null) }}
           savedSignature={savedSignature}
           pendingSignRequests={pendingSignRequests[viewing.id]}
         />
@@ -536,9 +537,9 @@ function DocSection({
           </button>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {visible.map((doc) => (
-            <DocCard
+            <DocTile
               key={doc.id}
               doc={doc}
               answers={answers}
@@ -588,6 +589,49 @@ function DocSection({
   )
 }
 
+/** The "sign this yourself" form — a saved-signature confirm if the account has one, else the
+ *  capture pad. Shared by the full sign button and the tile's kebab menu. */
+function SignPopoverContent({
+  doc,
+  onSign,
+  savedSignature,
+  onDone,
+}: {
+  doc: LibraryDoc
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  savedSignature: SavedSignature | null
+  onDone: () => void
+}) {
+  if (savedSignature) {
+    return (
+      <div className="space-y-2.5 p-3">
+        <p className="text-xs font-medium text-foreground">Sign with your saved signature?</p>
+        <div className="flex items-center rounded-md border border-border bg-white px-2 py-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={savedSignature.signatureDataUrl} alt="Your signature" className="h-8 object-contain object-left" />
+        </div>
+        <button
+          onClick={() => { onSign(doc, savedSignature); onDone() }}
+          className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Sign document
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className="p-3">
+      <SignaturePad
+        defaultName=""
+        onCapture={(dataUrl, _method, name) => {
+          onSign(doc, { signatureDataUrl: dataUrl, signerName: name })
+          onDone()
+        }}
+      />
+    </div>
+  )
+}
+
 function SignButton({
   doc,
   onSign,
@@ -600,12 +644,6 @@ function SignButton({
   variant?: "icon" | "full"
 }) {
   const [open, setOpen] = useState(false)
-
-  const applySaved = () => {
-    if (!savedSignature) return
-    onSign(doc, savedSignature)
-    setOpen(false)
-  }
 
   return (
     <div className="relative">
@@ -624,33 +662,91 @@ function SignButton({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
-            {savedSignature ? (
-              <div className="space-y-2.5">
-                <p className="text-xs font-medium text-foreground">Sign with your saved signature?</p>
-                <div className="flex items-center rounded-md border border-border bg-white px-2 py-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={savedSignature.signatureDataUrl} alt="Your signature" className="h-8 object-contain object-left" />
-                </div>
-                <button
-                  onClick={applySaved}
-                  className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
-                >
-                  Sign document
-                </button>
-              </div>
-            ) : (
-              <SignaturePad
-                defaultName=""
-                onCapture={(dataUrl, _method, name) => {
-                  onSign(doc, { signatureDataUrl: dataUrl, signerName: name })
-                  setOpen(false)
-                }}
-              />
-            )}
+          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            <SignPopoverContent doc={doc} onSign={onSign} savedSignature={savedSignature} onDone={() => setOpen(false)} />
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/** The "invite someone else to sign" form — a slot picker (only the roles this document still
+ *  needs) plus recipient email/name. Shared by the full send-to-sign button and the tile's kebab menu. */
+function SendToSignPopoverContent({
+  doc,
+  answers,
+  onSendToSign,
+  onDone,
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onDone: () => void
+}) {
+  const slots = availableSlotsFor(doc, answers)
+  const [slotId, setSlotId] = useState<string | null>(null)
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
+
+  if (slots.length === 0) return null
+  const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
+
+  const send = () => {
+    if (!email.trim()) return
+    onSendToSign(doc, {
+      recipientEmail: email.trim(),
+      recipientName: name.trim() || undefined,
+      slotId: selectedSlot.id,
+      slotLabel: selectedSlot.label,
+      lockedName: selectedSlot.kind === "named" ? selectedSlot.matchName : undefined,
+    })
+    onDone()
+  }
+
+  return (
+    <div className="space-y-2.5 p-3">
+      <p className="text-xs font-medium text-foreground">Send for e-signature</p>
+      {slots.length > 1 ? (
+        <select
+          value={selectedSlot.id}
+          onChange={(e) => setSlotId(e.target.value)}
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+        >
+          {slots.map((slot) => (
+            <option key={slot.id} value={slot.id}>
+              {slot.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <p className="text-xs text-muted-foreground">Signing as: {selectedSlot.label}</p>
+      )}
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="recipient@email.com"
+        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+      />
+      {selectedSlot.kind === "named" ? (
+        <p className="text-xs text-muted-foreground">Name is fixed by the document: {selectedSlot.matchName}</p>
+      ) : (
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Their name (optional)"
+          className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+        />
+      )}
+      <button
+        onClick={send}
+        disabled={!email.trim()}
+        className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+      >
+        Send signing link
+      </button>
     </div>
   )
 }
@@ -668,27 +764,8 @@ function SendToSignButton({
 }) {
   const slots = availableSlotsFor(doc, answers)
   const [open, setOpen] = useState(false)
-  const [slotId, setSlotId] = useState<string | null>(null)
-  const [email, setEmail] = useState("")
-  const [name, setName] = useState("")
 
   if (slots.length === 0) return null
-  const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
-
-  const send = () => {
-    if (!email.trim()) return
-    onSendToSign(doc, {
-      recipientEmail: email.trim(),
-      recipientName: name.trim() || undefined,
-      slotId: selectedSlot.id,
-      slotLabel: selectedSlot.label,
-      lockedName: selectedSlot.kind === "named" ? selectedSlot.matchName : undefined,
-    })
-    setOpen(false)
-    setSlotId(null)
-    setEmail("")
-    setName("")
-  }
 
   return (
     <div className="relative">
@@ -707,48 +784,8 @@ function SendToSignButton({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-50 w-72 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
-            <p className="text-xs font-medium text-foreground">Send for e-signature</p>
-            {slots.length > 1 ? (
-              <select
-                value={selectedSlot.id}
-                onChange={(e) => setSlotId(e.target.value)}
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
-              >
-                {slots.map((slot) => (
-                  <option key={slot.id} value={slot.id}>
-                    {slot.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="text-xs text-muted-foreground">Signing as: {selectedSlot.label}</p>
-            )}
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="recipient@email.com"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
-            />
-            {selectedSlot.kind === "named" ? (
-              <p className="text-xs text-muted-foreground">Name is fixed by the document: {selectedSlot.matchName}</p>
-            ) : (
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Their name (optional)"
-                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
-              />
-            )}
-            <button
-              onClick={send}
-              disabled={!email.trim()}
-              className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
-            >
-              Send signing link
-            </button>
+          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={() => setOpen(false)} />
           </div>
         </>
       )}
@@ -756,7 +793,153 @@ function SendToSignButton({
   )
 }
 
-function DocCard({
+/** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
+function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
+  if (!doc.content) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <FileText className="h-7 w-7 text-muted-foreground/30" />
+      </div>
+    )
+  }
+  const content = signedContent(doc, answers)
+  const lines = content.split("\n").slice(0, 32)
+  const titleIndex = docTitleLineIndex(content)
+  return (
+    <div className="relative h-full overflow-hidden">
+      <div
+        className="px-2.5 pt-2.5 text-[4.5px] leading-[6px] text-foreground/70"
+        style={{ fontFamily: '"Times New Roman", Times, serif' }}
+      >
+        {lines.map((line, i) => {
+          const { bold, center } = classifyDocLine(line, i === titleIndex)
+          return (
+            <p key={i} className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}>
+              {line || " "}
+            </p>
+          )
+        })}
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+    </div>
+  )
+}
+
+/** The "⋮" quick-actions menu on a tile — the same Sign / Send to sign / Download / Delete
+ *  actions available in the full document viewer, without needing to open it. */
+function DocTileMenu({
+  doc,
+  answers,
+  onDelete,
+  onSign,
+  onSendToSign,
+  savedSignature,
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  onDelete: (doc: LibraryDoc) => void
+  onSign: (doc: LibraryDoc, signature: SignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  savedSignature: SavedSignature | null
+}) {
+  type Mode = "menu" | "sign" | "send" | "delete-confirm"
+  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<Mode>("menu")
+  const viewable = !!doc.content
+  const officerSigned = (doc.signatures ?? []).some((s) => s.slotId === "officer")
+  const canSendToSign = viewable && !!onSendToSign && availableSlotsFor(doc, answers).length > 0
+
+  const close = () => { setOpen(false); setMode("menu") }
+
+  return (
+    <div className="relative" onClick={(e) => e.stopPropagation()}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="More actions"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div className="absolute right-0 top-7 z-50 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            {mode === "menu" && (
+              <div className="py-1">
+                {viewable && !officerSigned && (
+                  <button
+                    onClick={() => setMode("sign")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    <PenLine className="h-3.5 w-3.5" /> Sign
+                  </button>
+                )}
+                {canSendToSign && (
+                  <button
+                    onClick={() => setMode("send")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Send to sign
+                  </button>
+                )}
+                {viewable && DOWNLOAD_FORMATS.map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => { downloadDoc(doc, format, answers); close() }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+                  >
+                    <Download className="h-3.5 w-3.5" /> {format}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setMode("delete-confirm")}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </div>
+            )}
+            {mode === "sign" && <SignPopoverContent doc={doc} onSign={onSign} savedSignature={savedSignature} onDone={close} />}
+            {mode === "send" && onSendToSign && (
+              <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={close} />
+            )}
+            {mode === "delete-confirm" && (
+              <div className="space-y-2.5 p-3">
+                <p className="text-xs font-medium text-foreground">Delete this document?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { onDelete(doc); close() }}
+                    className="flex-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setMode("menu")}
+                    className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequests?: PendingSignRequest[]): string | null {
+  if (doc.pending) return "Filing with the state"
+  if (doc.signed) return "Signed"
+  const signatures = doc.signatures ?? []
+  const totalSlots = doc.content ? getSignerSlots(doc.id, answers).length : 0
+  if (signatures.length > 0 && totalSlots > 0) return `${signatures.length} of ${totalSlots} signed`
+  if (pendingSignRequests?.length) return "Awaiting signature"
+  return null
+}
+
+function DocTile({
   doc,
   answers,
   onView,
@@ -775,131 +958,40 @@ function DocCard({
   savedSignature: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
 }) {
-  const [confirming, setConfirming] = useState(false)
-  const [formatMenuOpen, setFormatMenuOpen] = useState(false)
   const viewable = !!doc.content
-  const downloadable = viewable
-  const signatures = doc.signatures ?? []
-  const officerSigned = signatures.some((s) => s.slotId === "officer")
-  const totalSlots = viewable ? getSignerSlots(doc.id, answers).length : 0
+  const status = docStatusText(doc, answers, pendingSignRequests)
 
   return (
-    <div
-      role={viewable ? "button" : undefined}
-      tabIndex={viewable ? 0 : undefined}
-      onClick={viewable ? () => onView(doc) : undefined}
-      onKeyDown={viewable ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onView(doc) } } : undefined}
-      className={`group flex items-start gap-3 rounded-xl border p-3.5 text-left shadow-sm ${
-        doc.pending ? "border-primary/30 bg-primary/5" : "border-border bg-card"
-      } ${viewable ? "cursor-pointer transition-colors hover:border-primary/40" : ""}`}
-    >
-      <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-        <FileText className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1 leading-tight">
-        <div className="flex items-center gap-1.5">
-          <p className="truncate text-[13px] font-medium text-foreground">{doc.title}</p>
-          {doc.pending && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-primary-foreground">
-              <Landmark className="h-2 w-2" />
-              Pending
-            </span>
-          )}
-          {doc.signed ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
-              <PenLine className="h-2 w-2" />
-              Signed
-            </span>
-          ) : signatures.length > 0 && totalSlots > 0 ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <PenLine className="h-2 w-2" />
-              {signatures.length} of {totalSlots} signed
-            </span>
-          ) : null}
+    <div className="flex flex-col">
+      <button
+        type="button"
+        onClick={() => viewable && onView(doc)}
+        disabled={!viewable}
+        className={cn(
+          "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-card text-left shadow-sm transition-shadow",
+          doc.pending ? "border-primary/30 bg-primary/5" : "border-border",
+          viewable ? "cursor-pointer hover:shadow-md hover:border-primary/40" : "cursor-default",
+        )}
+      >
+        <MiniPreview doc={doc} answers={answers} />
+        {doc.signed && (
+          <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm">
+            <Check className="h-3 w-3" strokeWidth={3} />
+          </span>
+        )}
+        {doc.pending && (
+          <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+            <Landmark className="h-2.5 w-2.5" />
+          </span>
+        )}
+      </button>
+      <div className="mt-2 flex items-start justify-between gap-1 px-0.5">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium text-foreground">{doc.title}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{status ?? doc.subtitle}</p>
         </div>
-        <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
-        {confirming ? (
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-[10px] font-medium text-destructive">Delete this document?</span>
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(doc) }}
-              className="rounded-md bg-destructive/10 px-1.5 py-0.5 text-[10px] font-semibold text-destructive hover:bg-destructive/20"
-            >
-              Delete
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setConfirming(false) }}
-              className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-secondary"
-            >
-              Cancel
-            </button>
-          </div>
-        ) : doc.pending ? (
-          <p className="mt-1 text-[10px] font-medium text-primary">Filing with the state — usually same-day to a few business days</p>
-        ) : viewable ? (
-          <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
-        ) : null}
-        {!doc.signed && pendingSignRequests?.map((req, i) => (
-          <p key={i} className="mt-1 truncate text-[10px] font-medium text-muted-foreground">
-            {req.slotLabel}: sent to {req.recipientName || req.recipientEmail} — awaiting signature
-          </p>
-        ))}
+        <DocTileMenu doc={doc} answers={answers} onDelete={onDelete} onSign={onSign} onSendToSign={onSendToSign} savedSignature={savedSignature} />
       </div>
-      <div className="flex shrink-0 flex-col items-center gap-1">
-        {viewable && (
-          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-            {!officerSigned && <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} />}
-            {onSendToSign && <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} />}
-          </div>
-        )}
-        {downloadable && (
-          <div className="relative mt-0.5">
-            <button
-              onClick={(e) => { e.stopPropagation(); setFormatMenuOpen((v) => !v) }}
-              title="Download"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <Download className="h-3.5 w-3.5" />
-            </button>
-            {formatMenuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={(e) => { e.stopPropagation(); setFormatMenuOpen(false) }}
-                />
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute right-0 top-7 z-50 w-28 overflow-hidden rounded-lg border border-border bg-popover py-1 text-popover-foreground shadow-md"
-                >
-                  {DOWNLOAD_FORMATS.map((format) => (
-                    <button
-                      key={format}
-                      onClick={() => { downloadDoc(doc, format, answers); setFormatMenuOpen(false) }}
-                      className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
-                    >
-                      {format}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        {!confirming && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setConfirming(true) }}
-            title="Delete"
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground/40 opacity-40 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
-        )}
-      </div>
-      {!doc.pending && !confirming && (
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
-          <Check className="h-3 w-3" strokeWidth={3} />
-        </span>
-      )}
     </div>
   )
 }
@@ -951,12 +1043,81 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
   )
 }
 
+function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Download"
+        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+      >
+        <Download className="h-4 w-4" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 w-28 overflow-hidden rounded-lg border border-border bg-popover py-1 text-popover-foreground shadow-md">
+            {DOWNLOAD_FORMATS.map((format) => (
+              <button
+                key={format}
+                onClick={() => { downloadDoc(doc, format, answers); setOpen(false) }}
+                className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+              >
+                {format}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function DeleteButton({ doc, onDelete }: { doc: LibraryDoc; onDelete: (doc: LibraryDoc) => void }) {
+  const [confirming, setConfirming] = useState(false)
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setConfirming((v) => !v)}
+        title="Delete"
+        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+      {confirming && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setConfirming(false)} />
+          <div className="absolute right-0 top-8 z-50 w-56 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
+            <p className="text-xs font-medium text-foreground">Delete this document?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => onDelete(doc)}
+                className="flex-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function DocumentViewer({
   doc,
   answers,
   onClose,
   onSign,
   onSendToSign,
+  onDelete,
   savedSignature = null,
   pendingSignRequests,
   onGoToLibrary,
@@ -967,6 +1128,9 @@ export function DocumentViewer({
   onClose: () => void
   onSign?: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  /** Present only when opened from the Document Library itself — soft-deletes (hides,
+   *  restorable) the doc, distinct from onDeleteRestart's "wipe answers and start over". */
+  onDelete?: (doc: LibraryDoc) => void
   savedSignature?: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
   /** Present only when opened from a flow's sidebar (not from the Document Library itself) — jumps to the library. */
@@ -1019,6 +1183,8 @@ export function DocumentViewer({
             {doc.content && onSendToSign && (
               <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} variant="full" />
             )}
+            {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
+            {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
             <button
               onClick={onClose}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
