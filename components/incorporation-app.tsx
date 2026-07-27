@@ -134,6 +134,32 @@ type LibraryPersisted = {
   signedDocs: Record<string, DocSignature[]>
 }
 
+/** signedDocs used to store one signature stamp per doc directly (not an array) — accounts with
+ *  documents signed before multi-signer support still have that shape saved. Wrap it as the
+ *  officer slot's entry so old data keeps rendering instead of crashing the array-based code. */
+function normalizeSignedDocs(raw: unknown): Record<string, DocSignature[]> {
+  if (!raw || typeof raw !== "object") return {}
+  const result: Record<string, DocSignature[]> = {}
+  for (const [docId, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (Array.isArray(value)) {
+      result[docId] = value as DocSignature[]
+      continue
+    }
+    if (value && typeof value === "object" && "signatureDataUrl" in value && "signerName" in value) {
+      const old = value as { signatureDataUrl: string; signerName: string; signerRoles?: string[]; signedAt: string }
+      result[docId] = [{
+        slotId: "officer",
+        slotLabel: "Company officer",
+        signatureDataUrl: old.signatureDataUrl,
+        signerName: old.signerName,
+        signedAt: old.signedAt,
+        officerTitle: old.signerRoles ? primaryOfficerTitle(old.signerRoles) ?? undefined : undefined,
+      }]
+    }
+  }
+  return result
+}
+
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 16))
 
@@ -191,7 +217,7 @@ export function IncorporationApp() {
     setComplianceDocs(saved.complianceDocs)
     setTransactionDocs(saved.transactionDocs)
     setHiddenDocIds(saved.hiddenDocIds ?? {})
-    setSignedDocs(saved.signedDocs ?? {})
+    setSignedDocs(normalizeSignedDocs(saved.signedDocs))
   }, [])
 
   // Restore the document vault (compliance/transaction docs) after mount
