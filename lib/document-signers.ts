@@ -44,6 +44,9 @@ export function getSignerSlots(docId: string, answers: FlowAnswers): SignerSlot[
 
     case "board-consent-option-pool":
     case "board-consent-founder-stock":
+    case "org-resolutions":
+      // A board written consent — every director signs their own line; there's no
+      // "THE COMPANY:" execution block at all, so there's no officer slot.
       return answers.directors.map(
         (name): SignerSlot => ({ id: `director-${name}`, label: `Director: ${name}`, kind: "named", matchName: name }),
       )
@@ -53,6 +56,17 @@ export function getSignerSlots(docId: string, answers: FlowAnswers): SignerSlot[
       return founders(answers).map(
         (f): SignerSlot => ({ id: `stockholder-${f.name}`, label: `Stockholder: ${f.name}`, kind: "named", matchName: f.name }),
       )
+
+    case "bylaws": {
+      // Two fixed, distinct named signers — the Incorporator's adoption certificate and the
+      // Secretary's certificate — neither is a "THE COMPANY:" block, so no officer slot here.
+      const secretary = answers.officers.find((o) => o.title === "Secretary")?.name
+      const slots: SignerSlot[] = [
+        { id: "incorporator", label: "Incorporator", kind: "named", matchName: answers.incorporatorName },
+      ]
+      if (secretary) slots.push({ id: "secretary", label: "Secretary", kind: "named", matchName: secretary })
+      return slots
+    }
 
     default:
       return [OFFICER_SLOT]
