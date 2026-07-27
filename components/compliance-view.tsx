@@ -484,6 +484,7 @@ export function ComplianceView({
       {viewingDoc && (
         <DocumentViewer
           doc={viewingDoc.doc}
+          answers={answers}
           onClose={() => setViewingDoc(null)}
           onGoToLibrary={onGoToLibrary ? () => { setViewingDoc(null); onGoToLibrary() } : undefined}
           onDeleteRestart={() => {

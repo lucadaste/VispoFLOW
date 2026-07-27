@@ -8,7 +8,9 @@ import { SidebarPanel } from "@/components/sidebar-panel"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
-import { DocumentLibrary, type LibraryDoc } from "@/components/document-library"
+import { DocumentLibrary, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
+import { getSignerSlots } from "@/lib/document-signers"
+import { primaryOfficerTitle } from "@/lib/signature"
 import { Landing } from "@/components/landing"
 import { HomeChat } from "@/components/home-chat"
 import {
@@ -112,16 +114,15 @@ type IncorporationPersisted = {
   inputMode?: "chat" | "form"
 }
 
-type SignatureStamp = { signatureDataUrl: string; signerName: string; signerRoles?: string[]; signedAt: string }
-
 type SignRequest = {
   id: string
   docId: string
   recipientEmail: string
   recipientName: string | null
+  slotId: string | null
+  slotLabel: string | null
   status: "sent" | "viewed" | "signed"
   signerName: string | null
-  signerRoles: string[] | null
   signatureDataUrl: string | null
   signedAt: string | null
 }
@@ -130,7 +131,7 @@ type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
   hiddenDocIds: Record<string, true>
-  signedDocs: Record<string, SignatureStamp>
+  signedDocs: Record<string, DocSignature[]>
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -162,7 +163,7 @@ export function IncorporationApp() {
   const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
   const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
   const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
-  const [signedDocs, setSignedDocs] = useState<Record<string, SignatureStamp>>({})
+  const [signedDocs, setSignedDocs] = useState<Record<string, DocSignature[]>>({})
   const [signRequests, setSignRequests] = useState<SignRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Gate the "save" effects below on these (state, not refs) so a save can never fire
@@ -234,34 +235,48 @@ export function IncorporationApp() {
   }, [isSignedIn, view])
 
   // Once a sent-out request comes back signed, fold it into signedDocs exactly like a
-  // self-signed doc so downloads/rendering treat it the same way.
+  // self-signed doc so downloads/rendering treat it the same way. Requests created before
+  // multi-signer support have no slotId — treat those as the default officer slot.
   useEffect(() => {
     for (const req of signRequests) {
       if (req.status !== "signed" || !req.signerName || !req.signatureDataUrl || !req.signedAt) continue
-      if (signedDocs[req.docId]?.signedAt === req.signedAt) continue
+      const slotId = req.slotId ?? "officer"
+      const slotLabel = req.slotLabel ?? "Company officer"
+      const existing = signedDocs[req.docId] ?? []
+      if (existing.some((s) => s.slotId === slotId && s.signedAt === req.signedAt)) continue
+      const newSig: DocSignature = {
+        slotId,
+        slotLabel,
+        signatureDataUrl: req.signatureDataUrl,
+        signerName: req.signerName,
+        signedAt: req.signedAt,
+      }
       setSignedDocs((docs) => ({
         ...docs,
-        [req.docId]: {
-          signatureDataUrl: req.signatureDataUrl!,
-          signerName: req.signerName!,
-          signerRoles: req.signerRoles ?? undefined,
-          signedAt: req.signedAt!,
-        },
+        [req.docId]: [...(docs[req.docId] ?? []).filter((s) => s.slotId !== slotId), newSig],
       }))
     }
   }, [signRequests, signedDocs])
 
   const pendingSignRequestsByDocId = useMemo(() => {
-    const map: Record<string, { recipientEmail: string; recipientName?: string | null }> = {}
+    const map: Record<string, PendingSignRequest[]> = {}
     for (const req of signRequests) {
       if (req.status === "signed") continue
-      map[req.docId] = { recipientEmail: req.recipientEmail, recipientName: req.recipientName }
+      const entry: PendingSignRequest = {
+        slotLabel: req.slotLabel ?? "Company officer",
+        recipientEmail: req.recipientEmail,
+        recipientName: req.recipientName,
+      }
+      map[req.docId] = [...(map[req.docId] ?? []), entry]
     }
     return map
   }, [signRequests])
 
   const handleSendToSign = useCallback(
-    async (doc: LibraryDoc, payload: { recipientEmail: string; recipientName?: string }) => {
+    async (
+      doc: LibraryDoc,
+      payload: { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string },
+    ) => {
       const res = await fetch("/api/sign-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,6 +287,9 @@ export function IncorporationApp() {
           recipientEmail: payload.recipientEmail,
           recipientName: payload.recipientName,
           senderCompanyName: effectiveAnswers.companyName,
+          slotId: payload.slotId,
+          slotLabel: payload.slotLabel,
+          lockedName: payload.lockedName,
         }),
       })
       if (res.ok) {
@@ -352,14 +370,17 @@ export function IncorporationApp() {
       const roles =
         signature.roles ??
         (signature.signerName.trim().toLowerCase() === profile.signerName.trim().toLowerCase() ? profile.roles : undefined)
+      const newSig: DocSignature = {
+        slotId: "officer",
+        slotLabel: "Company officer",
+        signatureDataUrl: signature.signatureDataUrl,
+        signerName: signature.signerName,
+        signedAt: new Date().toISOString(),
+        officerTitle: primaryOfficerTitle(roles ?? []) ?? undefined,
+      }
       setSignedDocs((docs) => ({
         ...docs,
-        [doc.id]: {
-          signatureDataUrl: signature.signatureDataUrl,
-          signerName: signature.signerName,
-          signerRoles: roles,
-          signedAt: new Date().toISOString(),
-        },
+        [doc.id]: [...(docs[doc.id] ?? []).filter((s) => s.slotId !== "officer"), newSig],
       }))
     },
     [profile.signerName, profile.roles],
@@ -770,8 +791,9 @@ export function IncorporationApp() {
       : "chat"
 
   const withSignature = (doc: LibraryDoc): LibraryDoc => {
-    const stamp = signedDocs[doc.id]
-    return stamp ? { ...doc, signed: true, ...stamp } : doc
+    const signatures = signedDocs[doc.id] ?? []
+    const totalSlots = doc.content ? getSignerSlots(doc.id, effectiveAnswers).length : 0
+    return { ...doc, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
   }
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
@@ -931,6 +953,7 @@ export function IncorporationApp() {
       ) : (
         <DocumentLibrary
           companyName={effectiveAnswers.companyName}
+          answers={effectiveAnswers}
           incorporationDocs={incorporationLibraryDocs}
           complianceDocs={complianceDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}
           transactionDocs={transactionDocs.map((d) => withSignature({ ...d, hidden: !!hiddenDocIds[d.id] }))}

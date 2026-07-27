@@ -1,11 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText, findSignatureLineIndex, fillCompanyExecutionBlock, formatSignedDate } from "@/lib/signature"
+import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
+import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
+import type { FlowAnswers } from "@/lib/flow"
 import { SignaturePad } from "@/components/signature-pad"
+
+/** One collected signature on a document, placed at whichever slot (see lib/document-signers.ts)
+ *  it was signed for. */
+export type DocSignature = {
+  slotId: string
+  slotLabel: string
+  signatureDataUrl: string
+  signerName: string
+  signedAt: string
+  /** for the officer slot only — the title used to fill the "THE COMPANY:" block's Name:/Title: lines */
+  officerTitle?: string
+}
 
 export type LibraryDoc = {
   id: string
@@ -16,26 +30,45 @@ export type LibraryDoc = {
   pending?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
+  signatures?: DocSignature[]
+  /** true once every signer slot the document requires has a signature — set by the caller, which
+   *  is where FlowAnswers (and therefore the slot list) is in scope */
   signed?: boolean
-  signatureDataUrl?: string | null
-  signerName?: string
-  /** titles the signer holds, used to route the signature onto the matching line/block */
-  signerRoles?: string[]
-  signedAt?: string
 }
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[] }
-type SendToSignPayload = { recipientEmail: string; recipientName?: string }
-/** The most recent outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
-export type PendingSignRequest = { recipientEmail: string; recipientName?: string | null }
+type SendToSignPayload = { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string }
+/** An outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
+export type PendingSignRequest = { slotLabel: string; recipientEmail: string; recipientName?: string | null }
 
-/** The document text as actually signed — blank Name:/Title: lines in a company execution block
- *  filled in from the signer's roles, so the printed block matches who's signing. */
-function signedContent(doc: LibraryDoc): string {
-  const base = doc.content ?? ""
-  if (!doc.signed || !doc.signerName) return base
-  return fillCompanyExecutionBlock(base, doc.signerName, doc.signerRoles ?? [])
+type ResolvedSignature = { sig: DocSignature; lines: number[] }
+
+/** Every collected signature on a doc, paired with the document line(s) it resolves to (a signer's
+ *  mark can land on more than one line, e.g. the company's execution block repeated once per
+ *  founder in a combined multi-founder agreement). */
+function resolveSignatures(content: string, doc: LibraryDoc, answers: FlowAnswers): ResolvedSignature[] {
+  const slots = getSignerSlots(doc.id, answers)
+  return (doc.signatures ?? []).map((sig) => {
+    const slot: SignerSlot = slots.find((s) => s.id === sig.slotId) ?? { id: sig.slotId, label: sig.slotLabel, kind: "officer" }
+    return { sig, lines: resolveSignatureLines(content, slot, sig.signerName) }
+  })
+}
+
+/** The signer slots this document still needs — what "Send to sign" is allowed to offer. */
+function availableSlotsFor(doc: LibraryDoc, answers: FlowAnswers): SignerSlot[] {
+  const filled = new Set((doc.signatures ?? []).map((s) => s.slotId))
+  return getSignerSlots(doc.id, answers).filter((slot) => !filled.has(slot.id))
+}
+
+/** The document text as actually signed — blank Name:/Title: lines in the company execution
+ *  block(s) filled in from the officer signer's title, so the printed block matches who signed. */
+function signedContent(doc: LibraryDoc, answers: FlowAnswers): string {
+  let content = doc.content ?? ""
+  for (const sig of doc.signatures ?? []) {
+    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle])
+  }
+  return content
 }
 
 /** Titles and major section names (e.g. "BYLAWS", "CORPORATE OFFICES", "***") are set in all-caps — bold + centered. */
@@ -93,17 +126,19 @@ function triggerDownload(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-function fullContent(doc: LibraryDoc): string {
-  const base = signedContent(doc)
-  if (!doc.signed || !doc.signerName || !doc.signedAt) return base
-  return base + signatureBlockText({ signerName: doc.signerName, signedAt: doc.signedAt })
+function fullContent(doc: LibraryDoc, answers: FlowAnswers): string {
+  const base = signedContent(doc, answers)
+  const resolved = resolveSignatures(base, doc, answers)
+  return resolved
+    .filter((r) => r.lines.length === 0)
+    .reduce((acc, r) => acc + signatureBlockText({ signerName: r.sig.signerName, signedAt: r.sig.signedAt }), base)
 }
 
-function downloadAsTxt(doc: LibraryDoc) {
-  triggerDownload(new Blob([fullContent(doc)], { type: "text/plain" }), `${doc.title}.txt`)
+function downloadAsTxt(doc: LibraryDoc, answers: FlowAnswers) {
+  triggerDownload(new Blob([fullContent(doc, answers)], { type: "text/plain" }), `${doc.title}.txt`)
 }
 
-async function downloadAsPdf(doc: LibraryDoc) {
+async function downloadAsPdf(doc: LibraryDoc, answers: FlowAnswers) {
   const { jsPDF } = await import("jspdf")
   const pdf = new jsPDF({ unit: "pt", format: "letter" })
   const margin = 56
@@ -124,16 +159,19 @@ async function downloadAsPdf(doc: LibraryDoc) {
     }
   }
 
-  const content = signedContent(doc)
+  const content = signedContent(doc, answers)
   const rawLines = content.split("\n")
   const titleIndex = docTitleLineIndex(content)
-  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
-  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
+  const resolved = resolveSignatures(content, doc, answers)
+  const lineToSig = new Map<number, DocSignature>()
+  for (const r of resolved) for (const idx of r.lines) lineToSig.set(idx, r.sig)
+  const unplaced = resolved.filter((r) => r.lines.length === 0).map((r) => r.sig)
   const inlineImgHeight = 34
 
   rawLines.forEach((raw, i) => {
-    if (i === signatureLineIndex) {
-      pdf.addImage(doc.signatureDataUrl!, "PNG", margin, y - inlineImgHeight + 4, inlineImgHeight * 3, inlineImgHeight)
+    const sig = lineToSig.get(i)
+    if (sig) {
+      pdf.addImage(sig.signatureDataUrl, "PNG", margin, y - inlineImgHeight + 4, inlineImgHeight * 3, inlineImgHeight)
       advance()
       return
     }
@@ -153,17 +191,18 @@ async function downloadAsPdf(doc: LibraryDoc) {
       advance()
     }
 
-    if (signatureLineIndex !== null && i === signatureLineIndex + 1) {
+    const prevSig = lineToSig.get(i - 1)
+    if (prevSig) {
       pdf.setFont("times", "italic")
       pdf.setFontSize(9)
-      pdf.text(`Electronically signed on ${formatSignedDate(doc.signedAt!)}`, margin, y)
+      pdf.text(`Electronically signed on ${formatSignedDate(prevSig.signedAt)}`, margin, y)
       pdf.setFontSize(11)
       pdf.setFont("times", "normal")
       advance()
     }
   })
 
-  if (signed && signatureLineIndex === null) {
+  for (const sig of unplaced) {
     const imgHeight = 50
     const imgWidth = 160
     if (y + imgHeight > pageHeight - margin) {
@@ -171,10 +210,10 @@ async function downloadAsPdf(doc: LibraryDoc) {
       y = margin
     }
     y += 10
-    pdf.addImage(doc.signatureDataUrl!, "PNG", margin, y, imgWidth, imgHeight)
+    pdf.addImage(sig.signatureDataUrl, "PNG", margin, y, imgWidth, imgHeight)
     y += imgHeight
     pdf.setFont("times", "normal")
-    for (const line of signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n")) {
+    for (const line of signatureBlockText({ signerName: sig.signerName, signedAt: sig.signedAt }).trim().split("\n")) {
       pdf.text(line, margin, y)
       advance()
     }
@@ -192,15 +231,13 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-async function downloadAsJpeg(doc: LibraryDoc) {
+async function downloadAsJpeg(doc: LibraryDoc, answers: FlowAnswers) {
   const width = 850
   const margin = 48
   const lineHeight = 22
   const fontSize = 15
   const font = `${fontSize}px Georgia, serif`
-  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
   const sigImageHeight = 75
-  const sigImage = signed ? await loadImage(doc.signatureDataUrl!).catch(() => null) : null
 
   const canvas = document.createElement("canvas")
   const ctx = canvas.getContext("2d")
@@ -208,7 +245,7 @@ async function downloadAsJpeg(doc: LibraryDoc) {
 
   ctx.font = font
   const maxWidth = width - margin * 2
-  const content = signedContent(doc)
+  const content = signedContent(doc, answers)
   const lines: string[] = []
   const sourceLineWrappedStart: number[] = []
   for (const raw of content.split("\n")) {
@@ -230,24 +267,37 @@ async function downloadAsJpeg(doc: LibraryDoc) {
     lines.push(current)
   }
 
-  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
-  const sigWrappedIdx = signatureLineIndex !== null ? sourceLineWrappedStart[signatureLineIndex] : null
-  // the name line's last wrapped sub-line, i.e. right before the next source line begins
-  const captionAfterWrappedIdx =
-    signatureLineIndex !== null
-      ? signatureLineIndex + 2 < sourceLineWrappedStart.length
-        ? sourceLineWrappedStart[signatureLineIndex + 2] - 1
-        : lines.length - 1
-      : null
+  const resolved = resolveSignatures(content, doc, answers)
+  const placed = resolved.filter((r) => r.lines.length > 0)
+  const unplaced = resolved.filter((r) => r.lines.length === 0).map((r) => r.sig)
 
-  const sigLines = signed && signatureLineIndex === null
-    ? signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim().split("\n")
-    : []
-  const sigBlockHeight = sigImage && signatureLineIndex === null ? sigImageHeight + sigLines.length * lineHeight : 0
-  const inlineCaptionHeight = sigImage && captionAfterWrappedIdx !== null ? lineHeight : 0
+  const placedSpots = (
+    await Promise.all(
+      placed.flatMap((r) =>
+        r.lines.map(async (sourceIdx) => ({
+          wrappedIdx: sourceLineWrappedStart[sourceIdx],
+          captionWrappedIdx:
+            sourceIdx + 2 < sourceLineWrappedStart.length ? sourceLineWrappedStart[sourceIdx + 2] - 1 : lines.length - 1,
+          sig: r.sig,
+          img: await loadImage(r.sig.signatureDataUrl).catch(() => null),
+        })),
+      ),
+    )
+  ).filter((s): s is typeof s & { img: HTMLImageElement } => !!s.img)
+  const byWrappedIdx = new Map(placedSpots.map((p) => [p.wrappedIdx, p]))
+  const captionByWrappedIdx = new Map(placedSpots.map((p) => [p.captionWrappedIdx, p.sig]))
+
+  const unplacedImages = (
+    await Promise.all(unplaced.map(async (sig) => ({ sig, img: await loadImage(sig.signatureDataUrl).catch(() => null) })))
+  ).filter((u): u is typeof u & { img: HTMLImageElement } => !!u.img)
+
+  const sigBlockHeight = unplacedImages.reduce(
+    (h, u) => h + sigImageHeight + signatureBlockText({ signerName: u.sig.signerName, signedAt: u.sig.signedAt }).trim().split("\n").length * lineHeight,
+    0,
+  )
 
   canvas.width = width
-  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight + inlineCaptionHeight
+  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight + captionByWrappedIdx.size * lineHeight
   // canvas dimension changes reset the 2D context, so font/fill must be reapplied
   ctx.font = font
   ctx.fillStyle = "#ffffff"
@@ -257,29 +307,33 @@ async function downloadAsJpeg(doc: LibraryDoc) {
 
   let yCursor = margin
   lines.forEach((line, i) => {
-    if (sigImage && i === sigWrappedIdx) {
+    const spot = byWrappedIdx.get(i)
+    if (spot) {
       const inlineHeight = 40
-      const inlineWidth = sigImage.width * (inlineHeight / sigImage.height)
-      ctx.drawImage(sigImage, margin, yCursor - 10, inlineWidth, inlineHeight)
+      const inlineWidth = spot.img.width * (inlineHeight / spot.img.height)
+      ctx.drawImage(spot.img, margin, yCursor - 10, inlineWidth, inlineHeight)
     } else {
       ctx.fillText(line, margin, yCursor)
     }
     yCursor += lineHeight
-    if (sigImage && i === captionAfterWrappedIdx) {
+    const captionSig = captionByWrappedIdx.get(i)
+    if (captionSig) {
       ctx.font = `italic ${fontSize - 2}px Georgia, serif`
       ctx.fillStyle = "#666666"
-      ctx.fillText(`Electronically signed on ${formatSignedDate(doc.signedAt!)}`, margin, yCursor)
+      ctx.fillText(`Electronically signed on ${formatSignedDate(captionSig.signedAt)}`, margin, yCursor)
       ctx.font = font
       ctx.fillStyle = "#1a1a1a"
       yCursor += lineHeight
     }
   })
 
-  if (sigImage && signatureLineIndex === null) {
-    ctx.drawImage(sigImage, margin, yCursor, sigImage.width * (sigImageHeight / sigImage.height), sigImageHeight)
+  for (const { sig, img } of unplacedImages) {
+    ctx.drawImage(img, margin, yCursor, img.width * (sigImageHeight / img.height), sigImageHeight)
     yCursor += sigImageHeight
     ctx.font = font
+    const sigLines = signatureBlockText({ signerName: sig.signerName, signedAt: sig.signedAt }).trim().split("\n")
     sigLines.forEach((line, i) => ctx.fillText(line, margin, yCursor + i * lineHeight))
+    yCursor += sigLines.length * lineHeight
   }
 
   canvas.toBlob((blob) => {
@@ -287,17 +341,18 @@ async function downloadAsJpeg(doc: LibraryDoc) {
   }, "image/jpeg", 0.92)
 }
 
-function downloadDoc(doc: LibraryDoc, format: DownloadFormat) {
+function downloadDoc(doc: LibraryDoc, format: DownloadFormat, answers: FlowAnswers) {
   if (!doc.content) return
-  if (format === "txt") downloadAsTxt(doc)
-  else if (format === "pdf") downloadAsPdf(doc)
-  else downloadAsJpeg(doc)
+  if (format === "txt") downloadAsTxt(doc, answers)
+  else if (format === "pdf") downloadAsPdf(doc, answers)
+  else downloadAsJpeg(doc, answers)
 }
 
 type Phase = "chat" | "compliance" | "transactions"
 
 export function DocumentLibrary({
   companyName,
+  answers,
   incorporationDocs,
   complianceDocs,
   transactionDocs,
@@ -310,6 +365,7 @@ export function DocumentLibrary({
   pendingSignRequests = {},
 }: {
   companyName?: string
+  answers: FlowAnswers
   incorporationDocs: LibraryDoc[]
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
@@ -319,7 +375,7 @@ export function DocumentLibrary({
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
-  pendingSignRequests?: Record<string, PendingSignRequest>
+  pendingSignRequests?: Record<string, PendingSignRequest[]>
 }) {
   const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
   const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
@@ -327,7 +383,18 @@ export function DocumentLibrary({
 
   const handleSign = (doc: LibraryDoc, signature: SignPayload) => {
     onSign(doc, signature)
-    setViewing((v) => (v && v.id === doc.id ? { ...v, signed: true, ...signature, signedAt: new Date().toISOString() } : v))
+    setViewing((v) => {
+      if (!v || v.id !== doc.id) return v
+      const newSig: DocSignature = {
+        slotId: "officer",
+        slotLabel: "Company officer",
+        signatureDataUrl: signature.signatureDataUrl,
+        signerName: signature.signerName,
+        signedAt: new Date().toISOString(),
+        officerTitle: primaryOfficerTitle(signature.roles ?? []) ?? undefined,
+      }
+      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== "officer"), newSig] }
+    })
   }
 
   return (
@@ -348,6 +415,7 @@ export function DocumentLibrary({
             icon={Building2}
             title="Incorporation Documents"
             docs={incorporationDocs}
+            answers={answers}
             emptyText="Formation documents will appear here as you complete the Incorporation flow."
             ctaLabel="Go to Incorporation"
             onCta={() => onNavigate("chat")}
@@ -363,6 +431,7 @@ export function DocumentLibrary({
             icon={ShieldCheck}
             title="Compliance Documents"
             docs={complianceDocs}
+            answers={answers}
             emptyText="Filed compliance items will appear here as you complete them in the Compliance Center."
             ctaLabel="Go to Compliance"
             onCta={() => onNavigate("compliance")}
@@ -378,6 +447,7 @@ export function DocumentLibrary({
             icon={ArrowLeftRight}
             title="Transaction Documents"
             docs={transactionDocs}
+            answers={answers}
             emptyText="Grants, issuances, and transfers will appear here as you record them in Transactions."
             ctaLabel="Go to Transactions"
             onCta={() => onNavigate("transactions")}
@@ -395,11 +465,12 @@ export function DocumentLibrary({
       {viewing && (
         <DocumentViewer
           doc={viewing}
+          answers={answers}
           onClose={() => setViewing(null)}
           onSign={handleSign}
           onSendToSign={onSendToSign}
           savedSignature={savedSignature}
-          pendingSignRequest={pendingSignRequests[viewing.id]}
+          pendingSignRequests={pendingSignRequests[viewing.id]}
         />
       )}
     </div>
@@ -410,6 +481,7 @@ function DocSection({
   icon: Icon,
   title,
   docs,
+  answers,
   emptyText,
   ctaLabel,
   onCta,
@@ -424,6 +496,7 @@ function DocSection({
   icon: LucideIcon
   title: string
   docs: LibraryDoc[]
+  answers: FlowAnswers
   emptyText: string
   ctaLabel: string
   onCta: () => void
@@ -433,7 +506,7 @@ function DocSection({
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
-  pendingSignRequests: Record<string, PendingSignRequest>
+  pendingSignRequests: Record<string, PendingSignRequest[]>
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const visible = docs.filter((d) => !d.hidden)
@@ -468,12 +541,13 @@ function DocSection({
             <DocCard
               key={doc.id}
               doc={doc}
+              answers={answers}
               onView={onView}
               onDelete={onDelete}
               onSign={onSign}
               onSendToSign={onSendToSign}
               savedSignature={savedSignature}
-              pendingSignRequest={pendingSignRequests[doc.id]}
+              pendingSignRequests={pendingSignRequests[doc.id]}
             />
           ))}
         </div>
@@ -567,7 +641,7 @@ function SignButton({
               </div>
             ) : (
               <SignaturePad
-                defaultName={doc.signerName ?? ""}
+                defaultName=""
                 onCapture={(dataUrl, _method, name) => {
                   onSign(doc, { signatureDataUrl: dataUrl, signerName: name })
                   setOpen(false)
@@ -583,21 +657,35 @@ function SignButton({
 
 function SendToSignButton({
   doc,
+  answers,
   onSendToSign,
   variant = "icon",
 }: {
   doc: LibraryDoc
+  answers: FlowAnswers
   onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void
   variant?: "icon" | "full"
 }) {
+  const slots = availableSlotsFor(doc, answers)
   const [open, setOpen] = useState(false)
+  const [slotId, setSlotId] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
 
+  if (slots.length === 0) return null
+  const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
+
   const send = () => {
     if (!email.trim()) return
-    onSendToSign(doc, { recipientEmail: email.trim(), recipientName: name.trim() || undefined })
+    onSendToSign(doc, {
+      recipientEmail: email.trim(),
+      recipientName: name.trim() || undefined,
+      slotId: selectedSlot.id,
+      slotLabel: selectedSlot.label,
+      lockedName: selectedSlot.kind === "named" ? selectedSlot.matchName : undefined,
+    })
     setOpen(false)
+    setSlotId(null)
     setEmail("")
     setName("")
   }
@@ -621,6 +709,21 @@ function SendToSignButton({
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-50 w-72 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
             <p className="text-xs font-medium text-foreground">Send for e-signature</p>
+            {slots.length > 1 ? (
+              <select
+                value={selectedSlot.id}
+                onChange={(e) => setSlotId(e.target.value)}
+                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+              >
+                {slots.map((slot) => (
+                  <option key={slot.id} value={slot.id}>
+                    {slot.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-muted-foreground">Signing as: {selectedSlot.label}</p>
+            )}
             <input
               type="email"
               value={email}
@@ -628,13 +731,17 @@ function SendToSignButton({
               placeholder="recipient@email.com"
               className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
             />
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Their name (optional)"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
-            />
+            {selectedSlot.kind === "named" ? (
+              <p className="text-xs text-muted-foreground">Name is fixed by the document: {selectedSlot.matchName}</p>
+            ) : (
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Their name (optional)"
+                className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+              />
+            )}
             <button
               onClick={send}
               disabled={!email.trim()}
@@ -651,25 +758,30 @@ function SendToSignButton({
 
 function DocCard({
   doc,
+  answers,
   onView,
   onDelete,
   onSign,
   onSendToSign,
   savedSignature,
-  pendingSignRequest,
+  pendingSignRequests,
 }: {
   doc: LibraryDoc
+  answers: FlowAnswers
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
-  pendingSignRequest?: PendingSignRequest
+  pendingSignRequests?: PendingSignRequest[]
 }) {
   const [confirming, setConfirming] = useState(false)
   const [formatMenuOpen, setFormatMenuOpen] = useState(false)
   const viewable = !!doc.content
   const downloadable = viewable
+  const signatures = doc.signatures ?? []
+  const officerSigned = signatures.some((s) => s.slotId === "officer")
+  const totalSlots = viewable ? getSignerSlots(doc.id, answers).length : 0
 
   return (
     <div
@@ -693,12 +805,17 @@ function DocCard({
               Pending
             </span>
           )}
-          {doc.signed && (
+          {doc.signed ? (
             <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-success">
               <PenLine className="h-2 w-2" />
               Signed
             </span>
-          )}
+          ) : signatures.length > 0 && totalSlots > 0 ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <PenLine className="h-2 w-2" />
+              {signatures.length} of {totalSlots} signed
+            </span>
+          ) : null}
         </div>
         <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{doc.subtitle}</p>
         {confirming ? (
@@ -722,17 +839,17 @@ function DocCard({
         ) : viewable ? (
           <p className="mt-1 text-[10px] font-medium text-primary">View document →</p>
         ) : null}
-        {!doc.signed && pendingSignRequest && (
-          <p className="mt-1 truncate text-[10px] font-medium text-muted-foreground">
-            Sent to {pendingSignRequest.recipientName || pendingSignRequest.recipientEmail} — awaiting signature
+        {!doc.signed && pendingSignRequests?.map((req, i) => (
+          <p key={i} className="mt-1 truncate text-[10px] font-medium text-muted-foreground">
+            {req.slotLabel}: sent to {req.recipientName || req.recipientEmail} — awaiting signature
           </p>
-        )}
+        ))}
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1">
-        {viewable && !doc.signed && (
+        {viewable && (
           <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
-            <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} />
-            {onSendToSign && <SendToSignButton doc={doc} onSendToSign={onSendToSign} />}
+            {!officerSigned && <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} />}
+            {onSendToSign && <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} />}
           </div>
         )}
         {downloadable && (
@@ -757,7 +874,7 @@ function DocCard({
                   {DOWNLOAD_FORMATS.map((format) => (
                     <button
                       key={format}
-                      onClick={() => { downloadDoc(doc, format); setFormatMenuOpen(false) }}
+                      onClick={() => { downloadDoc(doc, format, answers); setFormatMenuOpen(false) }}
                       className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
                     >
                       {format}
@@ -787,71 +904,78 @@ function DocCard({
   )
 }
 
-function DocumentBody({ doc }: { doc: LibraryDoc }) {
-  const content = signedContent(doc)
+function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
+  const content = signedContent(doc, answers)
   const lines = content.split("\n")
   const titleIndex = docTitleLineIndex(content)
-  const signed = !!(doc.signed && doc.signatureDataUrl && doc.signerName && doc.signedAt)
-  const signatureLineIndex = signed ? findSignatureLineIndex(content, doc.signerName!, doc.signerRoles ?? []) : null
+  const resolved = resolveSignatures(content, doc, answers)
+  const lineToSig = new Map<number, DocSignature>()
+  for (const r of resolved) for (const idx of r.lines) lineToSig.set(idx, r.sig)
+  const unplaced = resolved.filter((r) => r.lines.length === 0).map((r) => r.sig)
 
   return (
     <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {lines.map((line, i) => {
-        if (i === signatureLineIndex) {
+        const sig = lineToSig.get(i)
+        if (sig) {
           return (
             <div key={i} className="my-0.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={doc.signatureDataUrl!} alt="Signature" className="h-12 object-contain object-left" />
+              <img src={sig.signatureDataUrl} alt="Signature" className="h-12 object-contain object-left" />
             </div>
           )
         }
         const { bold, center } = classifyDocLine(line, i === titleIndex)
+        const prevSig = lineToSig.get(i - 1)
         return (
-          <p
-            key={i}
-            className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}
-          >
-            {line || " "}
-          </p>
+          <Fragment key={i}>
+            <p className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}>
+              {line || " "}
+            </p>
+            {prevSig && (
+              <p className="m-0 mt-1 text-xs text-muted-foreground">
+                Electronically signed on {formatSignedDate(prevSig.signedAt)}
+              </p>
+            )}
+          </Fragment>
         )
       })}
-      {signed && signatureLineIndex !== null && (
-        <p className="m-0 mt-1 text-xs text-muted-foreground">
-          Electronically signed on {formatSignedDate(doc.signedAt!)}
-        </p>
-      )}
-      {signed && signatureLineIndex === null && (
-        <div className="mt-4">
+      {unplaced.map((sig) => (
+        <div key={sig.slotId} className="mt-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={doc.signatureDataUrl!} alt="Signature" className="h-14 object-contain object-left" />
-          <p className="m-0 whitespace-pre-wrap">{signatureBlockText({ signerName: doc.signerName!, signedAt: doc.signedAt! }).trim()}</p>
+          <img src={sig.signatureDataUrl} alt="Signature" className="h-14 object-contain object-left" />
+          <p className="m-0 whitespace-pre-wrap">{signatureBlockText({ signerName: sig.signerName, signedAt: sig.signedAt }).trim()}</p>
         </div>
-      )}
+      ))}
     </div>
   )
 }
 
 export function DocumentViewer({
   doc,
+  answers,
   onClose,
   onSign,
   onSendToSign,
   savedSignature = null,
-  pendingSignRequest,
+  pendingSignRequests,
   onGoToLibrary,
   onDeleteRestart,
 }: {
   doc: LibraryDoc
+  answers: FlowAnswers
   onClose: () => void
   onSign?: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature?: SavedSignature | null
-  pendingSignRequest?: PendingSignRequest
+  pendingSignRequests?: PendingSignRequest[]
   /** Present only when opened from a flow's sidebar (not from the Document Library itself) — jumps to the library. */
   onGoToLibrary?: () => void
   /** Present only when opened from a flow's sidebar — deletes the saved answers and restarts the questions. */
   onDeleteRestart?: () => void
 }) {
+  const officerSigned = (doc.signatures ?? []).some((s) => s.slotId === "officer")
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
@@ -860,11 +984,11 @@ export function DocumentViewer({
           <div className="pr-4">
             <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
             <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
-            {!doc.signed && pendingSignRequest && (
-              <p className="mt-1 text-[11px] font-medium text-muted-foreground">
-                Sent to {pendingSignRequest.recipientName || pendingSignRequest.recipientEmail} — awaiting signature
+            {!doc.signed && pendingSignRequests?.map((req, i) => (
+              <p key={i} className="mt-1 text-[11px] font-medium text-muted-foreground">
+                {req.slotLabel}: sent to {req.recipientName || req.recipientEmail} — awaiting signature
               </p>
-            )}
+            ))}
             {(onGoToLibrary || onDeleteRestart) && (
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {onGoToLibrary && (
@@ -889,11 +1013,11 @@ export function DocumentViewer({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {doc.content && !doc.signed && onSign && (
+            {doc.content && !officerSigned && onSign && (
               <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} variant="full" />
             )}
-            {doc.content && !doc.signed && onSendToSign && (
-              <SendToSignButton doc={doc} onSendToSign={onSendToSign} variant="full" />
+            {doc.content && onSendToSign && (
+              <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} variant="full" />
             )}
             <button
               onClick={onClose}
@@ -905,7 +1029,7 @@ export function DocumentViewer({
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {doc.content ? (
-            <DocumentBody doc={doc} />
+            <DocumentBody doc={doc} answers={answers} />
           ) : (
             <p className="text-sm text-muted-foreground">No document preview is available for this item yet.</p>
           )}

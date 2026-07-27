@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { docId, docTitle, docContent, recipientEmail, recipientName, senderCompanyName } = body
+  const { docId, docTitle, docContent, recipientEmail, recipientName, senderCompanyName, slotId, slotLabel, lockedName } = body
 
-  if (!docId || !docTitle || !docContent || !recipientEmail) {
+  if (!docId || !docTitle || !docContent || !recipientEmail || !slotId || !slotLabel) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   const [row] = await db
     .insert(signatureRequests)
-    .values({ id, token, ownerId: userId, docId, docTitle, docContent, recipientEmail, recipientName })
+    .values({ id, token, ownerId: userId, docId, docTitle, docContent, recipientEmail, recipientName, slotId, slotLabel, lockedName })
     .returning()
 
   const origin = req.nextUrl.origin
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
     to: recipientEmail,
     recipientName,
     docTitle,
+    slotLabel,
     senderCompanyName,
     signUrl: `${origin}/sign/${token}`,
   })

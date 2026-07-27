@@ -131,7 +131,7 @@ export function DocumentTracker({
         ))}
       </div>
 
-      {viewing && <DocumentViewer doc={viewing} onClose={() => setViewing(null)} />}
+      {viewing && <DocumentViewer doc={viewing} answers={answers} onClose={() => setViewing(null)} />}
       {infoDoc && (
         <InfoModal
           title={infoDoc.label}

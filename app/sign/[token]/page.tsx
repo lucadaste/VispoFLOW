@@ -22,6 +22,8 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
       docTitle={row.docTitle}
       docContent={row.docContent}
       recipientName={row.recipientName}
+      slotLabel={row.slotLabel}
+      lockedName={row.lockedName}
       alreadySigned={row.status === "signed"}
       signerName={row.signerName}
       signedAt={row.signedAt ? row.signedAt.toISOString() : null}

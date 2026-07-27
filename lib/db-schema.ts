@@ -24,6 +24,13 @@ export const signatureRequests = pgTable("signature_requests", {
   docContent: text("doc_content").notNull(),
   recipientEmail: text("recipient_email").notNull(),
   recipientName: text("recipient_name"),
+  /** which signer slot this request targets (see lib/document-signers.ts) — null on requests
+   *  created before multi-signer support, which are treated as the default "officer" slot */
+  slotId: text("slot_id"),
+  slotLabel: text("slot_label"),
+  /** for "named"/"officer" slots, the exact name the recipient must sign as — sent to the public
+   *  page so the name field can be pre-filled and locked, guaranteeing correct line placement */
+  lockedName: text("locked_name"),
   status: text("status").notNull().default("sent"), // "sent" | "viewed" | "signed"
   signerName: text("signer_name"),
   signerRoles: jsonb("signer_roles"),

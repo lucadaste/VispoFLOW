@@ -9,13 +9,18 @@ type Mode = "typed" | "drawn"
 /** Shared signature capture widget — type a name (rendered in a script font) or draw with mouse/touch. */
 export function SignaturePad({
   defaultName,
+  lockedName,
   onCapture,
 }: {
   defaultName: string
+  /** when set, the name field is pre-filled and locked to this exact value — used when a
+   *  signature request already knows who's signing, so their name is guaranteed to match the
+   *  document line it needs to land on */
+  lockedName?: string
   onCapture: (dataUrl: string, method: Mode, name: string) => void
 }) {
   const [mode, setMode] = useState<Mode>("typed")
-  const [name, setName] = useState(defaultName)
+  const [name, setName] = useState(lockedName ?? defaultName)
   const [typedPreview, setTypedPreview] = useState("")
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawingRef = useRef(false)
@@ -88,7 +93,11 @@ export function SignaturePad({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Your full name"
-        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
+        readOnly={!!lockedName}
+        className={cn(
+          "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20",
+          lockedName && "cursor-not-allowed bg-secondary text-muted-foreground",
+        )}
       />
 
       <div className="flex gap-1.5 rounded-lg bg-secondary p-1">

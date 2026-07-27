@@ -10,6 +10,8 @@ export function SignRequestClient({
   docTitle,
   docContent,
   recipientName,
+  slotLabel,
+  lockedName,
   alreadySigned,
   signerName,
   signedAt,
@@ -18,6 +20,8 @@ export function SignRequestClient({
   docTitle: string
   docContent: string
   recipientName: string | null
+  slotLabel: string | null
+  lockedName: string | null
   alreadySigned: boolean
   signerName: string | null
   signedAt: string | null
@@ -55,7 +59,8 @@ export function SignRequestClient({
       <div className="mb-6">
         <h1 className="text-lg font-bold tracking-tight text-foreground">{docTitle}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {recipientName ? `${recipientName}, y` : "Y"}ou've been asked to review and sign this document.
+          {recipientName ? `${recipientName}, y` : "Y"}ou've been asked to review and sign this document
+          {slotLabel ? ` as ${slotLabel}` : ""}.
         </p>
       </div>
 
@@ -86,7 +91,7 @@ export function SignRequestClient({
               I agree that typing or drawing my name below constitutes my electronic signature on this document.
             </label>
             {consented ? (
-              <SignaturePad defaultName={recipientName ?? ""} onCapture={handleCapture} />
+              <SignaturePad defaultName={recipientName ?? ""} lockedName={lockedName ?? undefined} onCapture={handleCapture} />
             ) : (
               <p className="text-xs text-muted-foreground">Check the box above to sign.</p>
             )}
