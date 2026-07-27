@@ -361,6 +361,7 @@ export function DocumentLibrary({
   onRestore,
   onSign,
   onSendToSign,
+  onRemoveSignature,
   savedSignature,
   pendingSignRequests = {},
 }: {
@@ -374,6 +375,7 @@ export function DocumentLibrary({
   onRestore: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
   savedSignature: SavedSignature | null
   pendingSignRequests?: Record<string, PendingSignRequest[]>
 }) {
@@ -393,8 +395,17 @@ export function DocumentLibrary({
         signedAt: new Date().toISOString(),
         officerTitle: primaryOfficerTitle(signature.roles ?? []) ?? undefined,
       }
-      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== "officer"), newSig] }
+      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== "officer"), newSig], signed: false }
     })
+  }
+
+  const handleRemoveSignature = (doc: LibraryDoc, slotId: string) => {
+    onRemoveSignature?.(doc, slotId)
+    setViewing((v) =>
+      v && v.id === doc.id
+        ? { ...v, signatures: (v.signatures ?? []).filter((s) => s.slotId !== slotId), signed: false }
+        : v,
+    )
   }
 
   return (
@@ -470,6 +481,7 @@ export function DocumentLibrary({
           onSign={handleSign}
           onSendToSign={onSendToSign}
           onDelete={(doc) => { onDelete(doc); setViewing(null) }}
+          onRemoveSignature={onRemoveSignature ? handleRemoveSignature : undefined}
           savedSignature={savedSignature}
           pendingSignRequests={pendingSignRequests[viewing.id]}
         />
@@ -846,7 +858,7 @@ function DocTileMenu({
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const viewable = !!doc.content
-  const officerSigned = (doc.signatures ?? []).some((s) => s.slotId === "officer")
+  const canSign = viewable && availableSlotsFor(doc, answers).some((s) => s.kind === "officer")
   const canSendToSign = viewable && !!onSendToSign && availableSlotsFor(doc, answers).length > 0
 
   const close = () => { setOpen(false); setMode("menu") }
@@ -866,7 +878,7 @@ function DocTileMenu({
           <div className="absolute right-0 top-7 z-50 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
             {mode === "menu" && (
               <div className="py-1">
-                {viewable && !officerSigned && (
+                {canSign && (
                   <button
                     onClick={() => setMode("sign")}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
@@ -1118,6 +1130,7 @@ export function DocumentViewer({
   onSign,
   onSendToSign,
   onDelete,
+  onRemoveSignature,
   savedSignature = null,
   pendingSignRequests,
   onGoToLibrary,
@@ -1131,6 +1144,8 @@ export function DocumentViewer({
   /** Present only when opened from the Document Library itself — soft-deletes (hides,
    *  restorable) the doc, distinct from onDeleteRestart's "wipe answers and start over". */
   onDelete?: (doc: LibraryDoc) => void
+  /** Removes one collected signature so that slot can be signed again — a "redo". */
+  onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
   savedSignature?: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
   /** Present only when opened from a flow's sidebar (not from the Document Library itself) — jumps to the library. */
@@ -1138,7 +1153,7 @@ export function DocumentViewer({
   /** Present only when opened from a flow's sidebar — deletes the saved answers and restarts the questions. */
   onDeleteRestart?: () => void
 }) {
-  const officerSigned = (doc.signatures ?? []).some((s) => s.slotId === "officer")
+  const canSign = doc.content ? availableSlotsFor(doc, answers).some((s) => s.kind === "officer") : false
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -1177,7 +1192,7 @@ export function DocumentViewer({
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {doc.content && !officerSigned && onSign && (
+            {doc.content && canSign && onSign && (
               <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} variant="full" />
             )}
             {doc.content && onSendToSign && (
@@ -1193,6 +1208,32 @@ export function DocumentViewer({
             </button>
           </div>
         </div>
+        {doc.signatures && doc.signatures.length > 0 && (
+          <div className="border-b border-border bg-secondary/20 px-5 py-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Signatures</p>
+            <div className="space-y-1.5">
+              {doc.signatures.map((sig) => (
+                <div key={sig.slotId} className="flex items-center justify-between gap-2 rounded-md bg-card px-2.5 py-1.5 shadow-sm">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-foreground">{sig.slotLabel}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {sig.signerName} · {formatSignedDate(sig.signedAt)}
+                    </p>
+                  </div>
+                  {onRemoveSignature && (
+                    <button
+                      onClick={() => onRemoveSignature(doc, sig.slotId)}
+                      title="Remove signature (redo)"
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {doc.content ? (
             <DocumentBody doc={doc} answers={answers} />

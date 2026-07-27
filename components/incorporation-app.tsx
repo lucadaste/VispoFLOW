@@ -326,6 +326,25 @@ export function IncorporationApp() {
     [effectiveAnswers.companyName],
   )
 
+  // "Redo" a signature: drop it locally, and if it came from an emailed sign request, delete
+  // that request server-side too — otherwise the next reconciliation pass would just restore it.
+  const handleRemoveSignature = useCallback(
+    (doc: LibraryDoc, slotId: string) => {
+      setSignedDocs((docs) => ({
+        ...docs,
+        [doc.id]: (docs[doc.id] ?? []).filter((s) => s.slotId !== slotId),
+      }))
+      const matchingRequest = signRequests.find(
+        (r) => r.docId === doc.id && (r.slotId ?? "officer") === slotId && r.status === "signed",
+      )
+      if (matchingRequest) {
+        setSignRequests((reqs) => reqs.filter((r) => r.id !== matchingRequest.id))
+        fetch(`/api/sign-requests/${matchingRequest.id}`, { method: "DELETE" }).catch(() => {})
+      }
+    },
+    [signRequests],
+  )
+
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
     if (phase === "chat") { setView("chat"); return }
@@ -1000,6 +1019,7 @@ export function IncorporationApp() {
           onRestore={handleRestoreLibraryDoc}
           onSign={handleSignLibraryDoc}
           onSendToSign={handleSendToSign}
+          onRemoveSignature={handleRemoveSignature}
           savedSignature={
             profile.signatureDataUrl
               ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName, roles: profile.roles }
