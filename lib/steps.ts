@@ -86,7 +86,7 @@ export const STEPS: Step[] = [
   },
   {
     id: "director-names",
-    messages: ["Great. What are their names?"],
+    messages: ["Great."],
     input: { kind: "directorNames" },
     completes: ["action-incorporator"],
   },
