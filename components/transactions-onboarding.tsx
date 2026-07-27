@@ -21,12 +21,14 @@ import { FieldComposer } from "@/components/field-composer"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
+import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
 
 type TransactionsPersisted = {
   messages: ChatMsg[]
   activeCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
   activeItemId: string | null
+  docs: Record<string, LibraryDoc>
   inputMode?: "chat" | "form"
 }
 
@@ -51,9 +53,11 @@ const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 
 export function TransactionsOnboarding({
   answers = initialAnswers,
   onDocumentReady,
+  onGoToLibrary,
 }: {
   answers?: FlowAnswers
-  onDocumentReady?: (doc: { id: string; title: string; subtitle: string }) => void
+  onDocumentReady?: (doc: LibraryDoc) => void
+  onGoToLibrary?: () => void
 } = {}) {
   const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
@@ -61,10 +65,12 @@ export function TransactionsOnboarding({
   const [expandedCategoryId, setExpandedCategoryId] = useState<TransactionCategory["id"] | null>(null)
   const [completed, setCompleted] = useState<Record<string, boolean>>({})
   const [activeItemId, setActiveItemId] = useState<string | null>(null)
+  const [docs, setDocs] = useState<Record<string, LibraryDoc>>({})
   const [inputMode, setInputMode] = useState<"chat" | "form">("chat")
   const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<TransactionItem | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: TransactionItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: TransactionItem; groupTitle: string }
@@ -105,6 +111,7 @@ export function TransactionsOnboarding({
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
+    setDocs(saved.docs ?? {})
     setInputMode(saved.inputMode ?? "chat")
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
@@ -149,11 +156,12 @@ export function TransactionsOnboarding({
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
+      docs,
       inputMode,
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, inputMode, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -198,10 +206,12 @@ export function TransactionsOnboarding({
   }, [pushBot, pushUser, pushBotTyped, inputMode])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string) => {
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle }
     setCompleted((c) => ({ ...c, [item.id]: true }))
+    setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
     pushBot(`✓ ${item.title} has been saved. Select another document from the right to continue, or ask me anything.`)
-    onDocumentReady?.({ id: item.id, title: item.title, subtitle: groupTitle })
+    onDocumentReady?.(doc)
   }, [pushBot, onDocumentReady])
 
   const handleFieldSubmit = useCallback((raw: string) => {
@@ -253,11 +263,12 @@ export function TransactionsOnboarding({
       activeCategory={activeCategory}
       expandedCategoryId={expandedCategoryId}
       completed={completed}
+      docs={docs}
       activeItemId={activeItemId}
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onRedoRequest={(item, groupTitle) => setRedoConfirm({ item, groupTitle })}
+      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc, item, groupTitle })}
     />
   )
 
@@ -380,11 +391,23 @@ export function TransactionsOnboarding({
           onClose={() => setInfoItem(null)}
         />
       )}
+      {viewingDoc && (
+        <DocumentViewer
+          doc={viewingDoc.doc}
+          onClose={() => setViewingDoc(null)}
+          onGoToLibrary={onGoToLibrary ? () => { setViewingDoc(null); onGoToLibrary() } : undefined}
+          onDeleteRestart={() => {
+            const { item, groupTitle } = viewingDoc
+            setViewingDoc(null)
+            setRedoConfirm({ item, groupTitle })
+          }}
+        />
+      )}
       {redoConfirm && (
         <ConfirmModal
-          title="Redo this document?"
-          description={`"${redoConfirm.item.title}" has already been completed. Redoing it will ask the questions again and replace your saved answers.`}
-          confirmLabel="Redo document"
+          title="Delete and restart this document?"
+          description={`"${redoConfirm.item.title}" has already been completed. This will delete your saved answers and ask the questions again from the start.`}
+          confirmLabel="Delete & restart"
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
@@ -417,16 +440,17 @@ export function TransactionsOnboarding({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, activeItemId, onItemClick, onCategoryClick, onInfoClick, onRedoRequest,
+  activeCategory, expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
 }: {
   activeCategory: TransactionCategory | null
   expandedCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
+  docs: Record<string, LibraryDoc>
   activeItemId: string | null
   onItemClick: (item: TransactionItem, groupTitle: string) => void
   onCategoryClick: (cat: TransactionCategory) => void
   onInfoClick: (item: TransactionItem) => void
-  onRedoRequest: (item: TransactionItem, groupTitle: string) => void
+  onViewClick: (doc: LibraryDoc, item: TransactionItem, groupTitle: string) => void
 }) {
   if (!activeCategory) {
     return (
@@ -476,8 +500,12 @@ function SidebarContent({
                       <ul className="space-y-0.5">
                         {group.items.map((item) => {
                           const done = !!completed[item.id]
+                          const doc = docs[item.id]
                           const isActive = activeItemId === item.id
-                          const handleClick = () => (done ? onRedoRequest(item, group.title) : onItemClick(item, group.title))
+                          const handleClick = () => {
+                            if (done && doc) return onViewClick(doc, item, group.title)
+                            return onItemClick(item, group.title)
+                          }
                           return (
                             <li key={item.id}>
                               <div

@@ -818,11 +818,17 @@ export function IncorporationApp() {
             answers={effectiveAnswers}
             onItemComplete={handleComplianceDocComplete}
             startExpanded={complianceFromFlow}
+            onGoToLibrary={() => handlePhaseClick("documents")}
           />
         </SignedOutGate>
       ) : view === "transactions" ? (
         <SignedOutGate>
-          <TransactionsOnboarding key={transactionsKey} answers={effectiveAnswers} onDocumentReady={handleTransactionDocReady} />
+          <TransactionsOnboarding
+            key={transactionsKey}
+            answers={effectiveAnswers}
+            onDocumentReady={handleTransactionDocReady}
+            onGoToLibrary={() => handlePhaseClick("documents")}
+          />
         </SignedOutGate>
       ) : (
         <DocumentLibrary

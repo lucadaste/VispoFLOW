@@ -838,6 +838,8 @@ export function DocumentViewer({
   onSendToSign,
   savedSignature = null,
   pendingSignRequest,
+  onGoToLibrary,
+  onDeleteRestart,
 }: {
   doc: LibraryDoc
   onClose: () => void
@@ -845,12 +847,16 @@ export function DocumentViewer({
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature?: SavedSignature | null
   pendingSignRequest?: PendingSignRequest
+  /** Present only when opened from a flow's sidebar (not from the Document Library itself) — jumps to the library. */
+  onGoToLibrary?: () => void
+  /** Present only when opened from a flow's sidebar — deletes the saved answers and restarts the questions. */
+  onDeleteRestart?: () => void
 }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative flex h-full w-full max-w-2xl flex-col bg-card shadow-xl">
-        <div className="flex items-start justify-between border-b border-border px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="pr-4">
             <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
             <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
@@ -858,6 +864,28 @@ export function DocumentViewer({
               <p className="mt-1 text-[11px] font-medium text-muted-foreground">
                 Sent to {pendingSignRequest.recipientName || pendingSignRequest.recipientEmail} — awaiting signature
               </p>
+            )}
+            {(onGoToLibrary || onDeleteRestart) && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                {onGoToLibrary && (
+                  <button
+                    onClick={onGoToLibrary}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    View in Document Library
+                  </button>
+                )}
+                {onDeleteRestart && (
+                  <button
+                    onClick={onDeleteRestart}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:border-destructive hover:bg-destructive/10"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Delete &amp; restart
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -876,7 +904,11 @@ export function DocumentViewer({
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
-          <DocumentBody doc={doc} />
+          {doc.content ? (
+            <DocumentBody doc={doc} />
+          ) : (
+            <p className="text-sm text-muted-foreground">No document preview is available for this item yet.</p>
+          )}
         </div>
       </div>
     </div>

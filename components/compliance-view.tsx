@@ -67,10 +67,12 @@ export function ComplianceView({
   answers,
   onItemComplete,
   startExpanded = false,
+  onGoToLibrary,
 }: {
   answers: FlowAnswers
   onItemComplete?: (doc: LibraryDoc) => void
   startExpanded?: boolean
+  onGoToLibrary?: () => void
 }) {
   const { user, isSignedIn } = useUser()
   const [messages, setMessages] = useState<ChatMsg[]>([])
@@ -83,7 +85,7 @@ export function ComplianceView({
   const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
-  const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
+  const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: ComplianceItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: ComplianceItem; groupTitle: string }
@@ -347,8 +349,7 @@ export function ComplianceView({
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onViewClick={setViewingDoc}
-      onRedoRequest={(item, groupTitle) => setRedoConfirm({ item, groupTitle })}
+      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc, item, groupTitle })}
     />
   )
 
@@ -478,12 +479,23 @@ export function ComplianceView({
           onClose={() => setInfoItem(null)}
         />
       )}
-      {viewingDoc && <DocumentViewer doc={viewingDoc} onClose={() => setViewingDoc(null)} />}
+      {viewingDoc && (
+        <DocumentViewer
+          doc={viewingDoc.doc}
+          onClose={() => setViewingDoc(null)}
+          onGoToLibrary={onGoToLibrary ? () => { setViewingDoc(null); onGoToLibrary() } : undefined}
+          onDeleteRestart={() => {
+            const { item, groupTitle } = viewingDoc
+            setViewingDoc(null)
+            setRedoConfirm({ item, groupTitle })
+          }}
+        />
+      )}
       {redoConfirm && (
         <ConfirmModal
-          title="Redo this filing?"
-          description={`"${redoConfirm.item.title}" has already been completed. Redoing it will ask the questions again and replace your saved answers.`}
-          confirmLabel="Redo filing"
+          title="Delete and restart this filing?"
+          description={`"${redoConfirm.item.title}" has already been completed. This will delete your saved answers and ask the questions again from the start.`}
+          confirmLabel="Delete & restart"
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
@@ -593,7 +605,7 @@ function FieldChoicesBubble({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick, onRedoRequest,
+  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
 }: {
   expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
@@ -602,8 +614,7 @@ function SidebarContent({
   onItemClick: (item: ComplianceItem, groupTitle: string) => void
   onCategoryClick: (cat: ComplianceCategory) => void
   onInfoClick: (item: ComplianceItem) => void
-  onViewClick: (doc: LibraryDoc) => void
-  onRedoRequest: (item: ComplianceItem, groupTitle: string) => void
+  onViewClick: (doc: LibraryDoc, item: ComplianceItem, groupTitle: string) => void
 }) {
   return (
     <>
@@ -648,8 +659,7 @@ function SidebarContent({
                           const viewable = done && !!doc?.content
                           const isActive = activeItemId === item.id
                           const handleClick = () => {
-                            if (viewable) return onViewClick(doc)
-                            if (done) return onRedoRequest(item, group.title)
+                            if (done && doc) return onViewClick(doc, item, group.title)
                             return onItemClick(item, group.title)
                           }
                           return (
