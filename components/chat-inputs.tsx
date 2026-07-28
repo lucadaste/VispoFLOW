@@ -667,6 +667,9 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           </a>
         </div>
         <p className="text-xs text-muted-foreground">
+          Not sure how to read the results? If it says <strong className="font-semibold text-foreground">"No Records Found,"</strong> the name is available. If it lists a matching entity, it's taken.
+        </p>
+        <p className="text-xs text-muted-foreground">
           This is a preliminary check only — Delaware makes the final determination when it
           formally reviews your Certificate of Incorporation at filing.
         </p>
