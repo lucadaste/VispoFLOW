@@ -654,24 +654,18 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
   return (
     <Shell>
       <div className="space-y-3">
-        <div className="rounded-lg bg-secondary/60 px-3 py-2.5">
-          <p className="text-sm font-medium text-foreground">{answers.companyName}</p>
-          <a
-            href={DELAWARE_NAME_SEARCH_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-          >
-            Open Delaware's official name search
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
+        <p className="text-sm font-medium text-foreground">{answers.companyName}</p>
+        <a
+          href={DELAWARE_NAME_SEARCH_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        >
+          Search on Delaware.gov
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
         <p className="text-xs text-muted-foreground">
-          Not sure how to read the results? If it says <strong className="font-semibold text-foreground">"No Records Found,"</strong> the name is available. If it lists a matching entity, it's taken.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          This is a preliminary check only — Delaware makes the final determination when it
-          formally reviews your Certificate of Incorporation at filing.
+          <strong className="font-semibold text-foreground">"No Records Found"</strong> → available. Anything else → taken.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
@@ -694,6 +688,9 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
         >
           Not sure how to check? Skip this step
         </button>
+        <p className="text-center text-[11px] text-muted-foreground/70">
+          Preliminary only — Delaware has final say at filing.
+        </p>
       </div>
     </Shell>
   )
