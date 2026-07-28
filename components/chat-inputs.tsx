@@ -664,11 +664,13 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <div className="flex items-center gap-3">
-          <p className="flex-1 text-xs text-muted-foreground">
+        <div className="flex items-center">
+          <p className="text-xs text-muted-foreground">
             Type the name in the "Entity Name" box
           </p>
-          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground/50" />
+          <div className="flex flex-1 justify-center">
+            <ArrowRight className="h-6 w-12 text-muted-foreground/50" />
+          </div>
           <p className="text-xs text-muted-foreground space-y-0.5">
             <span className="block">
               "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
