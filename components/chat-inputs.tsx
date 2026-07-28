@@ -9,7 +9,6 @@ import {
   Minus,
   Plus,
   ArrowRight,
-  ArrowDown,
   CalendarDays,
   ExternalLink,
 } from "lucide-react"
@@ -665,18 +664,20 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Type the name in the "Entity Name" box
-        </p>
-        <ArrowDown className="mx-auto h-3.5 w-3.5 text-muted-foreground/50" />
-        <p className="text-xs text-muted-foreground space-y-0.5">
-          <span className="block">
-            "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
-          </span>
-          <span className="block">
-            Anything else = <strong className="font-semibold text-destructive">Taken :/</strong>
-          </span>
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="flex-1 text-xs text-muted-foreground">
+            Type the name in the "Entity Name" box
+          </p>
+          <ArrowRight className="h-5 w-5 shrink-0 text-muted-foreground/50" />
+          <p className="text-xs text-muted-foreground space-y-0.5">
+            <span className="block">
+              "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
+            </span>
+            <span className="block">
+              Anything else = <strong className="font-semibold text-destructive">Taken :/</strong>
+            </span>
+          </p>
+        </div>
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onSubmit("It's available — I checked Delaware's search.", {})}
