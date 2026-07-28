@@ -262,7 +262,6 @@ export function TransactionsOnboarding({
 
   const sidebarContent = (
     <SidebarContent
-      activeCategory={activeCategory}
       expandedCategoryId={expandedCategoryId}
       completed={completed}
       docs={docs}
@@ -451,9 +450,8 @@ export function TransactionsOnboarding({
 /* ── Sidebar content ── */
 
 function SidebarContent({
-  activeCategory, expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
+  expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
 }: {
-  activeCategory: TransactionCategory | null
   expandedCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
   docs: Record<string, LibraryDoc>
@@ -463,16 +461,6 @@ function SidebarContent({
   onInfoClick: (item: TransactionItem) => void
   onViewClick: (doc: LibraryDoc, item: TransactionItem, groupTitle: string) => void
 }) {
-  if (!activeCategory) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-        <ArrowLeftRight className="h-8 w-8 text-muted-foreground/40" />
-        <p className="mt-3 text-sm font-medium text-foreground">No documents yet</p>
-        <p className="mt-1 text-xs text-muted-foreground">Select a transaction category and its documents will appear here.</p>
-      </div>
-    )
-  }
-
   return (
     <>
       <div className="border-b border-border px-4 py-4">
