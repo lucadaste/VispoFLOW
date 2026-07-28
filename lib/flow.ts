@@ -503,11 +503,16 @@ const FOUNDER_LOAN: TransactionItem = {
   short: "Founder Loan",
   description: "Loan agreement between a founder and the company.",
   fields: [
+    { name: "date", label: "Date", type: "date" },
     companyNameField,
-    { name: "lendingFounder", label: "Lending founder", placeholder: "e.g. Jane Founder" },
-    { name: "loanAmount", label: "Loan amount", placeholder: "e.g. $25,000" },
-    { name: "interestRate", label: "Interest rate", placeholder: "e.g. 5% per annum" },
-    { name: "maturityDate", label: "Repayment / maturity date", type: "date" },
+    { name: "companySignerName", label: "Company signer's name", placeholder: "e.g. Jane Founder" },
+    { name: "companySignerTitle", label: "Company signer's title", placeholder: "e.g. CEO" },
+    { name: "founderName", label: "Name of founder (the Lender)", placeholder: "e.g. Jane Founder" },
+    { name: "loanAmount", label: "Loan amount", placeholder: "e.g. 25,000" },
+    { name: "interestRate", label: "Interest rate", placeholder: "e.g. 5" },
+    { name: "interestRateNumber", label: "Interest rate, as a decimal", placeholder: "e.g. 0.05", hint: "5% would be 0.05." },
+    { name: "choiceOfLaw", label: "Choice of law", placeholder: "e.g. Delaware" },
+    { name: "venue", label: "Venue", placeholder: "e.g. Delaware" },
   ],
 }
 
