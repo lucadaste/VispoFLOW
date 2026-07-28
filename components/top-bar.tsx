@@ -87,10 +87,10 @@ export function TopBar({
   return (
     <>
     <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur shadow-sm">
-      <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:px-12">
+      <div className="flex h-14 w-full items-center justify-between px-4 sm:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-12">
         <a
           href="/site"
-          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80"
+          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80 lg:justify-self-start"
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/beaker.png" alt="" className="h-9 w-9 shrink-0 object-contain" />
@@ -100,7 +100,7 @@ export function TopBar({
           </div>
         </a>
 
-        <div className="hidden items-center gap-2 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex lg:justify-self-center">
           <PhasePill active={phase === "home"} label="Home" onClick={() => onPhaseClick("home")} />
           <div className="h-px w-6 bg-border" />
           <PhasePill active={phase === "chat"} label="Incorporation" onClick={() => onPhaseClick("chat")} />
@@ -112,7 +112,7 @@ export function TopBar({
           <PhasePill active={phase === "documents"} label="My Docs" onClick={() => onPhaseClick("documents")} />
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-3 lg:justify-self-end">
           <button
             onClick={() => setMenuOpen((o) => !o)}
             className="inline-flex items-center justify-center rounded-md border border-border bg-secondary p-2 text-foreground transition-colors hover:bg-secondary/80 lg:hidden"
