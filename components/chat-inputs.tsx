@@ -9,6 +9,7 @@ import {
   Minus,
   Plus,
   ArrowRight,
+  ArrowDown,
   CalendarDays,
   ExternalLink,
 } from "lucide-react"
@@ -664,6 +665,10 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
+        <p className="text-center text-[11px] text-muted-foreground">
+          Type the name in the "Entity Name" box
+        </p>
+        <ArrowDown className="mx-auto h-3.5 w-3.5 text-muted-foreground/50" />
         <p className="text-xs text-muted-foreground space-y-0.5">
           <span className="block">
             "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
