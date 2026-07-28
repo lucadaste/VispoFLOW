@@ -32,6 +32,8 @@ export type LibraryDoc = {
   values?: Record<string, string>
   /** true while an external process (e.g. a state filing) is still resolving in the real world */
   pending?: boolean
+  /** true once the filing tracked by `pending` has been manually confirmed complete */
+  filed?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
   signatures?: DocSignature[]
@@ -376,6 +378,8 @@ export function DocumentLibrary({
   onSign,
   onSendToSign,
   onRemoveSignature,
+  onSendToDelaware,
+  onConfirmFiled,
   savedSignature,
   pendingSignRequests = {},
 }: {
@@ -390,6 +394,10 @@ export function DocumentLibrary({
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
+  /** Marks a signed COI as sent — the actual submission isn't automated yet, this just flips it to "pending" in the library. */
+  onSendToDelaware?: (doc: LibraryDoc) => void
+  /** Manually confirms Delaware has accepted a pending filing. */
+  onConfirmFiled?: (doc: LibraryDoc) => void
   savedSignature: SavedSignature | null
   pendingSignRequests?: Record<string, PendingSignRequest[]>
 }) {
@@ -422,6 +430,16 @@ export function DocumentLibrary({
         ? { ...v, signatures: (v.signatures ?? []).filter((s) => s.slotId !== slotId), signed: false }
         : v,
     )
+  }
+
+  const handleSendToDelaware = (doc: LibraryDoc) => {
+    onSendToDelaware?.(doc)
+    setViewing((v) => (v && v.id === doc.id ? { ...v, pending: true } : v))
+  }
+
+  const handleConfirmFiled = (doc: LibraryDoc) => {
+    onConfirmFiled?.(doc)
+    setViewing((v) => (v && v.id === doc.id ? { ...v, pending: false, filed: true } : v))
   }
 
   return (
@@ -498,6 +516,8 @@ export function DocumentLibrary({
           onSendToSign={onSendToSign}
           onDelete={(doc) => { onDelete(doc); setViewing(null) }}
           onRemoveSignature={onRemoveSignature ? handleRemoveSignature : undefined}
+          onSendToDelaware={onSendToDelaware ? handleSendToDelaware : undefined}
+          onConfirmFiled={onConfirmFiled ? handleConfirmFiled : undefined}
           savedSignature={savedSignature}
           pendingSignRequests={pendingSignRequests[viewing.id]}
         />
@@ -985,6 +1005,7 @@ function DocTileMenu({
 }
 
 function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequests?: PendingSignRequest[]): string | null {
+  if (doc.filed) return "Filed with Delaware"
   if (doc.pending) return "Filing with the state"
   if (doc.signed) return "Signed"
   const signatures = doc.signatures ?? []
@@ -1129,6 +1150,34 @@ function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAn
   )
 }
 
+/** Manual stand-in for a real Delaware filing integration: marks the signed COI as sent, which
+ *  flips it to the same "pending" state a real filing would sit in while Delaware processes it. */
+function SendToDelawareButton({ doc, onSendToDelaware }: { doc: LibraryDoc; onSendToDelaware: (doc: LibraryDoc) => void }) {
+  return (
+    <button
+      onClick={() => onSendToDelaware(doc)}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+    >
+      <Landmark className="h-3.5 w-3.5" />
+      Send to Delaware
+    </button>
+  )
+}
+
+/** Manual attestation that Delaware has accepted the filing — there's no live status check yet,
+ *  so the user confirms it themselves once they hear back. */
+function ConfirmFiledButton({ doc, onConfirmFiled }: { doc: LibraryDoc; onConfirmFiled: (doc: LibraryDoc) => void }) {
+  return (
+    <button
+      onClick={() => onConfirmFiled(doc)}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+    >
+      <Check className="h-3.5 w-3.5" />
+      Confirm filed
+    </button>
+  )
+}
+
 function DeleteButton({ doc, onDelete }: { doc: LibraryDoc; onDelete: (doc: LibraryDoc) => void }) {
   const [confirming, setConfirming] = useState(false)
   return (
@@ -1174,6 +1223,8 @@ export function DocumentViewer({
   onSendToSign,
   onDelete,
   onRemoveSignature,
+  onSendToDelaware,
+  onConfirmFiled,
   savedSignature = null,
   pendingSignRequests,
   onGoToLibrary,
@@ -1189,6 +1240,10 @@ export function DocumentViewer({
   onDelete?: (doc: LibraryDoc) => void
   /** Removes one collected signature so that slot can be signed again — a "redo". */
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
+  /** Marks a signed COI as sent to Delaware (manual — no real filing integration yet). */
+  onSendToDelaware?: (doc: LibraryDoc) => void
+  /** Manually confirms Delaware has accepted a pending filing. */
+  onConfirmFiled?: (doc: LibraryDoc) => void
   savedSignature?: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
   /** Present only when opened from a flow's sidebar (not from the Document Library itself) — jumps to the library. */
@@ -1197,6 +1252,8 @@ export function DocumentViewer({
   onDeleteRestart?: () => void
 }) {
   const canSign = doc.content ? availableSlotsFor(doc, answers).length > 0 : false
+  const canSendToDelaware = doc.id === "coi" && doc.signed && !doc.pending && !doc.filed && !!onSendToDelaware
+  const canConfirmFiled = doc.id === "coi" && doc.pending && !!onConfirmFiled
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -1211,6 +1268,12 @@ export function DocumentViewer({
                 {req.slotLabel}: sent to {req.recipientName || req.recipientEmail} — awaiting signature
               </p>
             ))}
+            {doc.pending && (
+              <p className="mt-1 text-[11px] font-medium text-primary">
+                Sent to Delaware — mark it filed below once they confirm.
+              </p>
+            )}
+            {doc.filed && <p className="mt-1 text-[11px] font-medium text-success">Filed with Delaware.</p>}
             {(onGoToLibrary || onDeleteRestart) && (
               <div className="mt-2.5 flex flex-wrap items-center gap-2">
                 {onGoToLibrary && (
@@ -1241,6 +1304,8 @@ export function DocumentViewer({
             {doc.content && onSendToSign && (
               <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} variant="full" />
             )}
+            {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
+            {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
             {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
             {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
             <button

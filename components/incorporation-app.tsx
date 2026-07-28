@@ -534,6 +534,22 @@ export function IncorporationApp() {
     await delay(400)
   }, [])
 
+  const handleSendToDelaware = useCallback((doc: LibraryDoc) => {
+    setDocStatuses((s) => ({ ...s, [doc.id]: "filing" }))
+    setMessages((m) => [
+      ...m,
+      { id: nextId(), role: "system", text: "Certificate of Incorporation sent to Delaware", variant: "filing" },
+    ])
+  }, [])
+
+  const handleConfirmFiled = useCallback((doc: LibraryDoc) => {
+    setDocStatuses((s) => ({ ...s, [doc.id]: "filed" }))
+    setMessages((m) => [
+      ...m,
+      { id: nextId(), role: "system", text: "Certificate of Incorporation filed with Delaware", variant: "doc" },
+    ])
+  }, [])
+
   const playStep = useCallback(
     async (index: number) => {
       const step = STEPS[index]
@@ -549,20 +565,6 @@ export function IncorporationApp() {
       if (step.widget === "formed") {
         setMessages((m) => [...m, { id: nextId(), role: "widget", widget: "formed" }])
         await delay(400)
-      }
-
-      if (step.special === "file-coi") {
-        setDocStatuses((s) => ({ ...s, coi: "filing" }))
-        setMessages((m) => [
-          ...m,
-          {
-            id: nextId(),
-            role: "system",
-            text: "Certificate of Incorporation transmitted to Delaware",
-            variant: "filing",
-          },
-        ])
-        await delay(450)
       }
 
       if (step.input && !step.autoAdvance) {
@@ -823,7 +825,7 @@ export function IncorporationApp() {
   const hasDocs = Object.keys(docStatuses).length > 0
   const docsTotal = DOCUMENTS.length
   const docsCompleted = DOCUMENTS.filter(
-    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
+    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing" || docStatuses[d.id] === "filed",
   ).length
 
   const restartWarning: string | null =
@@ -855,7 +857,7 @@ export function IncorporationApp() {
   }
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
-    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing",
+    (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing" || docStatuses[d.id] === "filed",
   ).map((d) =>
     withSignature({
       id: d.id,
@@ -863,6 +865,7 @@ export function IncorporationApp() {
       subtitle: d.group,
       content: renderDocumentContent(d.id, effectiveAnswers) ?? undefined,
       pending: docStatuses[d.id] === "filing",
+      filed: docStatuses[d.id] === "filed",
       hidden: !!hiddenDocIds[d.id],
     }),
   )
@@ -1019,6 +1022,8 @@ export function IncorporationApp() {
           onSign={handleSignLibraryDoc}
           onSendToSign={handleSendToSign}
           onRemoveSignature={handleRemoveSignature}
+          onSendToDelaware={handleSendToDelaware}
+          onConfirmFiled={handleConfirmFiled}
           savedSignature={
             profile.signatureDataUrl
               ? { signatureDataUrl: profile.signatureDataUrl, signerName: profile.signerName, roles: profile.roles }

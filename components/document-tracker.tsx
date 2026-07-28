@@ -20,7 +20,7 @@ export function DocumentTracker({
 
   const total = DOCUMENTS.length
   const completed = DOCUMENTS.filter(
-    (d) => statuses[d.id] === "complete" || statuses[d.id] === "filing",
+    (d) => statuses[d.id] === "complete" || statuses[d.id] === "filing" || statuses[d.id] === "filed",
   ).length
   const pct = Math.round((completed / total) * 100)
 
@@ -57,7 +57,7 @@ export function DocumentTracker({
               {DOCUMENTS.filter((d) => d.group === group).map((doc) => {
                 const status = statuses[doc.id] ?? "pending"
                 const content =
-                  status === "complete" || status === "filing"
+                  status === "complete" || status === "filing" || status === "filed"
                     ? renderDocumentContent(doc.id, answers)
                     : null
                 const viewable = !!content
@@ -71,6 +71,7 @@ export function DocumentTracker({
                     subtitle: doc.group,
                     content: content ?? undefined,
                     pending: status === "filing",
+                    filed: status === "filed",
                   })
 
                 return (
@@ -137,7 +138,7 @@ export function DocumentTracker({
           title={infoDoc.label}
           description={infoDoc.description}
           footnote={
-            statuses[infoDoc.id] === "complete" || statuses[infoDoc.id] === "filing"
+            statuses[infoDoc.id] === "complete" || statuses[infoDoc.id] === "filing" || statuses[infoDoc.id] === "filed"
               ? undefined
               : "This document hasn't been drafted yet — it'll appear here once the flow reaches it."
           }
@@ -150,7 +151,7 @@ export function DocumentTracker({
 
 function StatusIcon({ status }: { status: DocStatus }) {
   const base = "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-  if (status === "complete")
+  if (status === "complete" || status === "filed")
     return (
       <span className={cn(base, "bg-success text-success-foreground")}>
         <Check className="h-3 w-3" strokeWidth={3} />
@@ -178,6 +179,8 @@ function StatusIcon({ status }: { status: DocStatus }) {
 function StatusBadge({ status }: { status: DocStatus }) {
   if (status === "drafting")
     return <span className="shrink-0 text-[10px] font-medium text-accent-foreground/70">Drafting</span>
+  if (status === "filed")
+    return <span className="shrink-0 text-[10px] font-medium text-success">Filed</span>
   if (status === "filing")
     return (
       <span className="group/tip relative flex shrink-0 items-center gap-0.5 text-[10px] font-medium text-primary">

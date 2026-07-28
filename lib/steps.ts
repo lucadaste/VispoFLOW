@@ -21,8 +21,6 @@ export type Step = {
   input?: StepInput
   /** doc ids drafted when leaving this step */
   completes?: string[]
-  /** runs special side effects */
-  special?: "file-coi"
   /** advance with no user input */
   autoAdvance?: boolean
 }
@@ -67,9 +65,8 @@ export const STEPS: Step[] = [
     id: "resume",
     messages: [
       "Welcome back — payment received.",
-      "I'll now gather a bit more information to complete the rest of your formation documents. Everything is prepared now and sent for signature automatically as soon as Delaware confirms the official filing date of your Certificate of Incorporation.",
+      "I'll now gather a bit more information to complete the rest of your formation documents. Once you've signed your Certificate of Incorporation in the Document Library, you can send it to Delaware for filing from there.",
     ],
-    special: "file-coi",
     autoAdvance: true,
   },
   {

@@ -11,7 +11,7 @@ export type ChatField = {
   optional?: boolean
 }
 
-export type DocStatus = "pending" | "drafting" | "complete" | "filing"
+export type DocStatus = "pending" | "drafting" | "complete" | "filing" | "filed"
 
 export type LegalDoc = {
   id: string
