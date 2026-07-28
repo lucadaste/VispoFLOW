@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ArrowLeftRight, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator, SystemNote } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import {
@@ -37,6 +37,7 @@ type ChatMsg =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
   | { id: number; role: "doc"; item: TransactionItem; groupTitle: string }
+  | { id: number; role: "note"; text: string }
 
 type ActiveFiling = {
   item: TransactionItem
@@ -94,6 +95,10 @@ export function TransactionsOnboarding({
 
   const pushBot = useCallback((text: string) => {
     setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
+  }, [])
+
+  const pushNote = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: ++idRef.current, role: "note", text }])
   }, [])
 
   const pushUser = useCallback((text: string) => {
@@ -201,6 +206,8 @@ export function TransactionsOnboarding({
 
   const fieldPrompt = (f: TransactionField) =>
     `${f.question ?? f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+
+  const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     pushUser(item.title)
@@ -337,6 +344,7 @@ export function TransactionsOnboarding({
             {messages.map((m) => {
               if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
               if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
+              if (m.role === "note") return <SystemNote key={m.id} variant="neutral">{m.text}</SystemNote>
               if (m.role === "doc") return (
                 <TransactionFormCard
                   key={m.id}
@@ -479,6 +487,7 @@ export function TransactionsOnboarding({
               setActiveFiling(null)
               setActiveItemId(null)
               setInputMode(target)
+              pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode`)
               return
             }
             const { item, groupTitle } = switchConfirm
