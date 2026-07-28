@@ -1006,7 +1006,7 @@ function DocTileMenu({
 
 function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequests?: PendingSignRequest[]): string | null {
   if (doc.filed) return "Filed with Delaware"
-  if (doc.pending) return "Filing with the state"
+  if (doc.pending) return "Awaiting Delaware approval"
   if (doc.signed) return "Signed"
   const signatures = doc.signatures ?? []
   const totalSlots = doc.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
@@ -1153,14 +1153,45 @@ function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAn
 /** Manual stand-in for a real Delaware filing integration: marks the signed COI as sent, which
  *  flips it to the same "pending" state a real filing would sit in while Delaware processes it. */
 function SendToDelawareButton({ doc, onSendToDelaware }: { doc: LibraryDoc; onSendToDelaware: (doc: LibraryDoc) => void }) {
+  const [confirming, setConfirming] = useState(false)
   return (
-    <button
-      onClick={() => onSendToDelaware(doc)}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-    >
-      <Landmark className="h-3.5 w-3.5" />
-      Send to Delaware
-    </button>
+    <div className="relative">
+      <button
+        onClick={() => setConfirming(true)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+      >
+        <Landmark className="h-3.5 w-3.5" />
+        Send to Delaware
+      </button>
+      {confirming && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setConfirming(false)} />
+          <div className="absolute right-0 top-9 z-50 w-72 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
+            <p className="text-xs font-medium text-foreground">Send to Delaware?</p>
+            <p className="text-[11px] leading-snug text-muted-foreground">
+              Vispo doesn't submit filings automatically yet — this just marks the Certificate of
+              Incorporation as sent so its status is tracked here. Make sure it's actually been
+              filed with Delaware (directly, or through your registered agent) first. Once it is,
+              come back and confirm here when Delaware accepts it.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { onSendToDelaware(doc); setConfirming(false) }}
+                className="flex-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              >
+                Send to Delaware
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -1270,7 +1301,7 @@ export function DocumentViewer({
             ))}
             {doc.pending && (
               <p className="mt-1 text-[11px] font-medium text-primary">
-                Sent to Delaware — mark it filed below once they confirm.
+                Awaiting Delaware approval — confirm below once they accept the filing.
               </p>
             )}
             {doc.filed && <p className="mt-1 text-[11px] font-medium text-success">Filed with Delaware.</p>}
