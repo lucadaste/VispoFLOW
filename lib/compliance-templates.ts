@@ -167,14 +167,67 @@ Date prepared: ${today()}
 This designation is filed as part of the Statement and Designation by Foreign Corporation (Form S&DC-S/N) submitted to the California Secretary of State, and appoints the agent named below to accept service of process on behalf of ${v.companyName} in California.
 
 4. California agent for service of process
-Name: ${v.agentName}
-California street address: ${v.agentAddress}
+Name: VISPO.AI Inc.
 
-Note: if the designated agent is itself a corporation authorized to act as agent for service of process in California, only its name is required on the form (Item 4c) and no street address is listed (Items 4a/4b are left blank in that case). If the agent is a natural person, both name and street address are required (Items 4a and 4b).
+Note: because the designated agent is itself a corporation authorized to act as agent for service of process in California, only its name is required on the form (Item 4c) — no street address is listed (Items 4a/4b are left blank).
 
 
 _________________________
 ${v.companyName}, by its authorized officer
+Date: ${today()}`
+}
+
+function caSoi(v: Record<string, string>): string {
+  return `CALIFORNIA SECRETARY OF STATE — FORM SI-550
+STATEMENT OF INFORMATION (Stock, Agricultural Cooperative and Foreign Corporations)
+
+Prepared for: ${v.companyName}
+Date prepared: ${today()}
+
+1. Corporation name
+${v.companyName}
+
+2. Entity number
+Secretary of State entity number: ${v.caEntityNumber || "N/A"}
+
+3. Business addresses
+   a. Street address of principal executive office (no P.O. box)
+      ${v.principalAddress}
+   b. Mailing address, if different from 3a
+      ${v.mailingAddress || "Same as principal executive office"}
+   c. Street address of principal office in California, if any (no P.O. box)
+      ${v.caAddress || "N/A — no California office"}
+
+4. Officers
+   Chief Executive Officer: ${v.ceoName}
+      Address: ${v.principalAddress}
+   Secretary: ${v.secretaryName}
+      Address: ${v.principalAddress}
+   Chief Financial Officer: ${v.cfoName}
+      Address: ${v.principalAddress}
+
+5. Service of process
+Registered corporate agent's name: VISPO.AI Inc.
+
+6. Type of business
+Describe the type of business or services of the corporation: ${v.businessDescription}
+
+7. Labor judgment
+${
+    v.laborJudgment === "Yes"
+      ? "Yes — an officer or director has an outstanding final judgment issued by the Labor Commissioner or a court of law."
+      : "No — no officer or director has an outstanding final judgment issued by the Labor Commissioner or a court of law."
+  }
+
+8. Email notifications
+Email address (opt-in to entity notifications): ${v.notificationEmail || "N/A"}
+
+The information contained herein, including in any attachments, is true and correct.
+
+
+_________________________
+${v.ceoName}
+Chief Executive Officer
 Date: ${today()}`
 }
 
@@ -183,6 +236,7 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
   "83b": eightyThreeB,
   "ca-qualification": caQualification,
   "ca-registered-agent": caRegisteredAgent,
+  "ca-soi": caSoi,
 }
 
 /** Renders the filled document for a completed compliance filing, from its submitted field

@@ -243,12 +243,10 @@ const CA_REGISTERED_AGENT: ComplianceItem = {
   id: "ca-registered-agent",
   title: "CA Registered Agent Appointment",
   short: "CA Registered Agent",
-  description: "Designate an agent for service of process in California.",
+  description: "Designate VISPO.AI Inc. as the agent for service of process in California.",
   deadline: "Concurrent with CA qualification",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "California agent name", question: "Who's serving as the California agent?" },
-    { name: "agentAddress", label: "California agent street address", question: "What's the California agent's street address?", type: "address" },
   ],
 }
 
@@ -316,11 +314,16 @@ const CA_SOI: ComplianceItem = {
   deadline: "Within 90 days of CA qualification, then biennially",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "caEntityNumber", label: "California entity number", question: "What's the company's California entity number, if you have it?", placeholder: "e.g. C1234567", optional: true },
-    { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "caEntityNumber", label: "California Secretary of State entity number", question: "What's the company's California entity number, if you have it?", placeholder: "e.g. C1234567", optional: true },
+    { name: "principalAddress", label: "Street address of principal executive office", question: "What's the company's principal executive office address?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
+    { name: "mailingAddress", label: "Mailing address, if different from the principal executive office", question: "Is there a mailing address different from the principal executive office? If so, what is it?", type: "address", optional: true },
+    { name: "caAddress", label: "Street address of principal office in California (if any)", question: "Does the company have a street address for a principal office in California? If so, what is it?", type: "address", optional: true },
     { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
     { name: "secretaryName", label: "Secretary name", question: "Who's the secretary?" },
-    { name: "agent", label: "Agent for service of process", question: "Who's the agent for service of process?" },
+    { name: "cfoName", label: "Chief financial officer name", question: "Who's the CFO?" },
+    { name: "businessDescription", label: "Type of business or services", question: "How would you describe the company's type of business or services?", type: "textarea", placeholder: "e.g. Software development" },
+    { name: "laborJudgment", label: "Outstanding final labor judgment", question: "Does any officer or director have an outstanding final judgment issued by the Labor Commissioner or a court of law?", type: "select", options: ["No", "Yes"] },
+    { name: "notificationEmail", label: "Email address for entity notifications (optional)", question: "Want to opt in an email address for Secretary of State entity notifications?", optional: true },
   ],
 }
 
@@ -328,11 +331,10 @@ const CA_AGENT_RENEWAL: ComplianceItem = {
   id: "ca-agent-renewal",
   title: "CA Registered Agent Renewal",
   short: "CA Agent Renewal",
-  description: "Renew the California agent for service of process.",
+  description: "Renew VISPO.AI Inc. as the California agent for service of process.",
   deadline: "Annually",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "California agent name", question: "Who's the California agent being renewed?" },
     { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
   ],
 }
