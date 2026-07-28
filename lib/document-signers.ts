@@ -25,6 +25,12 @@ function founders(answers: FlowAnswers) {
  *  documents only ever need the one signature they already support. */
 export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Record<string, string>): SignerSlot[] {
   switch (docId) {
+    case "coi":
+    case "action-incorporator":
+      // Just a blank line followed directly by "${incorporatorName}, Incorporator" — no
+      // "THE COMPANY:" execution block, so this needs a named slot rather than the officer default.
+      return [{ id: "incorporator", label: "Incorporator", kind: "named", matchName: answers.incorporatorName }]
+
     case "founder-loan": {
       const slots: SignerSlot[] = [
         // This template calls its own execution block "BORROWER:" rather than "THE COMPANY:".

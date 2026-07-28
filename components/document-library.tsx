@@ -55,7 +55,16 @@ function resolveSignatures(content: string, doc: LibraryDoc, answers: FlowAnswer
   const slots = getSignerSlots(doc.id, answers, doc.values)
   return (doc.signatures ?? []).map((sig) => {
     const slot: SignerSlot = slots.find((s) => s.id === sig.slotId) ?? { id: sig.slotId, label: sig.slotLabel, kind: "officer" }
-    return { sig, lines: resolveSignatureLines(content, slot, sig.signerName) }
+    const lines = resolveSignatureLines(content, slot, sig.signerName)
+    // A slot that never resolves to a line silently falls back to being appended at the end of the
+    // document instead of sitting on the signer's actual line — almost always because a new/edited
+    // template's signature block doesn't match the pattern its getSignerSlots entry assumes.
+    if (lines.length === 0 && process.env.NODE_ENV !== "production") {
+      console.warn(
+        `[document-library] Signature slot "${slot.id}" (kind: ${slot.kind}) found no matching line in doc "${doc.id}" — it will be appended at the bottom instead of placed on its signature line. Update getSignerSlots/resolveSignatureLines to match this template's actual layout.`,
+      )
+    }
+    return { sig, lines }
   })
 }
 
