@@ -505,8 +505,6 @@ const FOUNDER_LOAN: TransactionItem = {
   fields: [
     { name: "date", label: "Date", type: "date" },
     companyNameField,
-    { name: "companySignerName", label: "Company signer's name", placeholder: "e.g. Jane Founder" },
-    { name: "companySignerTitle", label: "Company signer's title", placeholder: "e.g. CEO" },
     { name: "founderName", label: "Name of founder (the Lender)", placeholder: "e.g. Jane Founder" },
     { name: "loanAmount", label: "Loan amount", placeholder: "e.g. 25,000" },
     { name: "interestRate", label: "Interest rate", placeholder: "e.g. 5" },

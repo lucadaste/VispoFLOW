@@ -18,11 +18,24 @@ function founders(answers: FlowAnswers) {
   return answers.allocations.filter((alloc) => !alloc.isPool)
 }
 
-/** Returns the signer slots a given document instance requires, derived from its catalog id and
- *  the current answers. Everything not listed below gets the default single officer/self slot —
- *  the vast majority of documents only ever need the one signature they already support. */
-export function getSignerSlots(docId: string, answers: FlowAnswers): SignerSlot[] {
+/** Returns the signer slots a given document instance requires, derived from its catalog id, the
+ *  current (formation-flow) answers, and — for Transaction Center docs, whose counterparties come
+ *  from that document's own collected field values rather than the global answers — those values.
+ *  Everything not listed below gets the default single officer/self slot — the vast majority of
+ *  documents only ever need the one signature they already support. */
+export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Record<string, string>): SignerSlot[] {
   switch (docId) {
+    case "founder-loan": {
+      const slots: SignerSlot[] = [
+        // This template calls its own execution block "BORROWER:" rather than "THE COMPANY:".
+        { id: "officer", label: "Company officer", kind: "officer", headerPattern: /^BORROWER:$/i },
+      ]
+      if (values?.founderName) {
+        slots.push({ id: "lender", label: `Lender: ${values.founderName}`, kind: "named", matchName: values.founderName })
+      }
+      return slots
+    }
+
     case "option-pool":
       return [OFFICER_SLOT, { id: "optionee", label: "Optionee", kind: "generic", headerPattern: /^OPTIONEE:$/i }]
 

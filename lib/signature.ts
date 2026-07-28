@@ -124,20 +124,27 @@ export function resolveSignatureLines(content: string, slot: SignatureRouting, s
   const lines = content.split("\n")
   if (slot.kind === "named") return findAllNameLineIndices(lines, slot.matchName ?? signerName)
   if (slot.kind === "generic") return slot.headerPattern ? findHeaderSignatureLines(lines, slot.headerPattern) : []
-  const companyLines = findByLineIndices(lines, /^THE COMPANY:$/i)
+  const companyLines = findByLineIndices(lines, slot.headerPattern ?? /^THE COMPANY:$/i)
   return companyLines.length > 0 ? companyLines : findDateAdjacentLines(lines)
 }
 
 /**
- * Fills the blank "Name:____"/"Title:____" lines of every "THE COMPANY:" execution block with the
+ * Fills the blank "Name:____"/"Title:____" lines of every company execution block with the
  * signer's name and officer title, so the printed block matches who actually signed on the By:
  * line. No-op if the signer holds no officer-type role or the document has no such block.
+ * `headerPattern` lets a document use a party label other than the default "THE COMPANY:"
+ * (e.g. a loan agreement's "BORROWER:").
  */
-export function fillCompanyExecutionBlock(content: string, signerName: string, roles: string[]): string {
+export function fillCompanyExecutionBlock(
+  content: string,
+  signerName: string,
+  roles: string[],
+  headerPattern: RegExp = /^THE COMPANY:$/i,
+): string {
   const officerTitle = primaryOfficerTitle(roles)
   if (!officerTitle) return content
   const lines = content.split("\n")
-  for (const byIndex of findByLineIndices(lines, /^THE COMPANY:$/i)) {
+  for (const byIndex of findByLineIndices(lines, headerPattern)) {
     for (let j = byIndex; j <= Math.min(byIndex + 6, lines.length - 1); j++) {
       if (/^Name:_{3,}$/i.test(lines[j].trim())) lines[j] = `Name: ${signerName}`
       if (/^Title:_{3,}$/i.test(lines[j].trim())) lines[j] = `Title: ${officerTitle}`

@@ -26,6 +26,10 @@ export type LibraryDoc = {
   title: string
   subtitle: string
   content?: string
+  /** for Transaction Center docs: the raw field values collected to generate this document
+   *  instance — lets getSignerSlots resolve a counterparty (e.g. a loan's Lender) that isn't
+   *  part of the global FlowAnswers. */
+  values?: Record<string, string>
   /** true while an external process (e.g. a state filing) is still resolving in the real world */
   pending?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
@@ -48,7 +52,7 @@ type ResolvedSignature = { sig: DocSignature; lines: number[] }
  *  mark can land on more than one line, e.g. the company's execution block repeated once per
  *  founder in a combined multi-founder agreement). */
 function resolveSignatures(content: string, doc: LibraryDoc, answers: FlowAnswers): ResolvedSignature[] {
-  const slots = getSignerSlots(doc.id, answers)
+  const slots = getSignerSlots(doc.id, answers, doc.values)
   return (doc.signatures ?? []).map((sig) => {
     const slot: SignerSlot = slots.find((s) => s.id === sig.slotId) ?? { id: sig.slotId, label: sig.slotLabel, kind: "officer" }
     return { sig, lines: resolveSignatureLines(content, slot, sig.signerName) }
@@ -58,15 +62,16 @@ function resolveSignatures(content: string, doc: LibraryDoc, answers: FlowAnswer
 /** The signer slots this document still needs — what "Send to sign" is allowed to offer. */
 function availableSlotsFor(doc: LibraryDoc, answers: FlowAnswers): SignerSlot[] {
   const filled = new Set((doc.signatures ?? []).map((s) => s.slotId))
-  return getSignerSlots(doc.id, answers).filter((slot) => !filled.has(slot.id))
+  return getSignerSlots(doc.id, answers, doc.values).filter((slot) => !filled.has(slot.id))
 }
 
 /** The document text as actually signed — blank Name:/Title: lines in the company execution
  *  block(s) filled in from the officer signer's title, so the printed block matches who signed. */
 function signedContent(doc: LibraryDoc, answers: FlowAnswers): string {
   let content = doc.content ?? ""
+  const officerSlot = getSignerSlots(doc.id, answers, doc.values).find((s) => s.kind === "officer")
   for (const sig of doc.signatures ?? []) {
-    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle])
+    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle], officerSlot?.headerPattern)
   }
   return content
 }
@@ -945,7 +950,7 @@ function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequest
   if (doc.pending) return "Filing with the state"
   if (doc.signed) return "Signed"
   const signatures = doc.signatures ?? []
-  const totalSlots = doc.content ? getSignerSlots(doc.id, answers).length : 0
+  const totalSlots = doc.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
   if (signatures.length > 0 && totalSlots > 0) return `${signatures.length} of ${totalSlots} signed`
   if (pendingSignRequests?.length) return "Awaiting signature"
   return null

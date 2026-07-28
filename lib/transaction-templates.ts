@@ -64,17 +64,19 @@ BORROWER:
 
 ${v.companyName}
 
-_________________________
+By:_________________________
+(Signature)
 
-By: ${v.companySignerName}
-Title: ${v.companySignerTitle}
+Name:_________________________
+Title:_________________________
 
 
 LENDER:
 
-${v.founderName}
+_________________________
+(Signature)
 
-_________________________`
+${v.founderName}`
 }
 
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {

@@ -209,7 +209,7 @@ export function TransactionsOnboarding({
   }, [pushBot, pushUser, pushBotTyped, inputMode])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
-    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values) ?? undefined }
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values) ?? undefined, values }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
