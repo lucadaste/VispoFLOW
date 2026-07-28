@@ -444,6 +444,9 @@ export type TransactionField = {
   placeholder?: string
   hint?: string
   optional?: boolean
+  /** Conversational phrasing used when asking for this field one at a time in Chat mode.
+   *  Falls back to `label` if omitted. */
+  question?: string
 }
 
 export type TransactionItem = {
@@ -477,6 +480,7 @@ export type TransactionCategory = {
 const companyNameField: TransactionField = {
   name: "companyName",
   label: "Legal company name",
+  question: "What's the legal name of the company?",
   prefillKey: "companyName",
   placeholder: "e.g. Acme Technologies, Inc.",
 }
@@ -503,14 +507,25 @@ const FOUNDER_LOAN: TransactionItem = {
   short: "Founder Loan",
   description: "Loan agreement between a founder and the company.",
   fields: [
-    { name: "date", label: "Date", type: "date" },
+    { name: "date", label: "Date", type: "date", question: "What's the date of this loan agreement?" },
     companyNameField,
-    { name: "founderName", label: "Name of founder (the Lender)", placeholder: "e.g. Jane Founder" },
-    { name: "loanAmount", label: "Loan amount", placeholder: "e.g. 25,000" },
-    { name: "interestRate", label: "Interest rate", placeholder: "e.g. 5" },
-    { name: "interestRateNumber", label: "Interest rate, as a decimal", placeholder: "e.g. 0.05", hint: "5% would be 0.05." },
-    { name: "choiceOfLaw", label: "Choice of law", placeholder: "e.g. Delaware" },
-    { name: "venue", label: "Venue", placeholder: "e.g. Delaware" },
+    {
+      name: "founderName",
+      label: "Name of founder (the Lender)",
+      question: "Who's the founder lending the money — that's the Lender on this agreement?",
+      placeholder: "e.g. Jane Founder",
+    },
+    { name: "loanAmount", label: "Loan amount", question: "How much is the loan for?", placeholder: "e.g. 25,000" },
+    { name: "interestRate", label: "Interest rate", question: "What interest rate will apply to the loan?", placeholder: "e.g. 5" },
+    {
+      name: "interestRateNumber",
+      label: "Interest rate, as a decimal",
+      question: "And what's that rate as a decimal?",
+      placeholder: "e.g. 0.05",
+      hint: "5% would be 0.05.",
+    },
+    { name: "choiceOfLaw", label: "Choice of law", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+    { name: "venue", label: "Venue", question: "And which state should be the venue for resolving any disputes?", placeholder: "e.g. Delaware" },
   ],
 }
 

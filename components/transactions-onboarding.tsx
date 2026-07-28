@@ -82,6 +82,11 @@ export function TransactionsOnboarding({
     | null
   >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
+  // Category chips are only for the very first choice — once a category or a document has been
+  // picked (even via a direct sidebar click, or one later abandoned), hide them for good. This
+  // has to be sticky rather than derived from current state, since abandoning a flow clears
+  // activeItemId/activeFiling but shouldn't bring the chips back.
+  const [hasStartedFlow, setHasStartedFlow] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0)
@@ -117,6 +122,9 @@ export function TransactionsOnboarding({
     setCompleted(saved.completed)
     setDocs(saved.docs ?? {})
     setInputMode(saved.inputMode ?? "chat")
+    setHasStartedFlow(
+      restoredMessages.length > 1 || !!restoredCategory || Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0
+    )
     // activeItemId only ever points at an incomplete item (completion clears it), so
     // it always refers to a form we just dropped above — nothing should read as "open".
     setActiveItemId(null)
@@ -176,6 +184,7 @@ export function TransactionsOnboarding({
     pushBot(cat.chatResponse)
     setActiveCategory(cat)
     setExpandedCategoryId(cat.id)
+    setHasStartedFlow(true)
   }, [pushBot, pushUser])
 
   const toggleCategory = useCallback((cat: TransactionCategory) => {
@@ -191,12 +200,13 @@ export function TransactionsOnboarding({
   }, [value, pushBot, pushUser])
 
   const fieldPrompt = (f: TransactionField) =>
-    `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+    `${f.question ?? f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     pushUser(item.title)
     setActiveItemId(item.id)
     setMobileOpen(false)
+    setHasStartedFlow(true)
     if (inputMode === "chat") {
       setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
@@ -249,9 +259,6 @@ export function TransactionsOnboarding({
   const allItems = TRANSACTION_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
-  // Category chips are only for the very first choice — once a category or a document has
-  // been picked (even via a direct sidebar click that skips selectCategory), hide them for good.
-  const hasStartedFlow = !!activeCategory || !!activeItemId || !!activeFiling || Object.keys(docs).length > 0
 
   // Guard against accidentally interrupting a document that's already open: re-clicking the
   // same in-progress item asks to restart it, clicking a different one asks to abandon it.

@@ -664,23 +664,14 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <div className="flex items-center">
-          <p className="text-xs text-muted-foreground">
-            Type the name in the "Entity Name" box
-          </p>
-          <div className="mx-2 flex flex-1 items-center">
-            <div className="h-px flex-1 bg-muted-foreground/30" />
-            <ArrowRight className="-ml-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
-          </div>
-          <p className="text-xs text-muted-foreground space-y-0.5">
-            <span className="block">
-              "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
-            </span>
-            <span className="block">
-              Anything else = <strong className="font-semibold text-destructive">Taken :/</strong>
-            </span>
-          </p>
-        </div>
+        <p className="text-center text-[11px] text-muted-foreground">
+          Type the name into the "Entity Name" field
+        </p>
+        <p className="text-center text-xs text-muted-foreground">
+          "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
+          <span className="mx-1.5 text-muted-foreground/40">·</span>
+          Anything else = <strong className="font-semibold text-destructive">Taken :/</strong>
+        </p>
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onSubmit("It's available — I checked Delaware's search.", {})}
