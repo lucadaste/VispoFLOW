@@ -654,7 +654,9 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
   return (
     <Shell>
       <div className="space-y-3">
-        <p className="text-sm font-medium text-foreground">{answers.companyName}</p>
+        <p className="text-sm text-foreground">
+          Type <strong className="font-semibold">"{answers.companyName}"</strong> into the "Entity Name" field
+        </p>
         <a
           href={DELAWARE_NAME_SEARCH_URL}
           target="_blank"
@@ -664,9 +666,6 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <p className="text-center text-[11px] text-muted-foreground">
-          Type the name into the "Entity Name" field
-        </p>
         <p className="text-center text-xs text-muted-foreground">
           "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
           <span className="mx-1.5 text-muted-foreground/40">·</span>
