@@ -655,7 +655,7 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
     <Shell>
       <div className="space-y-3">
         <p className="text-sm text-foreground">
-          Type <strong className="font-semibold">"{answers.companyName}"</strong> into the "Entity Name" field
+          Type <strong className="font-semibold">"{answers.companyName}"</strong> into the "Entity Name" field:
         </p>
         <a
           href={DELAWARE_NAME_SEARCH_URL}
