@@ -414,7 +414,9 @@ export function IncorporationApp() {
   }, [flowStorageKeyFor, isSignedIn])
 
   const handleSignLibraryDoc = useCallback(
-    (doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string; roles?: string[] }) => {
+    (doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }) => {
+      const slotId = signature.slotId ?? "officer"
+      const slot = getSignerSlots(doc.id, effectiveAnswers, doc.values).find((s) => s.id === slotId)
       // The ad-hoc "type/draw a signature" path (used when no saved profile signature exists yet)
       // doesn't collect roles. If the typed name matches the account holder, fall back to their
       // saved profile roles so the company execution block still gets filled in correctly.
@@ -422,19 +424,19 @@ export function IncorporationApp() {
         signature.roles ??
         (signature.signerName.trim().toLowerCase() === profile.signerName.trim().toLowerCase() ? profile.roles : undefined)
       const newSig: DocSignature = {
-        slotId: "officer",
-        slotLabel: "Company officer",
+        slotId,
+        slotLabel: signature.slotLabel ?? slot?.label ?? "Company officer",
         signatureDataUrl: signature.signatureDataUrl,
         signerName: signature.signerName,
         signedAt: new Date().toISOString(),
-        officerTitle: primaryOfficerTitle(roles ?? []) ?? undefined,
+        officerTitle: slot?.kind === "officer" ? primaryOfficerTitle(roles ?? []) ?? undefined : undefined,
       }
       setSignedDocs((docs) => ({
         ...docs,
-        [doc.id]: [...(docs[doc.id] ?? []).filter((s) => s.slotId !== "officer"), newSig],
+        [doc.id]: [...(docs[doc.id] ?? []).filter((s) => s.slotId !== slotId), newSig],
       }))
     },
-    [profile.signerName, profile.roles],
+    [profile.signerName, profile.roles, effectiveAnswers],
   )
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
@@ -849,7 +851,7 @@ export function IncorporationApp() {
 
   const withSignature = (doc: LibraryDoc): LibraryDoc => {
     const signatures = signedDocs[doc.id] ?? []
-    const totalSlots = doc.content ? getSignerSlots(doc.id, effectiveAnswers).length : 0
+    const totalSlots = doc.content ? getSignerSlots(doc.id, effectiveAnswers, doc.values).length : 0
     return { ...doc, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
   }
 

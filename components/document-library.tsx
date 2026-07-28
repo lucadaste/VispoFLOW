@@ -41,7 +41,7 @@ export type LibraryDoc = {
 }
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
-type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[] }
+type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }
 type SendToSignPayload = { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string }
 /** An outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
 export type PendingSignRequest = { slotLabel: string; recipientEmail: string; recipientName?: string | null }
@@ -392,15 +392,17 @@ export function DocumentLibrary({
     onSign(doc, signature)
     setViewing((v) => {
       if (!v || v.id !== doc.id) return v
+      const slotId = signature.slotId ?? "officer"
+      const slot = getSignerSlots(doc.id, answers, doc.values).find((s) => s.id === slotId)
       const newSig: DocSignature = {
-        slotId: "officer",
-        slotLabel: "Company officer",
+        slotId,
+        slotLabel: signature.slotLabel ?? slot?.label ?? "Company officer",
         signatureDataUrl: signature.signatureDataUrl,
         signerName: signature.signerName,
         signedAt: new Date().toISOString(),
-        officerTitle: primaryOfficerTitle(signature.roles ?? []) ?? undefined,
+        officerTitle: slot?.kind === "officer" ? primaryOfficerTitle(signature.roles ?? []) ?? undefined : undefined,
       }
-      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== "officer"), newSig], signed: false }
+      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== slotId), newSig], signed: false }
     })
   }
 
@@ -606,42 +608,67 @@ function DocSection({
   )
 }
 
-/** The "sign this yourself" form — a saved-signature confirm if the account has one, else the
- *  capture pad. Shared by the full sign button and the tile's kebab menu. */
+/** The "sign this yourself" form — a slot picker (only shown when the document still needs more
+ *  than one signature, e.g. a loan's Company officer vs. Lender) plus a saved-signature confirm
+ *  if the account has one, else the capture pad. Shared by the full sign button and the tile's
+ *  kebab menu. */
 function SignPopoverContent({
   doc,
+  answers,
   onSign,
   savedSignature,
   onDone,
 }: {
   doc: LibraryDoc
+  answers: FlowAnswers
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   savedSignature: SavedSignature | null
   onDone: () => void
 }) {
+  const slots = availableSlotsFor(doc, answers)
+  const [slotId, setSlotId] = useState<string | null>(null)
+  if (slots.length === 0) return null
+  const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
+
+  const slotPicker = slots.length > 1 && (
+    <select
+      value={selectedSlot.id}
+      onChange={(e) => setSlotId(e.target.value)}
+      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+    >
+      {slots.map((slot) => (
+        <option key={slot.id} value={slot.id}>
+          {slot.label}
+        </option>
+      ))}
+    </select>
+  )
+
   if (savedSignature) {
     return (
       <div className="space-y-2.5 p-3">
         <p className="text-xs font-medium text-foreground">Sign with your saved signature?</p>
+        {slotPicker}
         <div className="flex items-center rounded-md border border-border bg-white px-2 py-1.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={savedSignature.signatureDataUrl} alt="Your signature" className="h-8 object-contain object-left" />
         </div>
         <button
-          onClick={() => { onSign(doc, savedSignature); onDone() }}
+          onClick={() => { onSign(doc, { ...savedSignature, slotId: selectedSlot.id, slotLabel: selectedSlot.label }); onDone() }}
           className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
-          Sign document
+          Sign document{slots.length > 1 ? ` as ${selectedSlot.label}` : ""}
         </button>
       </div>
     )
   }
   return (
-    <div className="p-3">
+    <div className="space-y-2.5 p-3">
+      {slotPicker}
       <SignaturePad
         defaultName=""
         onCapture={(dataUrl, _method, name) => {
-          onSign(doc, { signatureDataUrl: dataUrl, signerName: name })
+          onSign(doc, { signatureDataUrl: dataUrl, signerName: name, slotId: selectedSlot.id, slotLabel: selectedSlot.label })
           onDone()
         }}
       />
@@ -651,11 +678,13 @@ function SignPopoverContent({
 
 function SignButton({
   doc,
+  answers,
   onSign,
   savedSignature,
   variant = "icon",
 }: {
   doc: LibraryDoc
+  answers: FlowAnswers
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   savedSignature: SavedSignature | null
   variant?: "icon" | "full"
@@ -680,7 +709,7 @@ function SignButton({
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
-            <SignPopoverContent doc={doc} onSign={onSign} savedSignature={savedSignature} onDone={() => setOpen(false)} />
+            <SignPopoverContent doc={doc} answers={answers} onSign={onSign} savedSignature={savedSignature} onDone={() => setOpen(false)} />
           </div>
         </>
       )}
@@ -863,7 +892,7 @@ function DocTileMenu({
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const viewable = !!doc.content
-  const canSign = viewable && availableSlotsFor(doc, answers).some((s) => s.kind === "officer")
+  const canSign = viewable && availableSlotsFor(doc, answers).length > 0
   const canSendToSign = viewable && !!onSendToSign && availableSlotsFor(doc, answers).length > 0
 
   const close = () => { setOpen(false); setMode("menu") }
@@ -916,7 +945,7 @@ function DocTileMenu({
                 </button>
               </div>
             )}
-            {mode === "sign" && <SignPopoverContent doc={doc} onSign={onSign} savedSignature={savedSignature} onDone={close} />}
+            {mode === "sign" && <SignPopoverContent doc={doc} answers={answers} onSign={onSign} savedSignature={savedSignature} onDone={close} />}
             {mode === "send" && onSendToSign && (
               <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={close} />
             )}
@@ -1158,7 +1187,7 @@ export function DocumentViewer({
   /** Present only when opened from a flow's sidebar — deletes the saved answers and restarts the questions. */
   onDeleteRestart?: () => void
 }) {
-  const canSign = doc.content ? availableSlotsFor(doc, answers).some((s) => s.kind === "officer") : false
+  const canSign = doc.content ? availableSlotsFor(doc, answers).length > 0 : false
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -1198,7 +1227,7 @@ export function DocumentViewer({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {doc.content && canSign && onSign && (
-              <SignButton doc={doc} onSign={onSign} savedSignature={savedSignature} variant="full" />
+              <SignButton doc={doc} answers={answers} onSign={onSign} savedSignature={savedSignature} variant="full" />
             )}
             {doc.content && onSendToSign && (
               <SendToSignButton doc={doc} answers={answers} onSendToSign={onSendToSign} variant="full" />
