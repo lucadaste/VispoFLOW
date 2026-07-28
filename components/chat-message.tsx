@@ -30,7 +30,7 @@ export function SystemNote({
   variant = "doc",
 }: {
   children: React.ReactNode
-  variant?: "doc" | "filing" | "neutral"
+  variant?: "doc" | "filing"
 }) {
   return (
     <div className="flex animate-message-in justify-center px-2">
@@ -39,17 +39,15 @@ export function SystemNote({
           "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
           variant === "doc"
             ? "bg-success/10 text-success ring-success/20"
-            : variant === "filing"
-            ? "bg-primary/10 text-primary ring-primary/20"
-            : "bg-secondary text-muted-foreground ring-border",
+            : "bg-primary/10 text-primary ring-primary/20",
         )}
       >
         {variant === "doc" ? (
           <FileCheck2 className="h-3.5 w-3.5" />
-        ) : variant === "filing" ? (
+        ) : (
           <Send className="h-3.5 w-3.5" />
-        ) : null}
-        <span className={variant === "neutral" ? undefined : "text-foreground/80"}>{children}</span>
+        )}
+        <span className="text-foreground/80">{children}</span>
       </div>
     </div>
   )
