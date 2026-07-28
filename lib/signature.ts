@@ -58,6 +58,20 @@ function isSignatureLabel(line: string): boolean {
   return /^\(\s*signature/i.test(line.trim())
 }
 
+/** Finds every blank signature line followed within a few lines by a "Date:" line — the pattern
+ *  used by standalone one-signer letters (EIN, 83(b), CA compliance filings) that end in a bare
+ *  blank line rather than a "THE COMPANY:" execution block. */
+function findDateAdjacentLines(lines: string[]): number[] {
+  const results: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^_{5,}$/.test(lines[i].trim())) continue
+    for (let j = i + 1; j <= Math.min(i + 4, lines.length - 1); j++) {
+      if (/^Date:/i.test(lines[j].trim())) { results.push(i); break }
+    }
+  }
+  return results
+}
+
 /** Finds every blank signature line under a header whose block has no name pre-printed (e.g. an
  *  Optionee/Purchaser block that's just "____ (PRINT NAME) / ____ (Signature)") — identified as
  *  the blank line immediately followed by a "(Signature)" label. */
@@ -110,7 +124,8 @@ export function resolveSignatureLines(content: string, slot: SignatureRouting, s
   const lines = content.split("\n")
   if (slot.kind === "named") return findAllNameLineIndices(lines, slot.matchName ?? signerName)
   if (slot.kind === "generic") return slot.headerPattern ? findHeaderSignatureLines(lines, slot.headerPattern) : []
-  return findByLineIndices(lines, /^THE COMPANY:$/i)
+  const companyLines = findByLineIndices(lines, /^THE COMPANY:$/i)
+  return companyLines.length > 0 ? companyLines : findDateAdjacentLines(lines)
 }
 
 /**
