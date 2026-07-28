@@ -488,6 +488,7 @@ export function TransactionsOnboarding({
               setActiveItemId(null)
               setInputMode(target)
               pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode`)
+              pushBot("Select which filing you'd like to begin from the right, or ask me anything.")
               return
             }
             const { item, groupTitle } = switchConfirm
