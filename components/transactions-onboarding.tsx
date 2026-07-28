@@ -78,6 +78,7 @@ export function TransactionsOnboarding({
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: TransactionItem; groupTitle: string }
     | { mode: "abandon"; fromItem: TransactionItem; item: TransactionItem; groupTitle: string }
+    | { mode: "switchInput"; target: "chat" | "form"; fromItem: TransactionItem }
     | null
   >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -213,6 +214,7 @@ export function TransactionsOnboarding({
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
+    setActiveFiling(null)
     pushBot(`✓ ${item.title} has been saved. Select another document from the right to continue, or ask me anything.`)
     onDocumentReady?.(doc)
   }, [pushBot, onDocumentReady])
@@ -264,6 +266,22 @@ export function TransactionsOnboarding({
     setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
   }, [activeItemId, allItems, openItem])
 
+  // Switching Chat/Questionnaire mode mid-document abandons whatever's in progress —
+  // confirm first, then clear the active flow so the chat bar reverts to free-form.
+  const requestSetInputMode = useCallback((target: "chat" | "form") => {
+    if (target === inputMode) return
+    if (!activeItemId) {
+      setInputMode(target)
+      return
+    }
+    const fromItem = allItems.find((i) => i.id === activeItemId)
+    if (!fromItem) {
+      setInputMode(target)
+      return
+    }
+    setSwitchConfirm({ mode: "switchInput", target, fromItem })
+  }, [inputMode, activeItemId, allItems])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
@@ -286,7 +304,7 @@ export function TransactionsOnboarding({
             <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
               <button
-                onClick={() => setInputMode("chat")}
+                onClick={() => requestSetInputMode("chat")}
                 className={cn(
                   "rounded-full px-3 py-1 font-medium transition-colors",
                   inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -295,7 +313,7 @@ export function TransactionsOnboarding({
                 Chat
               </button>
               <button
-                onClick={() => setInputMode("form")}
+                onClick={() => requestSetInputMode("form")}
                 className={cn(
                   "rounded-full px-3 py-1 font-medium transition-colors",
                   inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -344,7 +362,7 @@ export function TransactionsOnboarding({
 
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            {activeFiling ? (
+            {activeFiling && inputMode === "chat" ? (
               <FieldComposer
                 key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
                 field={activeFiling.item.fields[activeFiling.fieldIndex]}
@@ -432,14 +450,30 @@ export function TransactionsOnboarding({
       )}
       {switchConfirm && (
         <ConfirmModal
-          title={switchConfirm.mode === "restart" ? "Would you like to restart this document?" : "Would you like to abandon the document you're currently working on?"}
+          title={
+            switchConfirm.mode === "restart"
+              ? "Would you like to restart this document?"
+              : switchConfirm.mode === "abandon"
+              ? "Would you like to abandon the document you're currently working on?"
+              : "Switch modes and abandon this document?"
+          }
           description={
             switchConfirm.mode === "restart"
               ? `You're partway through "${switchConfirm.item.title}". Restarting will erase your progress and start over from the first question.`
-              : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
+              : switchConfirm.mode === "abandon"
+              ? `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Switching to ${switchConfirm.target === "chat" ? "Chat" : "Questionnaire"} mode will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Abandon & switch"}
           onConfirm={() => {
+            if (switchConfirm.mode === "switchInput") {
+              const { target } = switchConfirm
+              setSwitchConfirm(null)
+              setActiveFiling(null)
+              setActiveItemId(null)
+              setInputMode(target)
+              return
+            }
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
             openItem(item, groupTitle)
