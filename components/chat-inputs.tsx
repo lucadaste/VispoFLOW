@@ -668,8 +668,9 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           <p className="text-xs text-muted-foreground">
             Type the name in the "Entity Name" box
           </p>
-          <div className="flex flex-1 justify-center">
-            <ArrowRight className="h-6 w-12 text-muted-foreground/50" />
+          <div className="mx-2 flex flex-1 items-center">
+            <div className="h-px flex-1 bg-muted-foreground/30" />
+            <ArrowRight className="-ml-1 h-4 w-4 shrink-0 text-muted-foreground/50" />
           </div>
           <p className="text-xs text-muted-foreground space-y-0.5">
             <span className="block">
@@ -683,10 +684,9 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
         <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onSubmit("It's available — I checked Delaware's search.", {})}
-            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             It's available
-            <ArrowRight className="h-3 w-3" />
           </button>
           <button
             onClick={() => onSubmit("It's already taken — let me pick a different name.", {})}
