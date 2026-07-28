@@ -7,7 +7,7 @@ const CHECKLIST = [
   "Delaware C-Corp formation",
   "EIN & 83(b) filings",
   "SAFEs & 20+ deal documents",
-  "E-signature built in",
+  "Multi-signer e-signature, routed by role",
 ]
 
 const HEADER_OFFSET = 64

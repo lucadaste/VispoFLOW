@@ -25,6 +25,10 @@ const FAQS = [
     a: "Head to the Compliance Center for the filings that come next — your EIN, 83(b) elections, and registered agent setup — and the Transactions library whenever you need a SAFE, offer letter, or other agreement.",
   },
   {
+    q: "Can my co-founders and directors sign too?",
+    a: "Yes. Vispo Labs knows exactly who needs to sign each document — officers, directors, or individual founders — and can send a signature request by email to each of them, so you're not stuck forwarding PDFs around yourself.",
+  },
+  {
     q: "Is my information secure?",
     a: "Your account data is tied to your sign-in and stored so you can pick up exactly where you left off across devices. We don't share your company information with anyone outside of the filings you choose to send.",
   },

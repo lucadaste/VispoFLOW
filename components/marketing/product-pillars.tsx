@@ -48,8 +48,8 @@ const PILLARS = [
       "Every document you generate — across formation, compliance, and transactions — lives in one place, ready to review, e-sign, or download.",
     items: [
       "One saved signature autofills every document",
+      "Send documents out for signature, routed to each officer, director, or founder",
       "Track what's drafted, filed, or pending",
-      "Organized by company, not by flow",
       "Pick up exactly where you left off",
     ],
   },

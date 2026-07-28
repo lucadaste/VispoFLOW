@@ -5,7 +5,7 @@ const STEPS = [
     icon: MessageCircle,
     title: "Tell us about your company",
     description:
-      "Answer a short set of questions in a guided chat — your company name, founders, share split, and vesting. Ask questions any time; there's no legal jargon to decode alone.",
+      "Answer a short set of questions in a guided chat — your company name, founders, share split, and vesting. Prefer forms to chat? Flip to Questionnaire mode any time.",
   },
   {
     icon: FileCog,
@@ -17,7 +17,7 @@ const STEPS = [
     icon: PenTool,
     title: "Sign, file, and stay organized",
     description:
-      "E-sign with a saved signature that autofills across every document. Everything lands in your Document Vault, ready whenever compliance or a new deal comes up.",
+      "E-sign with a saved signature that autofills across every document, and send it out to co-founders, directors, or other signers by email — each document tracks exactly who still needs to sign. Everything lands in your Document Vault, ready whenever compliance or a new deal comes up.",
   },
 ]
 
