@@ -10,6 +10,7 @@ import {
   Plus,
   ArrowRight,
   CalendarDays,
+  ExternalLink,
 } from "lucide-react"
 import type { StepInput } from "@/lib/steps"
 import {
@@ -61,6 +62,8 @@ export function ChatInput({
       return <VestingInput onSubmit={onSubmit} />
     case "continue":
       return <ContinueInput input={input} onSubmit={onSubmit} />
+    case "nameCheck":
+      return <NameCheckInput answers={answers} onSubmit={onSubmit} />
     default:
       return null
   }
@@ -638,6 +641,56 @@ function VestingInput({ onSubmit }: { onSubmit: SubmitFn }) {
         <div className="flex justify-end pt-1">
           <SubmitButton onClick={submit}>Confirm</SubmitButton>
         </div>
+      </div>
+    </Shell>
+  )
+}
+
+/* ---------- name check ---------- */
+
+const DELAWARE_NAME_SEARCH_URL = "https://icis.corp.delaware.gov/Ecorp/EntitySearch/NameSearch.aspx"
+
+function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
+  return (
+    <Shell>
+      <div className="space-y-3">
+        <div className="rounded-lg bg-secondary/60 px-3 py-2.5">
+          <p className="text-sm font-medium text-foreground">{answers.companyName}</p>
+          <a
+            href={DELAWARE_NAME_SEARCH_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Open Delaware's official name search
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          This is a preliminary check only — Delaware makes the final determination when it
+          formally reviews your Certificate of Incorporation at filing.
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={() => onSubmit("It's available — I checked Delaware's search.", {})}
+            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            It's available, continue
+            <ArrowRight className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => onSubmit("It's already taken — let me pick a different name.", {})}
+            className="inline-flex flex-1 items-center justify-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+          >
+            It's taken
+          </button>
+        </div>
+        <button
+          onClick={() => onSubmit("I'm not sure how to check — I'll skip it for now.", {})}
+          className="w-full text-center text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+        >
+          Not sure how to check? Skip this step
+        </button>
       </div>
     </Shell>
   )

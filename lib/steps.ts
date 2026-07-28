@@ -12,11 +12,12 @@ export type StepInput =
   | { kind: "allocations" }
   | { kind: "vesting" }
   | { kind: "continue"; label: string; action: "compliance" }
+  | { kind: "nameCheck" }
 
 export type Step = {
   id: string
   messages: string[]
-  widget?: "name-check" | "formed"
+  widget?: "formed"
   input?: StepInput
   /** doc ids drafted when leaving this step */
   completes?: string[]
@@ -39,13 +40,14 @@ export const STEPS: Step[] = [
   },
   {
     id: "verify-name",
-    messages: ["Thanks — give me a few seconds to verify name availability in Delaware."],
-    widget: "name-check",
-    autoAdvance: true,
+    messages: [
+      "Thanks — I can't check Delaware's registry automatically, so please confirm the name yourself using their official name search before we continue.",
+    ],
+    input: { kind: "nameCheck" },
   },
   {
     id: "incorporator",
-    messages: ["Perfect, that name is available. What is your name and address? You'll be the incorporator who signs the initial filing."],
+    messages: ["Great — what is your name and address? You'll be the incorporator who signs the initial filing."],
     input: { kind: "incorporator" },
   },
   {

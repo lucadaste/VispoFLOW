@@ -19,7 +19,6 @@ import {
   SystemNote,
   TypingIndicator,
 } from "@/components/chat-message"
-import { NameCheckCard } from "@/components/name-check-card"
 import { FormedCard } from "@/components/formed-card"
 import { ChatInput } from "@/components/chat-inputs"
 import { FieldComposer } from "@/components/field-composer"
@@ -94,7 +93,6 @@ type ChatMessage =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
   | { id: number; role: "system"; text: string; variant: "doc" | "filing" }
-  | { id: number; role: "widget"; widget: "name-check"; companyName: string }
   | { id: number; role: "widget"; widget: "formed" }
 
 type ActiveChatFields = {
@@ -548,19 +546,6 @@ export function IncorporationApp() {
         await pushBot(msg)
       }
 
-      if (step.widget === "name-check") {
-        setMessages((m) => [
-          ...m,
-          {
-            id: nextId(),
-            role: "widget",
-            widget: "name-check",
-            companyName: answersRef.current.companyName,
-          },
-        ])
-        await delay(2700)
-      }
-
       if (step.widget === "formed") {
         setMessages((m) => [...m, { id: nextId(), role: "widget", widget: "formed" }])
         await delay(400)
@@ -690,6 +675,20 @@ export function IncorporationApp() {
       }
 
       if (displayText === "I'm ready to begin my incorporation") {
+        await playStep(activeStepIndex + 1)
+        return
+      }
+
+      if (displayText === "It's already taken — let me pick a different name.") {
+        await pushBot("No problem — what would you like to try instead?")
+        await playStep(STEPS.findIndex((s) => s.id === "company-name"))
+        return
+      }
+
+      if (displayText === "I'm not sure how to check — I'll skip it for now.") {
+        await pushBot(
+          "Understood. Just know that if this name turns out to already be taken, Delaware will reject your Certificate of Incorporation when it's filed — you'd need to refile with a different name, which costs additional time and filing fees. You can still check the name yourself anytime before we file.",
+        )
         await playStep(activeStepIndex + 1)
         return
       }
@@ -943,8 +942,6 @@ export function IncorporationApp() {
                         {m.text}
                       </SystemNote>
                     )
-                  if (m.role === "widget" && m.widget === "name-check")
-                    return <NameCheckCard key={m.id} companyName={m.companyName} />
                   if (m.role === "widget" && m.widget === "formed")
                     return <FormedCard key={m.id} answers={effectiveAnswers} />
                   return null
