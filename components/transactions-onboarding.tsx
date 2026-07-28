@@ -22,6 +22,7 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { renderTransactionDocument } from "@/lib/transaction-templates"
 
 type TransactionsPersisted = {
   messages: ChatMsg[]
@@ -207,8 +208,8 @@ export function TransactionsOnboarding({
     }
   }, [pushBot, pushUser, pushBotTyped, inputMode])
 
-  const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string) => {
-    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle }
+  const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values) ?? undefined }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
@@ -233,7 +234,7 @@ export function TransactionsOnboarding({
       })()
     } else {
       setActiveFiling(null)
-      handleDocComplete(item, groupTitle)
+      handleDocComplete(item, groupTitle, nextValues)
     }
   }, [activeFiling, pushUser, pushBotTyped, handleDocComplete])
 
@@ -246,6 +247,9 @@ export function TransactionsOnboarding({
   const allItems = TRANSACTION_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
   const total = allItems.length
+  // Category chips are only for the very first choice — once a category or a document has
+  // been picked (even via a direct sidebar click that skips selectCategory), hide them for good.
+  const hasStartedFlow = !!activeCategory || !!activeItemId || !!activeFiling || Object.keys(docs).length > 0
 
   // Guard against accidentally interrupting a document that's already open: re-clicking the
   // same in-progress item asks to restart it, clicking a different one asks to abandon it.
@@ -315,13 +319,13 @@ export function TransactionsOnboarding({
                   groupTitle={m.groupTitle}
                   done={!!completed[m.item.id]}
                   prefill={prefill}
-                  onComplete={() => handleDocComplete(m.item, m.groupTitle)}
+                  onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
                   onInfoClick={() => setInfoItem(m.item)}
                 />
               )
               return null
             })}
-            {!activeCategory && (
+            {!hasStartedFlow && (
               <div className="flex flex-wrap gap-2 pt-2">
                 {TRANSACTION_CATEGORIES.map((cat) => (
                   <button
@@ -572,7 +576,7 @@ function TransactionFormCard({
   groupTitle: string
   done: boolean
   prefill: (key?: keyof FlowAnswers | "computed") => string
-  onComplete: () => void
+  onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
@@ -669,7 +673,7 @@ function TransactionFormCard({
           {valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
         </p>
         <button
-          onClick={onComplete}
+          onClick={() => onComplete(values)}
           disabled={!valid}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
