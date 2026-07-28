@@ -231,12 +231,86 @@ Chief Executive Officer
 Date: ${today()}`
 }
 
+function signerBlocks(list: string, fallbackName: string): string {
+  const names = (list || "")
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const items = names.length > 0 ? names : [fallbackName]
+  return items.map((n) => `_________________________\n\nName: ${n}\nAddress:\nEmail:`).join("\n\n")
+}
+
+function annualBoardConsent(v: Record<string, string>): string {
+  const otherMatters = v.otherMatters
+    ? `\nOther Matters\n\nRESOLVED, that the Board further approves the following: ${v.otherMatters}\n`
+    : ""
+
+  return `${v.companyName}
+
+UNANIMOUS WRITTEN CONSENT OF THE
+BOARD OF DIRECTORS
+IN LIEU OF ANNUAL MEETING
+
+The undersigned, being all the directors of ${v.companyName}, a Delaware corporation (the "Company"), pursuant to authority to act without a meeting in accordance with the Delaware General Corporation Law and the Company's Bylaws, hereby consent to the taking of the actions and adopt the resolutions set out below. This written consent is in lieu of the Annual Meeting of the Board of Directors and all of the actions taken and resolutions adopted in it shall have the same force and effect as if they were taken and adopted at a meeting. This written consent shall be filed in the Company's minute book.
+
+Election of Officers
+
+RESOLVED, that the following persons be, and they hereby are, elected to the offices set forth alongside their respective names, to serve in such offices at the pleasure of the Board of Directors:
+
+${v.officers || "[No officers specified]"}
+
+RESOLVED FURTHER, that the officers are the sole authorized signers of the Company and shall have general powers and duties of management usually vested in said officers of a corporation as more fully set forth in the Bylaws of the Company.
+
+Approval of Tax Returns
+
+RESOLVED, that the state and federal tax returns for the prior calendar year are hereby approved in their entirety.
+${otherMatters}
+Omnibus Resolution
+
+RESOLVED, that the officers of the Company be, and each hereby is, authorized and directed to do and perform any and all such acts, including execution of any and all documents and certificates, as said officers shall deem necessary or advisable, to carry out the purposes of the foregoing resolutions and that the Secretary or any other officer is authorized to affix the corporate seal to any document executed on behalf of the Company and may attest the same, and the execution by any of them or any such other instrument, document, certificate and paper or the doing of any such act or thing shall be conclusive evidence of such officer's determination in that respect and such officer's approval thereof; and
+
+RESOLVED FURTHER, that any actions taken by such officers prior to the date of the foregoing resolutions that are within the authority conferred thereby are hereby ratified, confirmed and approved as the acts and deeds of the Company.
+
+In accordance with the Company's Bylaws, this action may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which when so executed shall be deemed to be an original and all of which taken together shall constitute one and the same action.
+
+Date: ${v.effectiveDate ? prettyDate(v.effectiveDate) : today()}
+
+${signerBlocks(v.directors, "[Director full name]")}`
+}
+
+function annualStockholdersConsent(v: Record<string, string>): string {
+  const otherMatters = v.otherMatters
+    ? `\nOther Matters\n\nRESOLVED, that the stockholders further approve the following: ${v.otherMatters}\n`
+    : ""
+
+  return `${v.companyName}
+
+ANNUAL WRITTEN CONSENT OF THE
+STOCKHOLDERS
+
+The undersigned, being all the holders of the outstanding shares of ${v.companyName}, a Delaware corporation (the "Company"), pursuant to authority to act without a meeting in accordance with the Delaware General Corporation Law and the Company's Bylaws, hereby consent to the taking of the actions and adopt the resolutions set out below. This written consent is in lieu of the Annual Meeting of the Stockholders and all of the actions taken and resolutions adopted in it shall have the same force and effect as if they were taken and adopted at such an annual meeting. This written consent shall be filed in the Company's minute book.
+
+Election of Directors
+
+RESOLVED, that the following persons be, and they hereby are, elected to the directors of the Company, and to serve until the expiration of their term and until their successors are elected.
+
+${v.directors || "[No directors specified]"}
+${otherMatters}
+IN WITNESS WHEREOF, each of the undersigned has executed this written consent as of the date set forth next to the signature.
+
+Date: ${v.effectiveDate ? prettyDate(v.effectiveDate) : today()}
+
+${signerBlocks(v.stockholders, "[stockholder full name]")}`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   ein,
   "83b": eightyThreeB,
   "ca-qualification": caQualification,
   "ca-registered-agent": caRegisteredAgent,
   "ca-soi": caSoi,
+  "annual-board-consent": annualBoardConsent,
+  "annual-stockholders-consent": annualStockholdersConsent,
 }
 
 /** Renders the filled document for a completed compliance filing, from its submitted field

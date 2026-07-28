@@ -350,6 +350,7 @@ const ANNUAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
     { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
     { name: "directors", label: "Directors elected for the coming year", question: "Which directors are being elected for the coming year?", type: "textarea" },
     { name: "otherMatters", label: "Other matters approved", question: "Anything else being approved alongside this?", type: "textarea", placeholder: "e.g. ratification of prior board actions", optional: true },
+    { name: "stockholders", label: "Stockholders signing this consent", question: "Which stockholders are signing this consent?", type: "textarea" },
   ],
 }
 
@@ -364,6 +365,7 @@ const ANNUAL_BOARD_CONSENT: ComplianceItem = {
     { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
     { name: "officers", label: "Officers appointed", question: "Which officers are being appointed?", type: "textarea" },
     { name: "otherMatters", label: "Other matters approved", question: "Anything else being approved alongside this?", type: "textarea", optional: true },
+    { name: "directors", label: "Directors signing this consent", question: "Which directors are signing this consent?", type: "textarea" },
   ],
 }
 
