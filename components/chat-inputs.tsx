@@ -664,20 +664,25 @@ function NameCheckInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit:
           Search on Delaware.gov
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <p className="text-xs text-muted-foreground">
-          <strong className="font-semibold text-foreground">"No Records Found"</strong> → available. Anything else → taken.
+        <p className="text-xs text-muted-foreground space-y-0.5">
+          <span className="block">
+            "No Records Found" = <strong className="font-semibold text-success">Available!</strong>
+          </span>
+          <span className="block">
+            Anything else = <strong className="font-semibold text-destructive">Taken :/</strong>
+          </span>
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex items-center justify-center gap-2">
           <button
             onClick={() => onSubmit("It's available — I checked Delaware's search.", {})}
-            className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            It's available, continue
-            <ArrowRight className="h-3.5 w-3.5" />
+            It's available
+            <ArrowRight className="h-3 w-3" />
           </button>
           <button
             onClick={() => onSubmit("It's already taken — let me pick a different name.", {})}
-            className="inline-flex flex-1 items-center justify-center rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+            className="inline-flex items-center justify-center rounded-full border border-border px-4 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
           >
             It's taken
           </button>
