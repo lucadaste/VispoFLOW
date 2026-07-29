@@ -82,6 +82,30 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "advisor-agreement": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.advisorName) {
+        slots.push(counterpartySlot("advisor", `Advisor: ${values.advisorName}`, values.advisorName))
+      }
+      return slots
+    }
+
+    case "consulting-agreement": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.consultantName) {
+        slots.push(counterpartySlot("consultant", `Consultant: ${values.consultantName}`, values.consultantName))
+      }
+      return slots
+    }
+
+    case "offer-letter": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.employeeName) {
+        slots.push(counterpartySlot("employee", `Employee: ${values.employeeName}`, values.employeeName))
+      }
+      return slots
+    }
+
     case "option-pool":
       // Optionee's identity isn't known until the Carta grant, so this is "generic" rather than
       // "named" (no matchName to lock to) — external for the same reason as counterpartySlot()
