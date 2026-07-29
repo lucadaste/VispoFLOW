@@ -514,6 +514,7 @@ export function TransactionsOnboarding({
               setActiveFiling(null)
               setActiveItemId(null)
               setInputMode(target)
+              setValue("")
               pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode — select which filing you'd like to begin from the right, or ask me anything.`)
               return
             }

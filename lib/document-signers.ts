@@ -10,6 +10,13 @@ export type SignerSlot = {
   matchName?: string
   /** for "generic": the block header to locate (e.g. /^OPTIONEE:$/i) */
   headerPattern?: RegExp
+  /** True for a counterparty whose identity comes from a Transaction Center document's own
+   *  collected field values (e.g. a Founder Loan's Lender, a Service Provider) rather than the
+   *  company's own roster in FlowAnswers (directors, founders, incorporator). The account holder
+   *  self-signing a document only ever represents the company, so a slot like this — a genuinely
+   *  separate outside party — must go through "Send to sign" and can never be self-signed;
+   *  otherwise one person could sign as both the company and its counterparty on the same doc. */
+  external?: boolean
 }
 
 const OFFICER_SLOT: SignerSlot = { id: "officer", label: "Company officer", kind: "officer" }
@@ -37,7 +44,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
         { id: "officer", label: "Company officer", kind: "officer", headerPattern: /^BORROWER:$/i },
       ]
       if (values?.founderName) {
-        slots.push({ id: "lender", label: `Lender: ${values.founderName}`, kind: "named", matchName: values.founderName })
+        slots.push({ id: "lender", label: `Lender: ${values.founderName}`, kind: "named", matchName: values.founderName, external: true })
       }
       return slots
     }
@@ -45,7 +52,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
     case "services-agreement": {
       const slots: SignerSlot[] = [OFFICER_SLOT]
       if (values?.serviceProviderName) {
-        slots.push({ id: "provider", label: `Service Provider: ${values.serviceProviderName}`, kind: "named", matchName: values.serviceProviderName })
+        slots.push({ id: "provider", label: `Service Provider: ${values.serviceProviderName}`, kind: "named", matchName: values.serviceProviderName, external: true })
       }
       return slots
     }
@@ -53,13 +60,13 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
     case "promised-options-letter": {
       const slots: SignerSlot[] = [OFFICER_SLOT]
       if (values?.recipientName) {
-        slots.push({ id: "recipient", label: `Recipient: ${values.recipientName}`, kind: "named", matchName: values.recipientName })
+        slots.push({ id: "recipient", label: `Recipient: ${values.recipientName}`, kind: "named", matchName: values.recipientName, external: true })
       }
       return slots
     }
 
     case "option-pool":
-      return [OFFICER_SLOT, { id: "optionee", label: "Optionee", kind: "generic", headerPattern: /^OPTIONEE:$/i }]
+      return [OFFICER_SLOT, { id: "optionee", label: "Optionee", kind: "generic", headerPattern: /^OPTIONEE:$/i, external: true }]
 
     case "founder-rspa":
       return [

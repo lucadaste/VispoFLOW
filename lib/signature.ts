@@ -152,3 +152,20 @@ export function fillCompanyExecutionBlock(
   }
   return lines.join("\n")
 }
+
+/**
+ * Fills the first blank "Date:____" line found within a few lines after a signer's resolved
+ * signature line with the date they actually signed — so a printed date reflects reality instead
+ * of staying blank forever. No-op if the block has no such blank line (most don't) or it's already
+ * been filled with a fixed value (e.g. a document's own effective date, filled at render time).
+ */
+export function fillSignedDateLine(content: string, signatureLineIndex: number, signedAt: string): string {
+  const lines = content.split("\n")
+  for (let j = signatureLineIndex; j <= Math.min(signatureLineIndex + 6, lines.length - 1); j++) {
+    if (/^Date:_{3,}$/i.test(lines[j].trim())) {
+      lines[j] = `Date: ${formatSignedDate(signedAt)}`
+      break
+    }
+  }
+  return lines.join("\n")
+}

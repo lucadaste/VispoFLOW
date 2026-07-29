@@ -4,7 +4,7 @@ import { Fragment, useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
+import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillSignedDateLine, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import type { FlowAnswers } from "@/lib/flow"
 import { SignaturePad } from "@/components/signature-pad"
@@ -76,13 +76,27 @@ function availableSlotsFor(doc: LibraryDoc, answers: FlowAnswers): SignerSlot[] 
   return getSignerSlots(doc.id, answers, doc.values).filter((slot) => !filled.has(slot.id))
 }
 
+/** The subset of `availableSlotsFor` the account holder is allowed to self-sign. Excludes any
+ *  `external` slot (a genuinely separate counterparty, e.g. a Founder Loan's Lender or a Service
+ *  Provider) — self-signing only ever represents the company, so an external slot must go through
+ *  "Send to sign" instead, otherwise one person could sign as both sides of the same document. */
+function selfSignableSlotsFor(doc: LibraryDoc, answers: FlowAnswers): SignerSlot[] {
+  return availableSlotsFor(doc, answers).filter((slot) => !slot.external)
+}
+
 /** The document text as actually signed — blank Name:/Title: lines in the company execution
- *  block(s) filled in from the officer signer's title, so the printed block matches who signed. */
+ *  block(s) filled in from the officer signer's title, and any blank Date:____ line right after a
+ *  signer's own signature line filled with the date they actually signed, so the printed document
+ *  matches who signed and when instead of leaving those blanks forever. */
 function signedContent(doc: LibraryDoc, answers: FlowAnswers): string {
   let content = doc.content ?? ""
-  const officerSlot = getSignerSlots(doc.id, answers, doc.values).find((s) => s.kind === "officer")
+  const slots = getSignerSlots(doc.id, answers, doc.values)
   for (const sig of doc.signatures ?? []) {
-    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle], officerSlot?.headerPattern)
+    const slot = slots.find((s) => s.id === sig.slotId) ?? { id: sig.slotId, label: sig.slotLabel, kind: "officer" as const }
+    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle], slot.headerPattern)
+    for (const lineIndex of resolveSignatureLines(content, slot, sig.signerName)) {
+      content = fillSignedDateLine(content, lineIndex, sig.signedAt)
+    }
   }
   return content
 }
@@ -658,7 +672,7 @@ function SignPopoverContent({
   savedSignature: SavedSignature | null
   onDone: () => void
 }) {
-  const slots = availableSlotsFor(doc, answers)
+  const slots = selfSignableSlotsFor(doc, answers)
   const [slotId, setSlotId] = useState<string | null>(null)
   if (slots.length === 0) return null
   const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
@@ -925,7 +939,7 @@ function DocTileMenu({
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const viewable = !!doc.content
-  const canSign = viewable && availableSlotsFor(doc, answers).length > 0
+  const canSign = viewable && selfSignableSlotsFor(doc, answers).length > 0
   const canSendToSign = viewable && !!onSendToSign && availableSlotsFor(doc, answers).length > 0
 
   const close = () => { setOpen(false); setMode("menu") }
@@ -1306,7 +1320,7 @@ export function DocumentViewer({
   /** Present only when opened from a flow's sidebar — deletes the saved answers and restarts the questions. */
   onDeleteRestart?: () => void
 }) {
-  const canSign = doc.content ? availableSlotsFor(doc, answers).length > 0 : false
+  const canSign = doc.content ? selfSignableSlotsFor(doc, answers).length > 0 : false
   const canSendToDelaware = readyToSendToDelaware(doc) && !!onSendToDelaware
   const canConfirmFiled = doc.id === "coi" && doc.pending && !!onConfirmFiled
 
