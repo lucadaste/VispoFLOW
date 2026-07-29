@@ -42,6 +42,22 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "services-agreement": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.serviceProviderName) {
+        slots.push({ id: "provider", label: `Service Provider: ${values.serviceProviderName}`, kind: "named", matchName: values.serviceProviderName })
+      }
+      return slots
+    }
+
+    case "promised-options-letter": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.recipientName) {
+        slots.push({ id: "recipient", label: `Recipient: ${values.recipientName}`, kind: "named", matchName: values.recipientName })
+      }
+      return slots
+    }
+
     case "option-pool":
       return [OFFICER_SLOT, { id: "optionee", label: "Optionee", kind: "generic", headerPattern: /^OPTIONEE:$/i }]
 

@@ -287,6 +287,7 @@ export function IncorporationApp() {
     for (const req of signRequests) {
       if (req.status === "signed") continue
       const entry: PendingSignRequest = {
+        id: req.id,
         slotLabel: req.slotLabel ?? "Company officer",
         recipientEmail: req.recipientEmail,
         recipientName: req.recipientName,
@@ -342,6 +343,13 @@ export function IncorporationApp() {
     },
     [signRequests],
   )
+
+  // Withdraws an outstanding "sent to sign" request — e.g. sent to the wrong email, or no
+  // longer needed — so it stops showing as awaiting signature.
+  const handleCancelSignRequest = useCallback((requestId: string) => {
+    setSignRequests((reqs) => reqs.filter((r) => r.id !== requestId))
+    fetch(`/api/sign-requests/${requestId}`, { method: "DELETE" }).catch(() => {})
+  }, [])
 
   const handlePhaseClick = (phase: "home" | "chat" | "compliance" | "transactions" | "documents") => {
     if (phase === "home") { setView("landing"); return }
@@ -1022,6 +1030,7 @@ export function IncorporationApp() {
           onSign={handleSignLibraryDoc}
           onSendToSign={handleSendToSign}
           onRemoveSignature={handleRemoveSignature}
+          onCancelSignRequest={handleCancelSignRequest}
           onSendToDelaware={handleSendToDelaware}
           onConfirmFiled={handleConfirmFiled}
           savedSignature={

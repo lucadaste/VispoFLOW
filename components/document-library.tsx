@@ -46,7 +46,7 @@ type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: st
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }
 type SendToSignPayload = { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string }
 /** An outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
-export type PendingSignRequest = { slotLabel: string; recipientEmail: string; recipientName?: string | null }
+export type PendingSignRequest = { id: string; slotLabel: string; recipientEmail: string; recipientName?: string | null }
 
 type ResolvedSignature = { sig: DocSignature; lines: number[] }
 
@@ -378,6 +378,7 @@ export function DocumentLibrary({
   onSign,
   onSendToSign,
   onRemoveSignature,
+  onCancelSignRequest,
   onSendToDelaware,
   onConfirmFiled,
   savedSignature,
@@ -394,6 +395,8 @@ export function DocumentLibrary({
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
+  /** Withdraws an outstanding "sent to sign" request that's no longer wanted. */
+  onCancelSignRequest?: (requestId: string) => void
   /** Marks a signed COI as sent — the actual submission isn't automated yet, this just flips it to "pending" in the library. */
   onSendToDelaware?: (doc: LibraryDoc) => void
   /** Manually confirms Delaware has accepted a pending filing. */
@@ -516,6 +519,7 @@ export function DocumentLibrary({
           onSendToSign={onSendToSign}
           onDelete={(doc) => { onDelete(doc); setViewing(null) }}
           onRemoveSignature={onRemoveSignature ? handleRemoveSignature : undefined}
+          onCancelSignRequest={onCancelSignRequest}
           onSendToDelaware={onSendToDelaware ? handleSendToDelaware : undefined}
           onConfirmFiled={onConfirmFiled ? handleConfirmFiled : undefined}
           savedSignature={savedSignature}
@@ -1254,6 +1258,7 @@ export function DocumentViewer({
   onSendToSign,
   onDelete,
   onRemoveSignature,
+  onCancelSignRequest,
   onSendToDelaware,
   onConfirmFiled,
   savedSignature = null,
@@ -1271,6 +1276,8 @@ export function DocumentViewer({
   onDelete?: (doc: LibraryDoc) => void
   /** Removes one collected signature so that slot can be signed again — a "redo". */
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
+  /** Withdraws an outstanding "sent to sign" request that's no longer wanted. */
+  onCancelSignRequest?: (requestId: string) => void
   /** Marks a signed COI as sent to Delaware (manual — no real filing integration yet). */
   onSendToDelaware?: (doc: LibraryDoc) => void
   /** Manually confirms Delaware has accepted a pending filing. */
@@ -1294,9 +1301,17 @@ export function DocumentViewer({
           <div className="pr-4">
             <h3 className="text-base font-semibold text-foreground text-balance">{doc.title}</h3>
             <p className="mt-1 text-xs text-muted-foreground">{doc.subtitle}</p>
-            {!doc.signed && pendingSignRequests?.map((req, i) => (
-              <p key={i} className="mt-1 text-[11px] font-medium text-muted-foreground">
+            {!doc.signed && pendingSignRequests?.map((req) => (
+              <p key={req.id} className="mt-1 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
                 {req.slotLabel}: sent to {req.recipientName || req.recipientEmail} — awaiting signature
+                {onCancelSignRequest && (
+                  <button
+                    onClick={() => onCancelSignRequest(req.id)}
+                    className="underline-offset-2 text-muted-foreground/70 hover:text-destructive hover:underline"
+                  >
+                    Cancel
+                  </button>
+                )}
               </p>
             ))}
             {doc.pending && (

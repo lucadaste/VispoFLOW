@@ -561,15 +561,45 @@ const SAFE_TERM_SHEET: TransactionItem = {
 
 const SERVICES_AGREEMENT: TransactionItem = {
   id: "services-agreement",
-  title: "Services Agreement",
-  short: "Services Agreement",
+  title: "Service Provider Agreement",
+  short: "Service Provider Agreement",
   description: "Agreement covering development or other services performed for the company.",
   fields: [
+    { name: "date", label: "Date", question: "What's the date of this agreement?", type: "date" },
     companyNameField,
-    { name: "contractorName", label: "Contractor / company name", placeholder: "e.g. Acme Dev Studio" },
-    { name: "scopeOfServices", label: "Scope of services", type: "textarea" },
-    { name: "paymentTerms", label: "Payment terms", placeholder: "e.g. $10,000 flat fee, or $150/hr" },
-    { name: "startDateAndDuration", label: "Start date and duration", placeholder: "e.g. Starting Jan 1, 3 months" },
+    {
+      name: "serviceProviderName",
+      label: "Name of Service Provider",
+      question: "Who's the service provider on this agreement?",
+      placeholder: "e.g. Jane Developer",
+    },
+    { name: "startDate", label: "Start date", question: "When does the Service Provider start providing services?", type: "date" },
+    {
+      name: "servicesDescription",
+      label: "Description of services",
+      question: "How would you describe the services being provided?",
+      type: "textarea",
+      placeholder: "e.g. Software development services and assistance to achieve the Company's goals.",
+    },
+    {
+      name: "compensationDescription",
+      label: "Description of compensation",
+      question: "How is the Service Provider being compensated?",
+      type: "textarea",
+      placeholder: "e.g. $5,000 per month in gross cash and 500 options per month",
+    },
+    {
+      name: "choiceOfLawState",
+      label: "Choice of law and venue state",
+      question: "Which state should govern this agreement, and be the venue for any disputes?",
+      placeholder: "e.g. Delaware",
+    },
+    {
+      name: "availability",
+      label: "Availability (days/hours)",
+      question: "What's the Service Provider's availability?",
+      placeholder: "e.g. 3 days per week, 6 hours per day",
+    },
   ],
 }
 
@@ -579,11 +609,35 @@ const PROMISED_OPTIONS_LETTER: TransactionItem = {
   short: "Promised Options Letter",
   description: "Letter confirming an intended future stock option grant.",
   fields: [
+    { name: "date", label: "Date", question: "What's the date of this letter?", type: "date" },
     companyNameField,
-    { name: "recipientName", label: "Recipient name", placeholder: "e.g. Jane Developer" },
-    { name: "optionsPromised", label: "Number of options promised", placeholder: "e.g. 25,000" },
-    { name: "vestingSchedule", label: "Vesting schedule", placeholder: "e.g. 4-year, 1-year cliff" },
-    { name: "expectedGrantDate", label: "Expected grant date", type: "date" },
+    {
+      name: "recipientName",
+      label: "Name of Recipient",
+      question: "Who's this letter addressed to — the recipient of the promised options?",
+      placeholder: "e.g. Jane Developer",
+    },
+    { name: "hoursPerWeek", label: "Hours per week", question: "How many hours per week will they work?", placeholder: "e.g. 10" },
+    {
+      name: "companyProFormaValuation",
+      label: "Company pro forma valuation",
+      question: "What's the company's pro forma valuation?",
+      placeholder: "e.g. 10,000,000",
+      hint: "Used to calculate the per-share value automatically.",
+    },
+    {
+      name: "optionsVestingPerWeek",
+      label: "Options vesting per week",
+      question: "How many options vest per week?",
+      placeholder: "e.g. 500",
+    },
+    {
+      name: "termWeeks",
+      label: "Term (weeks)",
+      question: "What's the term, in weeks?",
+      placeholder: "e.g. 104",
+      hint: "Total options are calculated automatically as vesting-per-week times this term.",
+    },
   ],
 }
 
