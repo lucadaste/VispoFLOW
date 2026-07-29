@@ -25,11 +25,28 @@ function founders(answers: FlowAnswers) {
   return answers.allocations.filter((alloc) => !alloc.isPool)
 }
 
+/** Builds the slot for a Transaction Center document's own counterparty — a party identified by
+ *  that *document's* collected `values` (a loan's Lender, a Service Provider, an options
+ *  Recipient), as opposed to someone drawn from the company's own roster in `answers` (directors,
+ *  founders, incorporator). Always `external: true` by construction: this is a real outside party,
+ *  never the account holder, so it must go through "Send to sign" rather than self-sign. Use this
+ *  helper (not a hand-written slot literal) for every future transaction-doc counterparty, so
+ *  `external` can never be forgotten — see the `SignerSlot.external` doc comment for why it matters. */
+function counterpartySlot(id: string, label: string, matchName: string, headerPattern?: RegExp): SignerSlot {
+  return { id, label, kind: "named", matchName, external: true, headerPattern }
+}
+
 /** Returns the signer slots a given document instance requires, derived from its catalog id, the
  *  current (formation-flow) answers, and — for Transaction Center docs, whose counterparties come
  *  from that document's own collected field values rather than the global answers — those values.
  *  Everything not listed below gets the default single officer/self slot — the vast majority of
- *  documents only ever need the one signature they already support. */
+ *  documents only ever need the one signature they already support.
+ *
+ *  IMPORTANT for future cases: any slot built from `values` (a Transaction Center document's own
+ *  counterparty) rather than `answers` (the company's roster) MUST be built with `counterpartySlot()`
+ *  (or otherwise set `external: true` explicitly) — see the `SignerSlot.external` doc comment.
+ *  Getting this wrong lets the account holder self-sign as both the company and its counterparty
+ *  on the same document, which is exactly the bug this field exists to prevent. */
 export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Record<string, string>): SignerSlot[] {
   switch (docId) {
     case "coi":
@@ -44,7 +61,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
         { id: "officer", label: "Company officer", kind: "officer", headerPattern: /^BORROWER:$/i },
       ]
       if (values?.founderName) {
-        slots.push({ id: "lender", label: `Lender: ${values.founderName}`, kind: "named", matchName: values.founderName, external: true })
+        slots.push(counterpartySlot("lender", `Lender: ${values.founderName}`, values.founderName))
       }
       return slots
     }
@@ -52,7 +69,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
     case "services-agreement": {
       const slots: SignerSlot[] = [OFFICER_SLOT]
       if (values?.serviceProviderName) {
-        slots.push({ id: "provider", label: `Service Provider: ${values.serviceProviderName}`, kind: "named", matchName: values.serviceProviderName, external: true })
+        slots.push(counterpartySlot("provider", `Service Provider: ${values.serviceProviderName}`, values.serviceProviderName))
       }
       return slots
     }
@@ -60,12 +77,15 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
     case "promised-options-letter": {
       const slots: SignerSlot[] = [OFFICER_SLOT]
       if (values?.recipientName) {
-        slots.push({ id: "recipient", label: `Recipient: ${values.recipientName}`, kind: "named", matchName: values.recipientName, external: true })
+        slots.push(counterpartySlot("recipient", `Recipient: ${values.recipientName}`, values.recipientName))
       }
       return slots
     }
 
     case "option-pool":
+      // Optionee's identity isn't known until the Carta grant, so this is "generic" rather than
+      // "named" (no matchName to lock to) — external for the same reason as counterpartySlot()
+      // above: a real outside party, never the account holder, so no self-sign.
       return [OFFICER_SLOT, { id: "optionee", label: "Optionee", kind: "generic", headerPattern: /^OPTIONEE:$/i, external: true }]
 
     case "founder-rspa":
