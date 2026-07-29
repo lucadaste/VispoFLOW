@@ -1008,9 +1008,17 @@ function DocTileMenu({
   )
 }
 
+/** The COI sits in a "ready to file" state once signed, before it's been sent — the one point
+ *  where the Document Library itself expects a further user action rather than just displaying
+ *  a completed record. */
+function readyToSendToDelaware(doc: LibraryDoc): boolean {
+  return doc.id === "coi" && !!doc.signed && !doc.pending && !doc.filed
+}
+
 function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequests?: PendingSignRequest[]): string | null {
   if (doc.filed) return "Filed with Delaware"
   if (doc.pending) return "Awaiting Delaware approval"
+  if (readyToSendToDelaware(doc)) return "Ready to send to Delaware"
   if (doc.signed) return "Signed"
   const signatures = doc.signatures ?? []
   const totalSlots = doc.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
@@ -1040,6 +1048,7 @@ function DocTile({
 }) {
   const viewable = !!doc.content
   const status = docStatusText(doc, answers, pendingSignRequests)
+  const readyToSend = readyToSendToDelaware(doc)
 
   return (
     <div className="flex flex-col">
@@ -1049,15 +1058,21 @@ function DocTile({
         disabled={!viewable}
         className={cn(
           "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-card text-left shadow-sm transition-shadow",
-          doc.pending ? "border-primary/30 bg-primary/5" : "border-border",
+          doc.pending ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
           viewable ? "cursor-pointer hover:shadow-md hover:border-primary/40" : "cursor-default",
         )}
       >
         <MiniPreview doc={doc} answers={answers} />
-        {doc.signed && (
-          <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm">
-            <Check className="h-3 w-3" strokeWidth={3} />
+        {readyToSend ? (
+          <span className="absolute right-1.5 top-1.5 flex h-6 w-6 animate-pulse items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+            <Landmark className="h-3 w-3" />
           </span>
+        ) : (
+          doc.signed && (
+            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm">
+              <Check className="h-3 w-3" strokeWidth={3} />
+            </span>
+          )
         )}
         {doc.pending && (
           <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
@@ -1068,7 +1083,9 @@ function DocTile({
       <div className="mt-2 flex items-start justify-between gap-1 px-0.5">
         <div className="min-w-0">
           <p className="truncate text-xs font-medium text-foreground">{doc.title}</p>
-          <p className="truncate text-[11px] text-muted-foreground">{status ?? doc.subtitle}</p>
+          <p className={cn("truncate text-[11px]", readyToSend ? "font-semibold text-primary" : "text-muted-foreground")}>
+            {status ?? doc.subtitle}
+          </p>
         </div>
         <DocTileMenu doc={doc} answers={answers} onDelete={onDelete} onSign={onSign} onSendToSign={onSendToSign} savedSignature={savedSignature} />
       </div>
@@ -1290,7 +1307,7 @@ export function DocumentViewer({
   onDeleteRestart?: () => void
 }) {
   const canSign = doc.content ? availableSlotsFor(doc, answers).length > 0 : false
-  const canSendToDelaware = doc.id === "coi" && doc.signed && !doc.pending && !doc.filed && !!onSendToDelaware
+  const canSendToDelaware = readyToSendToDelaware(doc) && !!onSendToDelaware
   const canConfirmFiled = doc.id === "coi" && doc.pending && !!onConfirmFiled
 
   return (
@@ -1314,6 +1331,11 @@ export function DocumentViewer({
                 )}
               </p>
             ))}
+            {canSendToDelaware && (
+              <p className="mt-1 text-[11px] font-semibold text-primary">
+                Signed — ready to send to Delaware. Use the button above when you're ready.
+              </p>
+            )}
             {doc.pending && (
               <p className="mt-1 text-[11px] font-medium text-primary">
                 Awaiting Delaware approval — confirm below once they accept the filing.
