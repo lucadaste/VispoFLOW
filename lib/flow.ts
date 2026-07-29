@@ -501,6 +501,19 @@ const companyNameField: TransactionField = {
   placeholder: "e.g. Acme Technologies, Inc.",
 }
 
+// No profile field holds this (the saved profile only tracks company/personal addresses and the
+// signer's own identity), so it isn't prefillable from FlowAnswers — instead it opts into the
+// cross-document prefill fallback (`shared: true`) so it only has to be typed once per session,
+// same as investorName across the SAFE family. Safe to share: it's the same real-world fact (the
+// company's own contact email) on every Early Customers document, unlike a field such as "date".
+const companyEmailField: TransactionField = {
+  name: "companyEmail",
+  label: "Company contact email",
+  question: "What's the best contact email for the company?",
+  placeholder: "e.g. hello@acme.com",
+  shared: true,
+}
+
 /* ---- Financing ---- */
 
 const SAFE_CAP: TransactionItem = {
@@ -805,15 +818,47 @@ const ADVISOR_AGREEMENT: TransactionItem = {
 
 const PILOT_AGREEMENT: TransactionItem = {
   id: "pilot-agreement",
-  title: "Pilot Agreement",
-  short: "Pilot Agreement",
-  description: "Agreement covering a limited pilot deployment with a customer.",
+  title: "Pilot Program Agreement",
+  short: "Pilot Program Agreement",
+  description: "Governs a limited pilot deployment of the company's beta service with a customer — scope, duties, confidentiality, and fees.",
   fields: [
+    { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this pilot agreement?" },
     companyNameField,
-    { name: "customerName", label: "Customer name", placeholder: "e.g. Acme Corp" },
-    { name: "pilotScope", label: "Pilot scope / use case", type: "textarea" },
-    { name: "duration", label: "Duration", placeholder: "e.g. 60 days" },
-    { name: "pilotFee", label: "Pilot fee", placeholder: "e.g. $0 (free), or $2,000", optional: true },
+    companyEmailField,
+    { name: "customerName", label: "Customer legal name", question: "What's the customer's legal name?", placeholder: "e.g. Acme Corp" },
+    {
+      name: "pilotBackground",
+      label: "Pilot background",
+      type: "textarea",
+      question: "Give a bit of background — why is this pilot happening?",
+      placeholder: "e.g. Customer wants to evaluate the Service with its sales team before committing to a paid subscription.",
+    },
+    {
+      name: "serviceDescription",
+      label: "Service being piloted",
+      type: "textarea",
+      question: "What Service is being piloted? Describe it briefly.",
+      placeholder: "e.g. Company's AI-powered document review platform.",
+    },
+    {
+      name: "pilotParameters",
+      label: "Pilot parameters",
+      type: "textarea",
+      question: "What are the scope limits of the pilot — users, volume, environment, etc.?",
+      placeholder: "e.g. Up to 10 named users, sandbox environment only, max 1,000 documents per month.",
+    },
+    {
+      name: "pilotDuties",
+      label: "Duties of each party",
+      type: "textarea",
+      question: "What are each party's duties or responsibilities during the pilot?",
+      placeholder: "e.g. Company will provide onboarding support; Customer will designate a point of contact and provide weekly feedback.",
+    },
+    { name: "pilotTerm", label: "Pilot term", question: "How long does the pilot run — a fixed length, or until some event?", placeholder: "e.g. 60 days from the Effective Date" },
+    { name: "pilotFee", label: "Pilot program fees", question: "Is there a fee for the pilot? Enter $0 if it's free.", placeholder: "e.g. $0 (no cost), or $2,500 flat fee for the pilot period" },
+    { name: "customerSignerName", label: "Customer signer name", question: "Who's signing on behalf of the Customer?", placeholder: "e.g. Jane Smith" },
+    { name: "customerSignerTitle", label: "Customer signer title", question: "What's their title?", placeholder: "e.g. VP of Operations" },
+    { name: "customerEmail", label: "Customer signer email", question: "What's their email address?", placeholder: "e.g. jane@acmecorp.com" },
   ],
 }
 
@@ -821,12 +866,24 @@ const USER_AGREEMENT: TransactionItem = {
   id: "user-agreement",
   title: "User Agreement",
   short: "User Agreement",
-  description: "Agreement governing end-user use of the product.",
+  description: "General user agreement governing use of the company's website, applications, and services, including an AI/LLM disclosure.",
   fields: [
     companyNameField,
-    { name: "productName", label: "Product / service name", placeholder: "e.g. Acme App" },
-    { name: "governingState", label: "Governing state", placeholder: "e.g. Delaware" },
-    { name: "specialTerms", label: "Any special terms", type: "textarea", placeholder: "e.g. data usage, arbitration", optional: true },
+    companyEmailField,
+    {
+      name: "isPaidService",
+      label: "Free or paid service?",
+      type: "select",
+      options: ["Free", "Paid subscription"],
+      question: "Is the Service free to use, or a paid subscription? The template has language for both, so I'll keep the license and payment terms consistent with whichever applies.",
+    },
+    {
+      name: "usesAI",
+      label: "Uses AI/LLM features?",
+      type: "select",
+      options: ["Yes", "No"],
+      question: "Does the product actually use LLMs or other AI features (e.g. a Document Check, Co-Pilot, or Automated Transactions tool)? If not, I'll leave out the AI disclosure sections.",
+    },
   ],
 }
 

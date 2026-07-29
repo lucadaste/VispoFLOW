@@ -1169,6 +1169,256 @@ _________________________
 Email:_________________________`
 }
 
+function pilotProgramAgreement(v: Record<string, string>): string {
+  return `Pilot Program Agreement
+
+This Pilot Program Agreement (the "Agreement") is made on ${formatDate(v.date)} ("Effective Date"), by and between ${v.companyName} ("Company") and ${v.customerName} ("Customer") for the purpose of Customer's use of Company's beta service offering.
+
+1. License Grant. Subject to the terms and conditions of this Agreement, Company grants Customer a nonexclusive, nontransferable license to use the Company software ("Service") as set forth on Exhibit A.
+
+2. Proprietary Rights: Confidentiality; Restrictions. Customer acknowledges that the Service contains confidential information and trade secrets of Company. Customer agrees that it will at all times hold in strict confidence and not disclose Confidential Information (as defined below) to any third party except as approved in writing by Company and will use the Confidential Information for no purpose other than evaluating the Service. Customer shall only permit access to Confidential Information to those of its employees having a need-to-know and who have signed confidentiality agreements or are otherwise bound by confidentiality obligations at least as restrictive as those contained herein. Customer will immediately report any violation of this provision to Company and shall employ all reasonable means to mitigate any damages or losses that Company may incur as a result of any such violation. "Confidential Information" means all non-public materials and information provided or made available by Company to Customer, including products and services, the results of any performance or functional evaluation or test of the Service, information regarding technology, know-how, processes, software programs, research, development, and information Company provides. After Customer's evaluation of the Service is complete, or upon request of Company, Customer shall promptly return to Company the Service and all copies thereof in the form provided by Company or upon request by Company destroy the Service and all copies thereof and certify in writing that it has been destroyed.
+
+Customer agrees that nothing contained in this Agreement shall be construed as granting any ownership rights to any Confidential Information disclosed pursuant to this Agreement, or to any invention or any patent, copyright, trademark, or other intellectual property right derived from the Confidential Information. Customer shall not make, have made, use or sell for any purpose any product or other item using, incorporating or derived from any Confidential Information or the Service. Customer will not modify, reverse engineer, decompile, create other works from, or disassemble any software programs contained in the Confidential Information or the Service.
+
+3. Acknowledgement of Beta Service. This Service is a beta release offering and is not at the level of performance of a commercially available product offering. The Service may not operate correctly and may be substantially modified prior to first commercial release, or at Company's option may not be released commercially in the future.
+
+4. Warranty. THE SERVICE AND DOCUMENTATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, AND COMPANY DISCLAIMS ALL WARRANTIES, EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTIES OF TITLE, NON-INFRINGEMENT OF THIRD PARTY RIGHTS, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. NO ORAL OR WRITTEN ADVICE OR CONSULTATION GIVEN BY COMPANY, ITS AGENTS OR EMPLOYEES WILL IN ANY WAY GIVE RISE TO A WARRANTY. THE ENTIRE RISK ARISING OUT OF THE USE OR PERFORMANCE OF THE SERVICE REMAINS WITH CUSTOMER.
+
+5. Limitation of Liability. COMPANY SHALL NOT BE LIABLE FOR LOSS OF USE, LOST PROFIT, COST OF COVER, LOSS OF DATA, BUSINESS INTERRUPTION, OR ANY INDIRECT, INCIDENTAL, CONSEQUENTIAL, PUNITIVE, SPECIAL, OR EXEMPLARY DAMAGES ARISING OUT OF OR RELATED TO THE SERVICE OR THIS AGREEMENT, HOWEVER CAUSED AND REGARDLESS OF THE FORM OF ACTION, WHETHER IN CONTRACT, TORT (INCLUDING NEGLIGENCE) STRICT LIABILITY, OR OTHERWISE, EVEN IF SUCH PARTIES HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IN NO EVENT WILL COMPANY'S AGGREGATE CUMULATIVE LIABILITY FOR ANY CLAIMS ARISING OUT OF OR RELATED TO THIS AGREEMENT EXCEED THE AMOUNT CUSTOMER ACTUALLY PAID COMPANY UNDER THIS AGREEMENT (IF ANY).
+
+6. Feedback. Customer will provide reasonable feedback to Company concerning the features and functionality of the Service. If Customer provides feedback to Company, all such feedback will be the sole and exclusive property of Company. Customer hereby irrevocably transfers and assigns to Company and agrees to irrevocably assign and transfer to Company all of Customer's right, title, and interest in and to all feedback including all intellectual property rights therein (collectively, "Feedback"). Customer will not earn or acquire any rights or licenses in the Service or in any Feedback on account of this Agreement or Customer's performance under this Agreement, even if Company incorporates any feedback into the Service.
+
+7. Termination. This Agreement will terminate as provided in Exhibit A, or sooner if either party provides written notice of termination to the other party. All parties' obligations survive termination.
+
+8. General. Customer may not assign or transfer any rights or obligations under this Agreement without the prior written consent of Company. This Agreement constitutes the entire Agreement between the parties relating to this subject matter and supersedes all prior or simultaneous representations, discussions, negotiations, and Agreements, whether written or oral. If any provision of this Agreement is held invalid or unenforceable by a court of competent jurisdiction, such provision will be construed so as to be enforceable to the maximum extent permissible by law, and the remaining provisions of the Agreement will remain in full force and effect. The waiver of any breach or default will not constitute a waiver of any other right hereunder or of any subsequent breach or default. All notices required or permitted under this Agreement must be in writing and in each instance will be deemed given upon receipt. This Agreement shall be governed by and construed in accordance with the laws of California. In the event of a dispute, the prevailing party shall be entitled to attorneys' fees and costs. Customer hereby agrees that breach of this Agreement will cause Company irreparable damage for which recovery of damages would be inadequate, and that Company shall therefore be entitled to obtain timely injunctive relief under this Agreement, as well as such further relief as may be granted by a court of competent jurisdiction.
+
+This Agreement may be signed in one or more counterparts, in writing or via PDF or Docusign. This Agreement shall be effective as of the date first written above.
+
+
+THE COMPANY:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+CUSTOMER:
+
+${v.customerName}
+
+_________________________
+(Signature)
+
+${v.customerSignerName}, ${v.customerSignerTitle}
+Email: ${v.customerEmail}
+
+
+Exhibit A
+
+Services
+
+Background
+
+${v.pilotBackground}
+
+Pilot Program
+
+Service:
+
+${v.serviceDescription}
+
+Parameters:
+
+${v.pilotParameters}
+
+Duties:
+
+${v.pilotDuties}
+
+Term:
+
+${v.pilotTerm}
+
+Program Costs and Fees
+
+${v.pilotFee}`
+}
+
+/** Company/product name, effective date, and the beta-service framing are all fixed by the source
+ *  template — the only two genuine judgment calls are gated by explicit user choices rather than
+ *  guessed: (1) the source document contradicts itself on paid vs. free (the Subscription/Free
+ *  Trial language assumes paid, but "LICENSE AND ACCESS" flatly states no fees are charged), so
+ *  `isPaidService` picks one consistent framing; (2) "OUR TECHNOLOGY"/"USE AND OUTPUT LIMITATIONS"
+ *  assume the product has LLM features, so `usesAI` gates them out entirely when it doesn't. */
+function userAgreement(v: Record<string, string>): string {
+  const isPaid = v.isPaidService === "Paid subscription"
+  const usesAI = v.usesAI === "Yes"
+
+  const freeTrialsSection = isPaid
+    ? `Free Trials. Company reserves the right to provide free trials to the Company Service ("Free Trials"). Unless otherwise stated, the Free Trial will be limited to a period of thirty (30) days. Following the expiration of the Free Trial period, the paid subscription will commence, unless You provide written notice of Your intent to terminate such subscription.
+
+`
+    : ""
+
+  const paymentMethodClause = isPaid ? " and have a valid payment method associated with it" : ""
+
+  const licenseFeeSentence = isPaid
+    ? "Company charges fees for the Company Service as set forth in the applicable order form or subscription plan."
+    : "Company is not charging You any fees to use the Company Service."
+
+  const aiSections = usesAI
+    ? `OUR TECHNOLOGY
+
+${v.companyName} utilizes multiple Large Language Models (LLMs). An LLM is an advanced artificial intelligence system designed to process and generate human-like text based on the information it has been trained on. Different LLMs power Company's Document Check, Co-Pilot and Automated Transactions. These tools provide users with documents, insights, suggestions, and contextual information during group chats and other interactions.
+
+While the LLM is highly sophisticated, it is not perfect and may:
+
+Generate inaccurate, outdated, or incomplete information.
+
+"Hallucinate" by producing plausible-sounding but incorrect or nonsensical outputs.
+
+Provide information or insights that may not apply to your specific context.
+
+Users should independently verify any information or advice provided by the LLM and should not solely rely on its outputs for critical decisions.
+
+Company does not take responsibility for any consequences resulting from the use of information generated by the LLM. This includes, but is not limited to, financial, legal, or other professional decisions based on insights or recommendations provided by the LLM. Users acknowledge and accept this limitation when engaging with Company's AI functionalities.
+
+The LLM is constantly being updated and improved to enhance its accuracy and performance. However, due to the evolving nature of AI and the limitations of machine learning, errors and inconsistencies may still occur.
+
+USE AND OUTPUT LIMITATIONS
+
+By using Company, you agree to:
+
+Treat outputs from the LLM as informational only, not as guaranteed facts.
+
+Use your own judgment and discretion when interpreting or acting upon the LLM's responses.
+
+If you encounter incorrect or problematic information, we encourage you to report it to help us improve our services.
+
+`
+    : ""
+
+  return `USER AGREEMENT
+
+By using Company through its website, or any applications that are the property of ${v.companyName} ("Company"), you agree to follow and be bound by this user agreement (the "User Agreement") and agree to comply with all applicable laws and regulations. In this User Agreement, the words "you" and "your" refer to each customer, website visitor, or user, "we", "us" and "our" refer to Company and "Services" refers to all services provided by us including our website, any applications or application plug-ins. Please read the User Agreement carefully prior to using any Company Services.
+
+It is your responsibility to review this User Agreement periodically. If at any time you find this User Agreement unacceptable or if you do not agree to this User Agreement, please do not use this website or any applications. We may revise this User Agreement at any time without notice to you. If you have any questions about this User Agreement, please contact us at ${v.companyEmail}.
+
+SERVICE
+
+Subscription to the Company Service. Subject to the terms and conditions of this Agreement, Company hereby grants You a non-sublicensable, non-transferable, non-exclusive subscription to access and use the Company Service solely for Your internal business purposes, during the subscription period set forth in the applicable order form.
+
+Support. Subject to the terms of this Agreement, Company shall use commercially reasonable efforts to (a) provide the Company Service in accordance with its historic levels of availability; and (b) provide 9am – 5pm (PST) email support, excluding federal holidays.
+
+${freeTrialsSection}Subscriber's Use of the Company Service
+
+Access and Security Guidelines. You will be provided access to and use of the Company Service through confidential account credentials. You will be responsible for all uses of its account, except to the extent caused by Company's negligence. You will promptly notify Company of any unauthorized use or access to its account. User seats may not be shared amongst other users.
+
+Restrictions. You will not, and will not permit any other party to: (a) reverse engineer, disassemble or decompile any component of the Company Platform; (b) interfere in any manner with the operation of the Company Service, or the Company Platform or the hardware and network used to operate the Company Service; (c) sublicense any of Subscriber's rights under this Agreement, or otherwise use the Company Service for the benefit of a third party or to operate a service bureau; (d) modify, copy or make derivative works based on any part of the Company Platform; or (e) otherwise use the Company Service in any manner that exceeds the scope of use permitted by Company.
+
+PRIVACY
+
+Please also review our Privacy Policy, which is incorporated herein by reference, which also governs your use of Company website and Services, and to understand our practices.
+
+Company Platform and Technology. You acknowledge that Company retains all right, title and interest in and to the Services and all software and all Company proprietary information and technology used by Company or provided to You in connection with the Company Service (the "Company Technology"), and that the Company Technology is protected by intellectual property rights owned by or licensed to Company. Other than as expressly set forth in this Agreement, no license or other rights in the Company Technology are granted to You. You hereby grant Company a royalty-free, worldwide, transferable, sublicensable, irrevocable, perpetual license to use or incorporate into the Company Service any suggestions, enhancement requests, recommendations or other feedback provided by You, including Users, relating to the Company Service. Company shall not identify You as the source of any such feedback.
+
+User Data. You retain all right, title and interest in and to Your data ("Data"). Your Data includes any materials that You may give to Company, including uploaded files or pasted text in the Company chat. You hereby grant to Company a non-exclusive, worldwide, royalty-free and fully paid-up license to access and use Your Data to provide the Company Services to You. You represent and warrant that you have all necessary rights to grant Company the foregoing licenses.
+
+Data Security. Company currently utilizes Amazon Web Services, a reputable hosting services provider, to store all Your Data; provided, that, Company may utilize other hosting service providers of similar repute, such as GCP or Microsoft Azure. In the event Company becomes aware of any loss or unauthorized access, disclosure or use of any Your Data ("Security Breach"), Company will (i) promptly notify You in writing of such Security Breach, and (ii) take reasonable steps to identify the cause of such Security Breach, minimize the harm associated therewith and prevent reoccurrence thereof. Any notification of any Security Breach will describe, to the extent known, details of the Security Breach, including steps taken to mitigate the potential risks.
+
+Performance Data. Company retains all right, title and interest in and to the performance Data, and may use performance Data for any lawful purpose.
+
+OWNERSHIP
+
+This website and applications are owned and operated by Company. Company owns all right, title and interest in and to, or has the right to use, the materials provided on this website and applications, including but not limited to data, information, documents, logos, graphics, sounds, and images. None of such material may be copied, reproduced, republished, downloaded, uploaded, posted, displayed, transmitted or distributed in any way and nothing on this website or on any applications shall be construed to confer any license under any of Company's intellectual property rights, whether by estoppel, implication or otherwise. Any rights not expressly granted herein are reserved by Company.
+
+LICENSE AND ACCESS
+
+${licenseFeeSentence} Subject to your compliance with this User Agreement, Company grants you a non-exclusive and non-transferable license (the "License") to use the website and any Services purchased herein. This license does not include any resale or commercial use of any Company service, or its contents. No Company service, nor any part of Company service, may be reproduced, duplicated, copied, sold, resold, decompiled, reverse engineered, or otherwise exploited for any commercial purpose without the express written consent of Company. You may not disclose any Company copyrights, patents, trademarks, logos, or other proprietary information, without Company's express written consent. You may not misuse Company's services. You may only use Company's services as permitted by law. You shall not scrape any information from the website including customer data and shall not harvest personal information about other users from Company. The licenses granted by Company shall terminate if you do not comply with this User Agreement.
+
+${aiSections}THIRD PARTY CONTENT
+
+This website and applications may contain links to websites controlled by parties other than Company (hereinafter referred to as "Third Party Content"). Company is not responsible for and does not endorse or accept any responsibility for the availability, contents, products, services or use of any Third Party Content, any website accessed from a Third Party Content or any changes or updates to such sites. Company makes no guarantees about the content or quality of the products or services provided by such sites. Company is not responsible for webcasting or any other form of transmission received from any Third Party Content. Company is providing these links to you only as a convenience, and the inclusion of any link does not imply endorsement by Company of the Third Party Content.
+
+CREATING AN ACCOUNT
+
+You may need to create your own Company account to use certain Company services. In case you provide any information in connection with use of Company website or Service, you grant Company a worldwide, royalty-free, nonexclusive, and fully sublicensable license to use, distribute, reproduce, modify, publish, and translate this personal information solely for the purpose of enabling your use of the applicable service.
+
+You may further be required to log into your account${paymentMethodClause}. You are responsible for maintaining the confidentiality of your account and password, which you agree not to disclose to any third party. You may not use a third party's account, username, or password at any time. You may be held liable for any losses incurred by Company, our affiliates, officers, directors, employees, consultants, agents, and representatives due to someone else's use of your account or password. You agree to accept responsibility for all activities which occur under your account or password. You agree to notify Company immediately upon becoming aware of any breach of security or unauthorized use of your account.
+
+TERMINATION
+
+(a) Company reserves the right to terminate or suspend your account immediately, without prior notice, with or without cause, and without limitation. Upon termination, the right to use the Company software and Services will be revoked.
+
+(b) Termination of Services with Company shall not affect the enforceability of provisions of the User Agreement, including but not limited to, protections regarding use of Company's intellectual property, indemnity, and Privacy Agreement.
+
+DISCLAIMER OF WARRANTY
+
+Company Services and all information, content, materials, products (including software), and other services included on or otherwise made available to you through Company Services are provided on an "as is" and "as available" basis, unless otherwise specified in writing. Company makes no representations or warranties of any kind, express or implied, as to the operation of Company Services, or the information, content, materials, products (including software) or other services included on or otherwise made available to you through Company Services, unless otherwise specified in writing. You expressly agree that your use of Company Services is assumed at your sole risk and that Company cannot be held liable for reliance on its software.
+
+To the full extent permissible by law, Company disclaims all warranties, express or implied, including but not limited to, implied warranties of merchantability and fitness for a particular purpose. Company does not warrant that Company services, information, content, materials, products (including software), or other services included on or otherwise made available to you through the Company Services or electronic communications sent from Company are free of viruses or other harmful components. To the full extent permissible by law, Company will not be liable for any damages of any kind arising from the use of any Company service, or from any information, content, materials, products (including software) or other services included on or otherwise made available to you through any Company Service, including but not limited to direct, indirect, incidental, punitive, and consequential damages, unless otherwise specified in writing.
+
+LIMITATION OF LIABILITY
+
+EXCEPT AS PROHIBITED BY LAW, YOU WILL HOLD ${v.companyName} AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS HARMLESS FOR ANY INDIRECT, PUNITIVE, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGE, HOWEVER IT ARISES (INCLUDING ATTORNEYS' FEES AND ALL RELATED COSTS AND EXPENSES OF LITIGATION AND ARBITRATION, OR AT TRIAL OR ON APPEAL, IF ANY, WHETHER OR NOT LITIGATION OR ARBITRATION IS INSTITUTED), WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE, OR OTHER TORTIOUS ACTION, OR ARISING OUT OF OR IN CONNECTION WITH THIS AGREEMENT, INCLUDING WITHOUT LIMITATION ANY CLAIM FOR PERSONAL INJURY OR PROPERTY DAMAGE, ARISING FROM THIS AGREEMENT AND ANY VIOLATION BY YOU OF ANY FEDERAL, STATE, OR LOCAL LAWS, STATUTES, RULES, OR REGULATIONS, EVEN IF ${v.companyName} HAS BEEN PREVIOUSLY ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. EXCEPT AS PROHIBITED BY LAW, IF THERE IS LIABILITY FOUND ON THE PART OF ${v.companyName}, IT WILL BE LIMITED TO THE AMOUNT PAID FOR THE SERVICES, AND UNDER NO CIRCUMSTANCES WILL THERE BE CONSEQUENTIAL OR PUNITIVE DAMAGES. SOME STATES DO NOT ALLOW THE EXCLUSION OR LIMITATION OF PUNITIVE, INCIDENTAL OR CONSEQUENTIAL DAMAGES, SO THE PRIOR LIMITATION OR EXCLUSION MAY NOT APPLY TO YOU.
+
+CHANGES TO TERMS OF SERVICE AND PRIVACY POLICY
+
+Company reserves the right, at its sole discretion, to modify or replace this User Agreement and the Privacy Policy at any time. If a revision results in a material change to the User Agreement or Privacy Policy, Company may, but is not bound to, provide thirty (30) days of notice prior to changes going into effect. What constitutes a material change will be determined at Company's sole discretion.
+
+By continuing to access or use Company Services after revisions become effective, you agree to be bound by the revised terms.
+
+INDEMNITY
+
+You agree to defend, indemnify, and hold harmless Company, its affiliates, and respective officers, directors, employees, and agents from and against any and all claims, damages, obligations, losses, liabilities, costs and expenses, and attorney's fees arising from: (a) Your violation of this User Agreement; (b) Your violation of the privacy policy; (c) Your use of Company's advertised services; (d) Your violation of any third party right, including but not limited to copyright, property, or privacy rights; and (e) Any claim that is made against you by a third party as a result of using Company services.
+
+INTELLECTUAL PROPERTY: COPYRIGHT, TRADEMARKS, PATENTS
+
+Unless otherwise stated, Company owns all intellectual property rights for this website and all of the content published on it. Company's intellectual property includes, but is not limited to, any and all trademarks, copyrights, logos, images, illustrations, databases, graphics, sounds, and videos. You may not copy, distribute, broadcast, display, sell, license, or otherwise use Company intellectual property, either in whole or in part, without written consent from Company.
+
+INAPPROPRIATE CONTENT
+
+When accessing the website and/or any Services, you agree not to upload, download, display, perform, transmit, or otherwise distribute any content that: (a) is libelous, defamatory, obscene, pornographic, abusive or threatening; (b) advocates or encourages conduct that could constitute a criminal offense, give rise to civil liability or otherwise violate any applicable local, state, national or foreign law or regulation; or (c) advertises or otherwise solicits funds or is a solicitation for goods or services. Company reserves the right to terminate or delete such material from its servers. Company will cooperate fully with any law enforcement officials or agencies in the investigation of any violation of this User Agreement of any applicable laws.
+
+SEVERABILITY
+
+If any provision of Company's User Agreement or Privacy Policy are held to be invalid or unenforceable, such provision shall be severed and the remaining provisions shall remain enforceable.
+
+ARBITRATION AGREEMENT
+
+Any dispute or claim relating in any way to your use of any Company Services, or to any products or services sold or distributed by Company, will be resolved by binding arbitration, rather than in court, except that either party may assert claims in small claims court if the claims qualify. The Federal Arbitration Act and federal arbitration law apply to this agreement.
+
+There is no judge or jury in arbitration, and court review of an arbitration award is limited. However, an arbitrator can award on an individual basis the same damages and relief as a court (including injunctive and declaratory relief or statutory damages), and must follow this User Agreement as a court would.
+
+The arbitration, once initiated, will be conducted by the American Arbitration Association (AAA) under its rules, including the AAA's Supplementary Procedures for Consumer-Related Disputes. The AAA's rules are available at www.adr.org or by calling 1-800-778-7879. Payment of all filing, administration, and arbitrator fees will be governed by the AAA's rules. The parties may choose to have the arbitration conducted by telephone, based on written submissions, or in person in San Francisco County or at another mutually agreed location.
+
+Both you and Company agree that any dispute resolution proceedings will be conducted only on an individual basis and not in a class, consolidated, or representative action. If for any reason a claim proceeds in court rather than in arbitration we waive any right to a jury trial. We also both agree that you or we may bring suit in court to enjoin infringement or other misuse of intellectual property rights.
+
+GOVERNING LAW AND JURISDICTION
+
+The User Agreement and Privacy Policy shall be governed and construed in accordance with the laws of the State of California, without regard to its conflict of law provisions. Federal Court in San Francisco, California shall have exclusive jurisdiction with respect to any issue arising from or under the use of the website or Services.
+
+NO USE BY MINORS
+
+You agree that by using the website, and/or any Services, you are at least 18 years of age and you are legally eligible to enter into a contract.
+
+RIGHT TO REFUSE
+
+You acknowledge that Company reserves the right to refuse service to anyone and to cancel user access at any time.
+
+ACKNOWLEDGEMENT
+
+BY USING ${v.companyName} SERVICES OR ACCESSING THE ${v.companyName} WEBSITE, YOU ACKNOWLEDGE THAT YOU HAVE READ THIS USER AGREEMENT AND AGREE TO BE BOUND BY THEM.
+
+CONTACT US
+
+If you have any questions or concerns regarding this User Agreement or the Privacy Policy, please feel free to contact us at ${v.companyEmail}.`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   "safe-cap": safeCap,
   "safe-mfn": safeMfn,
@@ -1181,6 +1431,8 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
   "consulting-agreement": consultingAgreement,
   "offer-letter": offerLetter,
   nda: ndaAgreement,
+  "pilot-agreement": pilotProgramAgreement,
+  "user-agreement": userAgreement,
 }
 
 export function renderTransactionDocument(docId: string, values: Record<string, string>): string | null {

@@ -148,6 +148,18 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "pilot-agreement": {
+      // Unlike the SAFE Investor/NDA Counterparty blocks (officer-kind, left blank until signed),
+      // the pilot's Customer signer name and title are collected up front as their own fields, so
+      // this follows the more common counterpartySlot() "named" routing (Service Provider, Founder
+      // Loan's Lender, etc.) — the printed name/title sit right under the blank signature line.
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.customerSignerName) {
+        slots.push(counterpartySlot("customer", `Customer: ${values.customerSignerName}`, values.customerSignerName))
+      }
+      return slots
+    }
+
     case "option-pool":
       // Optionee's identity isn't known until the Carta grant, so this is "generic" rather than
       // "named" (no matchName to lock to) — external for the same reason as counterpartySlot()
