@@ -197,6 +197,15 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
         (f): SignerSlot => ({ id: `stockholder-${f.name}`, label: `Stockholder: ${f.name}`, kind: "named", matchName: f.name }),
       )
 
+    case "user-agreement":
+      // The source template has no signature page at all — it's a clickwrap-style "by using the
+      // Service you agree to these terms" agreement, not a bilaterally executed contract. Returning
+      // no slots (rather than falling through to the default officer slot) is what hides the
+      // Sign/Send-to-sign controls in the Document Library UI for this doc: both availableSlotsFor
+      // and selfSignableSlotsFor derive straight from this list, and docStatusText only shows a
+      // signature-related status when there's at least one slot to report on.
+      return []
+
     case "bylaws": {
       // Two fixed, distinct named signers — the Incorporator's adoption certificate and the
       // Secretary's certificate — neither is a "THE COMPANY:" block, so no officer slot here.
