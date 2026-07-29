@@ -529,34 +529,6 @@ const FOUNDER_LOAN: TransactionItem = {
   ],
 }
 
-const SAFE_CHECK: TransactionItem = {
-  id: "safe-check",
-  title: "SAFE Check",
-  short: "SAFE Check",
-  description: "Record receipt of funds against a previously issued SAFE.",
-  fields: [
-    companyNameField,
-    { name: "relatedInvestor", label: "Which SAFE / investor is this payment for?", placeholder: "e.g. Jane Ventures" },
-    { name: "amountReceived", label: "Amount received", placeholder: "e.g. $100,000" },
-    { name: "dateReceived", label: "Date received", type: "date" },
-    { name: "paymentMethod", label: "Payment method", type: "select", options: ["Wire", "Check", "ACH", "Other"] },
-  ],
-}
-
-const SAFE_TERM_SHEET: TransactionItem = {
-  id: "safe-term-sheet",
-  title: "SAFE Term Sheet",
-  short: "SAFE Term Sheet",
-  description: "Non-binding summary of proposed SAFE terms ahead of a financing.",
-  fields: [
-    companyNameField,
-    { name: "investorName", label: "Investor name", placeholder: "e.g. Jane Ventures" },
-    { name: "proposedAmount", label: "Proposed investment amount", placeholder: "e.g. $250,000" },
-    { name: "proposedValuationCap", label: "Proposed valuation cap", placeholder: "e.g. $10,000,000" },
-    { name: "proRataRights", label: "Pro-rata rights included?", type: "select", options: ["Yes", "No"] },
-  ],
-}
-
 /* ---- Developers and Early Contributors ---- */
 
 const SERVICES_AGREEMENT: TransactionItem = {
@@ -975,7 +947,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "financing",
     label: "Financing",
     chatResponse: "Here are the financing documents available — SAFEs, term sheets, and founder loans. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "financing-docs", title: "Financing", items: [SAFE, FOUNDER_LOAN, SAFE_CHECK, SAFE_TERM_SHEET] }],
+    groups: [{ id: "financing-docs", title: "Financing", items: [SAFE, FOUNDER_LOAN] }],
   },
   {
     id: "contributors",
