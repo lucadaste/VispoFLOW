@@ -188,17 +188,11 @@ function promisedOptionsLetter(v: Record<string, string>): string {
   const termWeeks = parseAmount(v.termWeeks)
   const totalOptions = vestingPerWeek * termWeeks
 
-  return `${formatDate(v.date)}
+  return `PROMISED OPTIONS AGREEMENT
 
-${v.recipientName}
+This Promised Options Agreement (this "Agreement") is made and entered into as of ${formatDate(v.date)}, by and between ${v.companyName} (the "Company") and ${v.recipientName} ("Recipient").
 
-VIA EMAIL
-
-Re: Promised Stock Options
-
-Dear ${v.recipientName}:
-
-This letter is to memorialize that ${v.companyName} (the "Company") shall grant to you ("Recipient" or "you") a stock option grant to purchase shares of the Company's Common Stock (the "Option") on the following terms and conditions, and subject to the Company's Board approval and its incentive equity plan:
+This Agreement memorializes that the Company shall grant to Recipient a stock option grant to purchase shares of the Company's Common Stock (the "Option") on the following terms and conditions, and subject to the Company's Board approval and its incentive equity plan:
 
 Hours Per Week: ${v.hoursPerWeek}
 Company ProForma Valuation: $${formatAmount(valuation)}
@@ -207,15 +201,13 @@ Options Vesting Per Week: ${formatAmount(vestingPerWeek)}
 Term: ${formatAmount(termWeeks)} weeks
 Total Options: ${formatAmount(totalOptions)}
 
-Subject to the above, as soon as the Company is set up on Carta, you will receive a formal notice of the Option grant. The exercise price of the shares subject to each Option grant shall be equal to the price determined by the Board in reliance upon a 409A valuation then in effect.
+Subject to the above, as soon as the Company is set up on Carta, Recipient will receive a formal notice of the Option grant. The exercise price of the shares subject to each Option grant shall be equal to the price determined by the Board in reliance upon a 409A valuation then in effect.
 
-To the extent that you render services to the Company, all work product generated as part of such services exclusively belongs to the Company without residual rights to you. Each of you and the Company represents and warrants that no third party authorizations, permits, licenses or consents are required to perform their respective obligations under this agreement.
+To the extent that Recipient renders services to the Company, all work product generated as part of such services exclusively belongs to the Company without residual rights to Recipient. Each of Recipient and the Company represents and warrants that no third party authorizations, permits, licenses or consents are required to perform their respective obligations under this Agreement.
 
-This letter is intended to confirm, in writing, our agreement and is a valid and binding agreement between the parties as of the date first written above.
+This Agreement is intended to confirm, in writing, the parties' agreement and is a valid and binding agreement between the parties as of the date first written above.
 
-Thanks again you for your support.
-
-Sincerely,
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
 
 THE COMPANY:
 
@@ -227,8 +219,6 @@ By:_________________________
 Name:_________________________
 Title:_________________________
 
-
-ACCEPTED AND AGREED:
 
 RECIPIENT:
 
