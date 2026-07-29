@@ -1,13 +1,14 @@
 "use client"
 
 import { Fragment, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillSignedDateLine, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import type { FlowAnswers } from "@/lib/flow"
 import { SignaturePad } from "@/components/signature-pad"
+import { ConfirmModal } from "@/components/confirm-modal"
 
 /** One collected signature on a document, placed at whichever slot (see lib/document-signers.ts)
  *  it was signed for. */
@@ -438,6 +439,31 @@ export function DocumentLibrary({
   const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
   const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
   const [viewing, setViewing] = useState<LibraryDoc | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
+
+  const allDocs = [...incorporationDocs, ...complianceDocs, ...transactionDocs]
+
+  const toggleSelect = (doc: LibraryDoc) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(doc.id)) next.delete(doc.id)
+      else next.add(doc.id)
+      return next
+    })
+  }
+
+  const exitSelectMode = () => {
+    setSelectMode(false)
+    setSelected(new Set())
+  }
+
+  const handleBulkDelete = () => {
+    for (const doc of allDocs) if (selected.has(doc.id)) onDelete(doc)
+    setConfirmingBulkDelete(false)
+    exitSelectMode()
+  }
 
   const handleSign = (doc: LibraryDoc, signature: SignPayload) => {
     onSign(doc, signature)
@@ -481,15 +507,51 @@ export function DocumentLibrary({
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            {companyName ? `${companyName}'s Document Vault` : "Document Vault"}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Every document generated across Incorporation, Compliance, and Transactions, all in one place.
-            {total > 0 && ` ${total} document${total === 1 ? "" : "s"} so far.`}
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              {companyName ? `${companyName}'s Document Vault` : "Document Vault"}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Every document generated across Incorporation, Compliance, and Transactions, all in one place.
+              {total > 0 && ` ${total} document${total === 1 ? "" : "s"} so far.`}
+            </p>
+          </div>
+          {total > 0 && (
+            selectMode ? (
+              <button
+                onClick={exitSelectMode}
+                className="shrink-0 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                onClick={() => setSelectMode(true)}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
+              >
+                <CheckSquare className="h-3.5 w-3.5" />
+                Select
+              </button>
+            )
+          )}
         </div>
+
+        {selectMode && (
+          <div className="sticky top-0 z-30 mb-4 flex items-center justify-between rounded-lg border border-border bg-card px-4 py-2.5 shadow-sm">
+            <span className="text-xs font-medium text-foreground">
+              {selected.size} document{selected.size === 1 ? "" : "s"} selected
+            </span>
+            <button
+              onClick={() => setConfirmingBulkDelete(true)}
+              disabled={selected.size === 0}
+              className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </button>
+          </div>
+        )}
 
         <div className="space-y-8">
           <DocSection
@@ -507,6 +569,9 @@ export function DocumentLibrary({
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
+            selectMode={selectMode}
+            selected={selected}
+            onToggleSelect={toggleSelect}
           />
           <DocSection
             icon={ShieldCheck}
@@ -523,6 +588,9 @@ export function DocumentLibrary({
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
+            selectMode={selectMode}
+            selected={selected}
+            onToggleSelect={toggleSelect}
           />
           <DocSection
             icon={ArrowLeftRight}
@@ -539,9 +607,22 @@ export function DocumentLibrary({
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
+            selectMode={selectMode}
+            selected={selected}
+            onToggleSelect={toggleSelect}
           />
         </div>
       </div>
+
+      {confirmingBulkDelete && (
+        <ConfirmModal
+          title={`Delete ${selected.size} document${selected.size === 1 ? "" : "s"}?`}
+          description="These documents will be moved to the deleted list for each section, where you can restore them later if needed."
+          confirmLabel="Delete"
+          onConfirm={handleBulkDelete}
+          onCancel={() => setConfirmingBulkDelete(false)}
+        />
+      )}
 
       {viewing && (
         <DocumentViewer
@@ -578,6 +659,9 @@ function DocSection({
   onSendToSign,
   savedSignature,
   pendingSignRequests,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   icon: LucideIcon
   title: string
@@ -593,6 +677,9 @@ function DocSection({
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
   pendingSignRequests: Record<string, PendingSignRequest[]>
+  selectMode: boolean
+  selected: Set<string>
+  onToggleSelect: (doc: LibraryDoc) => void
 }) {
   const [showHidden, setShowHidden] = useState(false)
   const visible = docs.filter((d) => !d.hidden)
@@ -634,6 +721,9 @@ function DocSection({
               onSendToSign={onSendToSign}
               savedSignature={savedSignature}
               pendingSignRequests={pendingSignRequests[doc.id]}
+              selectMode={selectMode}
+              selected={selected.has(doc.id)}
+              onToggleSelect={onToggleSelect}
             />
           ))}
         </div>
@@ -1069,6 +1159,9 @@ function DocTile({
   onSendToSign,
   savedSignature,
   pendingSignRequests,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   doc: LibraryDoc
   answers: FlowAnswers
@@ -1078,6 +1171,9 @@ function DocTile({
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
+  selectMode: boolean
+  selected: boolean
+  onToggleSelect: (doc: LibraryDoc) => void
 }) {
   const viewable = !!doc.content
   const status = docStatusText(doc, answers, pendingSignRequests)
@@ -1087,35 +1183,50 @@ function DocTile({
     <div className="flex flex-col">
       <button
         type="button"
-        onClick={() => viewable && onView(doc)}
-        disabled={!viewable}
+        onClick={() => (selectMode ? onToggleSelect(doc) : viewable && onView(doc))}
+        disabled={!viewable && !selectMode}
         className={cn(
           "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-card text-left shadow-sm transition-shadow",
-          doc.pending ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
-          viewable ? "cursor-pointer hover:shadow-md hover:border-primary/40" : "cursor-default",
+          selected
+            ? "border-primary ring-2 ring-primary/40"
+            : doc.pending ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
+          (viewable || selectMode) ? "cursor-pointer hover:shadow-md hover:border-primary/40" : "cursor-default",
         )}
       >
         <MiniPreview doc={doc} answers={answers} />
-        {readyToSend ? (
-          <span className="absolute right-1.5 top-1.5 flex h-6 w-6 animate-pulse items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-            <Landmark className="h-3 w-3" />
+        {selectMode ? (
+          <span
+            className={cn(
+              "absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border shadow-sm",
+              selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card/90 text-transparent",
+            )}
+          >
+            <Check className="h-3 w-3" strokeWidth={3} />
           </span>
         ) : (
-          doc.signed && (
-            <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm">
-              <Check className="h-3 w-3" strokeWidth={3} />
-            </span>
-          )
-        )}
-        {doc.pending && (
-          <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
-            <Landmark className="h-2.5 w-2.5" />
-          </span>
-        )}
-        {readyToSend && (
-          <span className="absolute inset-x-0 bottom-0 bg-primary py-1 text-center text-[10px] font-semibold text-primary-foreground">
-            Submit to Delaware
-          </span>
+          <>
+            {readyToSend ? (
+              <span className="absolute right-1.5 top-1.5 flex h-6 w-6 animate-pulse items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                <Landmark className="h-3 w-3" />
+              </span>
+            ) : (
+              doc.signed && (
+                <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground shadow-sm">
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                </span>
+              )
+            )}
+            {doc.pending && (
+              <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                <Landmark className="h-2.5 w-2.5" />
+              </span>
+            )}
+            {readyToSend && (
+              <span className="absolute inset-x-0 bottom-0 bg-primary py-1 text-center text-[10px] font-semibold text-primary-foreground">
+                Submit to Delaware
+              </span>
+            )}
+          </>
         )}
       </button>
       <div className="mt-2 flex items-start justify-between gap-1 px-0.5">
@@ -1125,7 +1236,9 @@ function DocTile({
             {status ?? doc.subtitle}
           </p>
         </div>
-        <DocTileMenu doc={doc} answers={answers} onDelete={onDelete} onSign={onSign} onSendToSign={onSendToSign} savedSignature={savedSignature} />
+        {!selectMode && (
+          <DocTileMenu doc={doc} answers={answers} onDelete={onDelete} onSign={onSign} onSendToSign={onSendToSign} savedSignature={savedSignature} />
+        )}
       </div>
     </div>
   )
