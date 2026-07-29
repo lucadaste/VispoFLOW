@@ -95,6 +95,7 @@ type ChatMessage =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "system"; text: string; variant: "doc" | "filing" }
   | { id: number; role: "widget"; widget: "formed" }
+  | { id: number; role: "note"; text: string }
 
 type ActiveChatFields = {
   input: StepInput
@@ -162,6 +163,11 @@ function normalizeSignedDocs(raw: unknown): Record<string, DocSignature[]> {
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1300, Math.max(550, text.length * 16))
 
+/** Heuristic for whether a chat message sent mid-step is a question rather than an answer. */
+const looksLikeQuestion = (text: string) =>
+  /\?\s*$/.test(text) ||
+  /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
+
 export function IncorporationApp() {
   const { user, isSignedIn } = useUser()
   const { profile, setProfile } = useProfile()
@@ -192,6 +198,7 @@ export function IncorporationApp() {
   const [signRequests, setSignRequests] = useState<SignRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [incorporationRestartConfirm, setIncorporationRestartConfirm] = useState(false)
+  const [modeSwitchConfirm, setModeSwitchConfirm] = useState<"chat" | "form" | null>(null)
   // Gate the "save" effects below on these (state, not refs) so a save can never fire
   // with the pre-load initial values — see the comment on the library save effect.
   const [libraryLoaded, setLibraryLoaded] = useState(false)
@@ -522,8 +529,14 @@ export function IncorporationApp() {
     setMessages((m) => [...m, { id: nextId(), role: "user", text }])
   }, [])
 
+  const pushNote = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: nextId(), role: "note", text }])
+  }, [])
+
   const chatFieldPrompt = (f: ChatField) =>
     `${f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+
+  const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
 
   const animateDocs = useCallback(async (ids: string[]) => {
     setDocStatuses((s) => {
@@ -755,6 +768,60 @@ export function IncorporationApp() {
     [activeChatFields, pushUser, pushBot, handleSubmit],
   )
 
+  // What's typed might be a genuine question rather than an answer — in which case explain
+  // and re-ask instead of recording it as the field's value. None of these chat fields use
+  // the select/date types, so there's no free-text-less field type to exclude here.
+  const handleChatFieldInput = useCallback((raw: string) => {
+    if (!activeChatFields) return
+    const field = activeChatFields.fields[activeChatFields.fieldIndex]
+    const val = raw.trim()
+    if (val && looksLikeQuestion(val)) {
+      pushUser(val)
+      ;(async () => {
+        await pushBot(field.hint ?? "Happy to help — once you're ready, just answer the question above and we'll continue.")
+        await pushBot(chatFieldPrompt(field))
+      })()
+      return
+    }
+    handleChatFieldSubmit(raw)
+  }, [activeChatFields, pushUser, pushBot, handleChatFieldSubmit])
+
+  // Re-renders the current step's input under a newly selected mode, without replaying the
+  // step's intro messages (those already happened) — used when switching Chat/Questionnaire
+  // mid-step, as opposed to `playStep`, which is only for advancing to a new step.
+  const reinitStepForMode = useCallback((mode: "chat" | "form") => {
+    const step = STEPS[activeStepIndex]
+    if (!step?.input || step.autoAdvance) {
+      setActiveInput(null)
+      setActiveChatFields(null)
+      return
+    }
+    const decomposed = mode === "chat" ? getChatFields(step.input, effectiveAnswersRef.current) : null
+    if (decomposed) {
+      setActiveInput(null)
+      setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
+      if (!decomposed.skipFirstPrompt) pushBot(chatFieldPrompt(decomposed.fields[0]))
+    } else {
+      setActiveChatFields(null)
+      setActiveInput(step.input)
+    }
+  }, [activeStepIndex, pushBot])
+
+  // Switching Chat/Questionnaire mode mid-step discards answers already stepped past in the
+  // chat-field sequence, so confirm first when there's real progress to lose. Nothing is lost
+  // switching away from an unstarted or form-mode step, so those switch immediately.
+  const requestSetInputMode = useCallback((target: "chat" | "form") => {
+    if (target === inputMode) return
+    const hasProgress = inputMode === "chat" && !!activeChatFields && activeChatFields.fieldIndex > 0
+    if (!hasProgress) {
+      setInputMode(target)
+      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
+      reinitStepForMode(target)
+      return
+    }
+    setModeSwitchConfirm(target)
+  }, [inputMode, activeChatFields, pushNote, reinitStepForMode])
+
   const restartFormation = () => {
     startedRef.current = false
     idRef.current = 0
@@ -925,7 +992,7 @@ export function IncorporationApp() {
                 <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
                 <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                   <button
-                    onClick={() => setInputMode("chat")}
+                    onClick={() => requestSetInputMode("chat")}
                     className={cn(
                       "rounded-full px-3 py-1 font-medium transition-colors",
                       inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -934,7 +1001,7 @@ export function IncorporationApp() {
                     Chat
                   </button>
                   <button
-                    onClick={() => setInputMode("form")}
+                    onClick={() => requestSetInputMode("form")}
                     className={cn(
                       "rounded-full px-3 py-1 font-medium transition-colors",
                       inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -959,6 +1026,8 @@ export function IncorporationApp() {
                     )
                   if (m.role === "widget" && m.widget === "formed")
                     return <FormedCard key={m.id} answers={effectiveAnswers} />
+                  if (m.role === "note")
+                    return <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
                   return null
                 })}
                 {isTyping && <TypingIndicator />}
@@ -973,7 +1042,7 @@ export function IncorporationApp() {
                       key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
                       field={activeChatFields.fields[activeChatFields.fieldIndex]}
                       initialValue={activeChatFields.values[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
-                      onSubmit={handleChatFieldSubmit}
+                      onSubmit={handleChatFieldInput}
                     />
                   ) : (
                     <ChatInput input={activeInput!} answers={effectiveAnswers} onSubmit={handleSubmit} />
@@ -1080,6 +1149,22 @@ export function IncorporationApp() {
             restartFormation()
           }}
           onCancel={() => setIncorporationRestartConfirm(false)}
+        />
+      )}
+
+      {modeSwitchConfirm && (
+        <ConfirmModal
+          title="Switch modes and restart this step?"
+          description={`Switching to ${modeLabel(modeSwitchConfirm)} mode will restart this step and discard the answers you've entered for it so far.`}
+          confirmLabel="Restart & switch"
+          onConfirm={() => {
+            const target = modeSwitchConfirm
+            setModeSwitchConfirm(null)
+            setInputMode(target)
+            pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
+            reinitStepForMode(target)
+          }}
+          onCancel={() => setModeSwitchConfirm(null)}
         />
       )}
     </div>
