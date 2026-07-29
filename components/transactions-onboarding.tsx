@@ -284,10 +284,23 @@ export function TransactionsOnboarding({
     handleFieldSubmit(raw)
   }, [activeFiling, pushUser, pushBotTyped, handleFieldSubmit])
 
-  const prefill = (key?: keyof FlowAnswers | "computed"): string => {
-    if (!key || key === "computed") return ""
-    const v = answers[key]
-    return typeof v === "string" ? v : ""
+  // Prefills a field from the company's formation answers first (e.g. company name), then falls
+  // back to whatever value the user already gave for a field of the same name on any other
+  // transaction doc they've completed and not deleted (e.g. an Investor name or date typed for
+  // one SAFE carries over to the next) — same time-saving idea, just sourced from `docs` instead
+  // of `answers` since these fields (Investor name, purchase amount, etc.) aren't part of the
+  // company's global FlowAnswers.
+  const prefill = (field?: TransactionField): string => {
+    if (!field) return ""
+    if (field.prefillKey && field.prefillKey !== "computed") {
+      const v = answers[field.prefillKey]
+      if (typeof v === "string" && v) return v
+    }
+    for (const doc of Object.values(docs)) {
+      const v = doc.values?.[field.name]
+      if (v) return v
+    }
+    return ""
   }
 
   const allItems = TRANSACTION_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
@@ -410,7 +423,7 @@ export function TransactionsOnboarding({
               <FieldComposer
                 key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
                 field={activeFiling.item.fields[activeFiling.fieldIndex]}
-                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex].prefillKey)}
+                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex])}
                 onSubmit={handleFieldInput}
               />
             ) : (
@@ -656,12 +669,12 @@ function TransactionFormCard({
   item: TransactionItem
   groupTitle: string
   done: boolean
-  prefill: (key?: keyof FlowAnswers | "computed") => string
+  prefill: (field?: TransactionField) => string
   onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
+    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
   )
 
   const isEmpty = (f: TransactionField) => !f.optional && !values[f.name]?.trim()

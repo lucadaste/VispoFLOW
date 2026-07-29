@@ -487,6 +487,71 @@ const companyNameField: TransactionField = {
 
 /* ---- Financing ---- */
 
+const SAFE_CAP: TransactionItem = {
+  id: "safe-cap",
+  title: "YC SAFE - Cap Only",
+  short: "YC SAFE - Cap Only",
+  description: "Y Combinator SAFE with a post-money valuation cap — convertible investment instrument for early-stage financing.",
+  fields: [
+    { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
+    companyNameField,
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    { name: "valuationCap", label: "Post-money valuation cap", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+  ],
+}
+
+const SAFE_MFN: TransactionItem = {
+  id: "safe-mfn",
+  title: "YC SAFE - MFN Only",
+  short: "YC SAFE - MFN Only",
+  description: "Y Combinator SAFE with a most-favored-nation provision — convertible investment instrument for early-stage financing.",
+  fields: [
+    { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
+    companyNameField,
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+  ],
+}
+
+const SAFE_DISCOUNT: TransactionItem = {
+  id: "safe-discount",
+  title: "YC SAFE - Discount Only",
+  short: "YC SAFE - Discount Only",
+  description: "Y Combinator SAFE with a discount rate — convertible investment instrument for early-stage financing.",
+  fields: [
+    { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
+    companyNameField,
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    {
+      name: "discountPercent",
+      label: "Discount",
+      question: "What discount will the Investor get on the price per share, as a percentage?",
+      placeholder: "e.g. 20",
+      hint: "The document's Discount Rate is shown as 100 minus this number (a 20% discount becomes an 80% Discount Rate).",
+    },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+  ],
+}
+
+const PRO_RATA_SIDE_LETTER: TransactionItem = {
+  id: "pro-rata-side-letter",
+  title: "YC Pro Rata Side Letter",
+  short: "YC Pro Rata Side Letter",
+  description: "Grants a SAFE investor the right to purchase their pro rata share of Preferred Stock in the company's next priced equity round.",
+  fields: [
+    { name: "date", label: "Date", type: "date", question: "What's the date of this agreement?" },
+    companyNameField,
+    { name: "investorName", label: "Investor name", question: "Who's the Investor this side letter is with?", placeholder: "e.g. Jane Ventures" },
+  ],
+}
+
 const FOUNDER_LOAN: TransactionItem = {
   id: "founder-loan",
   title: "Founder Loan",
@@ -722,20 +787,6 @@ const ADVISOR_AGREEMENT: TransactionItem = {
 
 /* ---- Early Customers ---- */
 
-const BETA_LICENSE: TransactionItem = {
-  id: "beta-license",
-  title: "Beta License",
-  short: "Beta License",
-  description: "License granting a customer access to a beta product or feature.",
-  fields: [
-    companyNameField,
-    { name: "customerName", label: "Beta customer name", placeholder: "e.g. Acme Corp" },
-    { name: "productFeature", label: "Product / feature being tested", placeholder: "e.g. New analytics dashboard" },
-    { name: "licenseTerm", label: "License term", placeholder: "e.g. 3 months, starting Jan 1" },
-    { name: "feedbackObligations", label: "Feedback obligations?", type: "select", options: ["Yes", "No"] },
-  ],
-}
-
 const PILOT_AGREEMENT: TransactionItem = {
   id: "pilot-agreement",
   title: "Pilot Agreement",
@@ -933,7 +984,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "financing",
     label: "Financing",
     chatResponse: "Here are the financing documents available — SAFEs, term sheets, and founder loans. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "financing-docs", title: "Financing", items: [FOUNDER_LOAN] }],
+    groups: [{ id: "financing-docs", title: "Financing", items: [SAFE_CAP, SAFE_MFN, SAFE_DISCOUNT, PRO_RATA_SIDE_LETTER, FOUNDER_LOAN] }],
   },
   {
     id: "contributors",
@@ -951,7 +1002,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "customers",
     label: "Early Customers",
     chatResponse: "Here are the agreements for early customers. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "customers-docs", title: "Early Customers", items: [BETA_LICENSE, PILOT_AGREEMENT, USER_AGREEMENT, TERMS_OF_SERVICE] }],
+    groups: [{ id: "customers-docs", title: "Early Customers", items: [PILOT_AGREEMENT, USER_AGREEMENT, TERMS_OF_SERVICE] }],
   },
   {
     id: "ip-nda",

@@ -55,6 +55,27 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       // "THE COMPANY:" execution block, so this needs a named slot rather than the officer default.
       return [{ id: "incorporator", label: "Incorporator", kind: "named", matchName: answers.incorporatorName }]
 
+    case "safe-cap":
+    case "safe-mfn":
+    case "safe-discount":
+    case "pro-rata-side-letter": {
+      // The Investor's block, like the NDA's COUNTERPARTY block, is a full By:/Name:/Title:
+      // execution block rather than a bare signature line under an already-printed name — so
+      // this is "officer"-kind against its own "INVESTOR:" header, not counterpartySlot()'s
+      // "named" routing.
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.investorName) {
+        slots.push({
+          id: "investor",
+          label: `Investor: ${values.investorName}`,
+          kind: "officer",
+          headerPattern: /^INVESTOR:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
     case "founder-loan": {
       const slots: SignerSlot[] = [
         // This template calls its own execution block "BORROWER:" rather than "THE COMPANY:".
