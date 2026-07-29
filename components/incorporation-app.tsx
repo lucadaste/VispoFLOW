@@ -46,6 +46,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
 import { useProfile } from "@/lib/use-profile"
 import { ProfileSettingsModal } from "@/components/profile-settings-modal"
+import { ConfirmModal } from "@/components/confirm-modal"
 import { SignedOutGate } from "@/components/signed-out-gate"
 import { cn } from "@/lib/utils"
 
@@ -190,6 +191,7 @@ export function IncorporationApp() {
   const [signedDocs, setSignedDocs] = useState<Record<string, DocSignature[]>>({})
   const [signRequests, setSignRequests] = useState<SignRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [incorporationRestartConfirm, setIncorporationRestartConfirm] = useState(false)
   // Gate the "save" effects below on these (state, not refs) so a save can never fire
   // with the pre-load initial values — see the comment on the library save effect.
   const [libraryLoaded, setLibraryLoaded] = useState(false)
@@ -878,6 +880,8 @@ export function IncorporationApp() {
     }),
   )
 
+  const coiSigned = !!incorporationLibraryDocs.find((d) => d.id === "coi")?.signed
+
   const visibleDocsCount =
     incorporationLibraryDocs.filter((d) => !d.hidden).length +
     complianceDocs.filter((d) => !hiddenDocIds[d.id]).length +
@@ -981,7 +985,17 @@ export function IncorporationApp() {
 
           {/* ── Incorporation Documents sidebar — always visible ≥ sm, collapsible ── */}
           <SidebarPanel icon={FileText} label="Incorporation Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
-            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={effectiveAnswers} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? (
+              <DocumentTracker
+                statuses={docStatuses}
+                answers={effectiveAnswers}
+                onGoToLibrary={() => handlePhaseClick("documents")}
+                onDeleteRestart={() => setIncorporationRestartConfirm(true)}
+                coiSigned={coiSigned}
+              />
+            ) : (
+              <DocumentTrackerEmpty />
+            )}
           </SidebarPanel>
 
           {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
@@ -992,7 +1006,17 @@ export function IncorporationApp() {
             open={mobileDocsOpen}
             onOpenChange={setMobileDocsOpen}
           >
-            {hasDocs ? <DocumentTracker statuses={docStatuses} answers={effectiveAnswers} /> : <DocumentTrackerEmpty />}
+            {hasDocs ? (
+              <DocumentTracker
+                statuses={docStatuses}
+                answers={effectiveAnswers}
+                onGoToLibrary={() => handlePhaseClick("documents")}
+                onDeleteRestart={() => setIncorporationRestartConfirm(true)}
+                coiSigned={coiSigned}
+              />
+            ) : (
+              <DocumentTrackerEmpty />
+            )}
           </MobileSidebarTab>
         </div>
         </SignedOutGate>
@@ -1044,6 +1068,19 @@ export function IncorporationApp() {
 
       {settingsOpen && (
         <ProfileSettingsModal profile={profile} onSave={setProfile} onClose={() => setSettingsOpen(false)} />
+      )}
+
+      {incorporationRestartConfirm && (
+        <ConfirmModal
+          title="Delete and restart your incorporation?"
+          description="All incorporation documents share one guided flow, so there's no way to redo just this one — this restarts the whole flow from the beginning and removes any incorporation documents you've generated so far from My Docs."
+          confirmLabel="Delete & restart"
+          onConfirm={() => {
+            setIncorporationRestartConfirm(false)
+            restartFormation()
+          }}
+          onCancel={() => setIncorporationRestartConfirm(false)}
+        />
       )}
     </div>
   )

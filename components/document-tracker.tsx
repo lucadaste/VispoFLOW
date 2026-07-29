@@ -11,9 +11,17 @@ import { cn } from "@/lib/utils"
 export function DocumentTracker({
   statuses,
   answers,
+  onGoToLibrary,
+  onDeleteRestart,
+  coiSigned,
 }: {
   statuses: Record<string, DocStatus>
   answers: FlowAnswers
+  onGoToLibrary?: () => void
+  onDeleteRestart?: () => void
+  /** Whether the drafted COI has already collected its signature — distinguishes "ready to
+   *  sign" from "signed, ready to send to Delaware" even though both share the "complete" status. */
+  coiSigned?: boolean
 }) {
   const [viewing, setViewing] = useState<LibraryDoc | null>(null)
   const [infoDoc, setInfoDoc] = useState<LegalDoc | null>(null)
@@ -94,10 +102,11 @@ export function DocumentTracker({
                       "flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors",
                       viewable && "cursor-pointer hover:bg-secondary",
                       status === "drafting" && "bg-accent/10",
-                      status === "filing" && "bg-primary/5",
+                      (status === "filing" || (doc.id === "coi" && status === "complete" && coiSigned)) &&
+                        "bg-primary/5",
                     )}
                   >
-                    <StatusIcon status={status} />
+                    <StatusIcon status={status} docId={doc.id} signed={doc.id === "coi" ? coiSigned : undefined} />
                     <div className="min-w-0 flex-1 leading-tight">
                       <div className="flex items-center gap-1">
                         <p
@@ -123,7 +132,7 @@ export function DocumentTracker({
                         {doc.short}
                       </p>
                     </div>
-                    <StatusBadge status={status} />
+                    <StatusBadge status={status} docId={doc.id} signed={doc.id === "coi" ? coiSigned : undefined} />
                   </li>
                 )
               })}
@@ -132,7 +141,15 @@ export function DocumentTracker({
         ))}
       </div>
 
-      {viewing && <DocumentViewer doc={viewing} answers={answers} onClose={() => setViewing(null)} />}
+      {viewing && (
+        <DocumentViewer
+          doc={viewing}
+          answers={answers}
+          onClose={() => setViewing(null)}
+          onGoToLibrary={onGoToLibrary ? () => { setViewing(null); onGoToLibrary() } : undefined}
+          onDeleteRestart={onDeleteRestart ? () => { setViewing(null); onDeleteRestart() } : undefined}
+        />
+      )}
       {infoDoc && (
         <InfoModal
           title={infoDoc.label}
@@ -149,8 +166,23 @@ export function DocumentTracker({
   )
 }
 
-function StatusIcon({ status }: { status: DocStatus }) {
+function StatusIcon({ status, docId, signed }: { status: DocStatus; docId: string; signed?: boolean }) {
   const base = "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
+  // The COI still has a real filing with Delaware ahead of it once it's drafted — showing
+  // the same final green check here as "filed" would make that later "awaiting approval"
+  // state look like a regression the moment the user pays.
+  if (status === "complete" && docId === "coi" && signed)
+    return (
+      <span className={cn(base, "bg-primary text-primary-foreground")}>
+        <Landmark className="h-2.5 w-2.5" />
+      </span>
+    )
+  if (status === "complete" && docId === "coi")
+    return (
+      <span className={cn(base, "bg-accent/15 text-accent")}>
+        <FileText className="h-3 w-3" />
+      </span>
+    )
   if (status === "complete" || status === "filed")
     return (
       <span className={cn(base, "bg-success text-success-foreground")}>
@@ -176,9 +208,13 @@ function StatusIcon({ status }: { status: DocStatus }) {
   )
 }
 
-function StatusBadge({ status }: { status: DocStatus }) {
+function StatusBadge({ status, docId, signed }: { status: DocStatus; docId: string; signed?: boolean }) {
   if (status === "drafting")
     return <span className="shrink-0 text-[10px] font-medium text-accent-foreground/70">Drafting</span>
+  if (status === "complete" && docId === "coi" && signed)
+    return <span className="shrink-0 text-[10px] font-semibold text-primary">Ready to send</span>
+  if (status === "complete" && docId === "coi")
+    return <span className="shrink-0 text-[10px] font-medium text-accent-foreground/70">Ready to sign</span>
   if (status === "filed")
     return <span className="shrink-0 text-[10px] font-medium text-success">Filed</span>
   if (status === "filing")
