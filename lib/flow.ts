@@ -824,13 +824,31 @@ const NDA: TransactionItem = {
   id: "nda",
   title: "NDA",
   short: "NDA",
-  description: "Non-disclosure agreement protecting confidential information shared with a counterparty.",
+  description: "Mutual non-disclosure agreement protecting confidential information shared with a counterparty.",
   fields: [
+    { name: "date", label: "Date", question: "What's the date of this agreement?", type: "date" },
     companyNameField,
-    { name: "counterpartyName", label: "Counterparty name", placeholder: "e.g. Acme Corp" },
-    { name: "purpose", label: "Purpose of disclosure", type: "textarea" },
-    { name: "mutualOrOneWay", label: "Mutual or one-way?", type: "select", options: ["Mutual", "One-way"] },
-    { name: "termLength", label: "Confidentiality term length", placeholder: "e.g. 2 years" },
+    { name: "counterpartyName", label: "Name of Counterparty", question: "Who's the counterparty on this NDA?", placeholder: "e.g. Acme Corp" },
+    {
+      name: "includeNonSolicitation",
+      label: "Include an employee non-solicitation clause?",
+      question: "Would you like to include an employee non-solicitation clause?",
+      type: "select",
+      options: ["No", "Yes"],
+    },
+    {
+      name: "includeResiduals",
+      label: "Include a residuals clause?",
+      question: "Would you like to include a residuals clause?",
+      type: "select",
+      options: ["No", "Yes"],
+    },
+    {
+      name: "choiceOfLawState",
+      label: "Choice of law and venue state",
+      question: "Which state should govern this agreement, and be the venue for any disputes?",
+      placeholder: "e.g. Delaware",
+    },
   ],
 }
 

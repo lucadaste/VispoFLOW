@@ -106,6 +106,27 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "nda": {
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.counterpartyName) {
+        // Unlike every other Transaction Center counterparty, the NDA's "COUNTERPARTY:" block is
+        // a full By:/Name:/Title: execution block — the same shape as the company's own — rather
+        // than a bare signature line under an already-printed name. counterpartySlot()'s "named"
+        // routing (blank line, then the printed name) doesn't match that shape, so this is built as
+        // an "officer"-kind slot pointed at its own header instead, same idea as Option Pool's
+        // generic Optionee slot: an external party without a name lock, because the block structure
+        // — not the identity — is what determines routing here.
+        slots.push({
+          id: "counterparty",
+          label: `Counterparty: ${values.counterpartyName}`,
+          kind: "officer",
+          headerPattern: /^COUNTERPARTY:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
     case "option-pool":
       // Optionee's identity isn't known until the Carta grant, so this is "generic" rather than
       // "named" (no matchName to lock to) — external for the same reason as counterpartySlot()
