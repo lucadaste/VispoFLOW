@@ -102,11 +102,10 @@ export function DocumentTracker({
                       "flex items-start gap-2.5 rounded-lg px-2 py-2 transition-colors",
                       viewable && "cursor-pointer hover:bg-secondary",
                       status === "drafting" && "bg-accent/10",
-                      (status === "filing" || (doc.id === "coi" && status === "complete" && coiSigned)) &&
-                        "bg-primary/5",
+                      (status === "filing" || (doc.id === "coi" && status === "complete")) && "bg-primary/5",
                     )}
                   >
-                    <StatusIcon status={status} docId={doc.id} signed={doc.id === "coi" ? coiSigned : undefined} />
+                    <StatusIcon status={status} docId={doc.id} />
                     <div className="min-w-0 flex-1 leading-tight">
                       <div className="flex items-center gap-1">
                         <p
@@ -166,21 +165,15 @@ export function DocumentTracker({
   )
 }
 
-function StatusIcon({ status, docId, signed }: { status: DocStatus; docId: string; signed?: boolean }) {
+function StatusIcon({ status, docId }: { status: DocStatus; docId: string }) {
   const base = "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-  // The COI still has a real filing with Delaware ahead of it once it's drafted — showing
-  // the same final green check here as "filed" would make that later "awaiting approval"
-  // state look like a regression the moment the user pays.
-  if (status === "complete" && docId === "coi" && signed)
-    return (
-      <span className={cn(base, "bg-primary text-primary-foreground")}>
-        <Landmark className="h-2.5 w-2.5" />
-      </span>
-    )
+  // The COI still has a real filing with Delaware ahead of it once it's drafted — it's only
+  // ever "done" (green check) once that filing is actually confirmed. Until then, drafted or
+  // signed-but-unsent both read as in-progress, same pulsing badge the Document Library uses.
   if (status === "complete" && docId === "coi")
     return (
-      <span className={cn(base, "bg-accent/15 text-accent")}>
-        <FileText className="h-3 w-3" />
+      <span className={cn(base, "animate-pulse bg-primary text-primary-foreground")}>
+        <Landmark className="h-2.5 w-2.5" />
       </span>
     )
   if (status === "complete" || status === "filed")
