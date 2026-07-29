@@ -487,6 +487,7 @@ export function TransactionsOnboarding({
               const { [item.id]: _removed, ...rest } = d
               return rest
             })
+            onItemDeleted?.(item.id)
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}

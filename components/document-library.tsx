@@ -44,10 +44,19 @@ export type LibraryDoc = {
 
 /** Merges the account's collected signatures for `doc.id` onto an otherwise-unsigned `LibraryDoc` —
  *  the single source of truth every doc viewer (My Docs, and each flow's own sidebar) should go
- *  through, so a document signed in one place shows as signed everywhere it can be viewed from. */
+ *  through, so a document signed in one place shows as signed everywhere it can be viewed from.
+ *
+ *  Also the last line of defense against a stale signature leaking onto the wrong document: a
+ *  signature only survives the merge if its `slotId` matches one this *specific* document instance
+ *  currently requires (e.g. `director-Jane Doe` only if Jane Doe is still a director here). A
+ *  signature whose doc was deleted should already be gone from `signatures` before this ever runs,
+ *  but if it isn't — or if the roster simply changed since it was signed — dropping it here means it
+ *  can never render or count toward "signed" instead of silently placing under a fallback slot. */
 export function withDocSignatures(doc: LibraryDoc, signatures: DocSignature[], answers: FlowAnswers): LibraryDoc {
-  const totalSlots = doc.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
-  return { ...doc, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
+  const slots = doc.content ? getSignerSlots(doc.id, answers, doc.values) : []
+  const validSlotIds = new Set(slots.map((s) => s.id))
+  const validSignatures = signatures.filter((s) => validSlotIds.has(s.slotId))
+  return { ...doc, signatures: validSignatures, signed: slots.length > 0 && validSignatures.length >= slots.length }
 }
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }

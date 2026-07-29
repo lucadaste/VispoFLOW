@@ -353,6 +353,31 @@ export function IncorporationApp() {
     [signRequests],
   )
 
+  // The one place that fully erases a document's signatures — both collected locally and any
+  // outstanding/completed "send to sign" request server-side. Every "delete this document" /
+  // "redo" path MUST route through this: leaving either behind means the doc's next regeneration
+  // (same catalog id) silently inherits the old signature instead of requiring a fresh one, which
+  // is exactly the bug this exists to prevent (see reconciliation effect above, which would
+  // otherwise re-fold a surviving "signed" sign request straight back into signedDocs).
+  const clearSignaturesForDoc = useCallback(
+    (id: string) => {
+      setSignedDocs((docs) => {
+        if (!docs[id]) return docs
+        const next = { ...docs }
+        delete next[id]
+        return next
+      })
+      const matching = signRequests.filter((r) => r.docId === id)
+      if (matching.length > 0) {
+        setSignRequests((reqs) => reqs.filter((r) => r.docId !== id))
+        matching.forEach((r) => {
+          fetch(`/api/sign-requests/${r.id}`, { method: "DELETE" }).catch(() => {})
+        })
+      }
+    },
+    [signRequests],
+  )
+
   // Withdraws an outstanding "sent to sign" request — e.g. sent to the wrong email, or no
   // longer needed — so it stops showing as awaiting signature.
   const handleCancelSignRequest = useCallback((requestId: string) => {
@@ -382,19 +407,14 @@ export function IncorporationApp() {
   // state tied to it) right away, rather than waiting for the redo to finish and overwrite it.
   const handleComplianceDocDeleted = useCallback((id: string) => {
     setComplianceDocs((docs) => docs.filter((d) => d.id !== id))
-    setSignedDocs((docs) => {
-      if (!docs[id]) return docs
-      const next = { ...docs }
-      delete next[id]
-      return next
-    })
+    clearSignaturesForDoc(id)
     setHiddenDocIds((ids) => {
       if (!ids[id]) return ids
       const next = { ...ids }
       delete next[id]
       return next
     })
-  }, [])
+  }, [clearSignaturesForDoc])
 
   // Deleting from the Document Library only hides the doc there (restorable) — but the
   // Compliance/Transactions flow that produced it isn't mounted right now, so its own
@@ -408,12 +428,13 @@ export function IncorporationApp() {
 
   const handleDeleteLibraryDoc = useCallback((doc: LibraryDoc) => {
     setHiddenDocIds((ids) => ({ ...ids, [doc.id]: true }))
+    clearSignaturesForDoc(doc.id)
     const key = flowStorageKeyFor(doc.id)
     if (key) {
       clearItemInPersisted(key, doc.id)
       if (isSignedIn) clearItemOnServer(key, doc.id)
     }
-  }, [flowStorageKeyFor, isSignedIn])
+  }, [flowStorageKeyFor, isSignedIn, clearSignaturesForDoc])
 
   const handleRestoreLibraryDoc = useCallback((doc: LibraryDoc) => {
     setHiddenDocIds((ids) => {
@@ -468,19 +489,14 @@ export function IncorporationApp() {
   // state tied to it) right away, rather than waiting for the redo to finish and overwrite it.
   const handleTransactionDocDeleted = useCallback((id: string) => {
     setTransactionDocs((docs) => docs.filter((d) => d.id !== id))
-    setSignedDocs((docs) => {
-      if (!docs[id]) return docs
-      const next = { ...docs }
-      delete next[id]
-      return next
-    })
+    clearSignaturesForDoc(id)
     setHiddenDocIds((ids) => {
       if (!ids[id]) return ids
       const next = { ...ids }
       delete next[id]
       return next
     })
-  }, [])
+  }, [clearSignaturesForDoc])
 
   const handleLandingSelect = (
     path: "formation" | "compliance" | "transactions" | "documents" | "questions",
@@ -838,11 +854,7 @@ export function IncorporationApp() {
       DOCUMENTS.forEach((d) => delete next[d.id])
       return next
     })
-    setSignedDocs((docs) => {
-      const next = { ...docs }
-      DOCUMENTS.forEach((d) => delete next[d.id])
-      return next
-    })
+    DOCUMENTS.forEach((d) => clearSignaturesForDoc(d.id))
     clearPersisted(STORAGE_KEYS.incorporation)
     if (isSignedIn) clearFromServer(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
@@ -869,11 +881,7 @@ export function IncorporationApp() {
         complianceDocs.forEach((d) => delete next[d.id])
         return next
       })
-      setSignedDocs((docs) => {
-        const next = { ...docs }
-        complianceDocs.forEach((d) => delete next[d.id])
-        return next
-      })
+      complianceDocs.forEach((d) => clearSignaturesForDoc(d.id))
       setComplianceDocs([])
       clearPersisted(STORAGE_KEYS.compliance)
       if (isSignedIn) await clearFromServer(STORAGE_KEYS.compliance)
@@ -886,11 +894,7 @@ export function IncorporationApp() {
         transactionDocs.forEach((d) => delete next[d.id])
         return next
       })
-      setSignedDocs((docs) => {
-        const next = { ...docs }
-        transactionDocs.forEach((d) => delete next[d.id])
-        return next
-      })
+      transactionDocs.forEach((d) => clearSignaturesForDoc(d.id))
       setTransactionDocs([])
       clearPersisted(STORAGE_KEYS.transactions)
       if (isSignedIn) await clearFromServer(STORAGE_KEYS.transactions)
