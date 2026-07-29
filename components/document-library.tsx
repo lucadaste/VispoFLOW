@@ -436,7 +436,9 @@ export function DocumentLibrary({
         signedAt: new Date().toISOString(),
         officerTitle: slot?.kind === "officer" ? primaryOfficerTitle(signature.roles ?? []) ?? undefined : undefined,
       }
-      return { ...v, signatures: [...(v.signatures ?? []).filter((s) => s.slotId !== slotId), newSig], signed: false }
+      const signatures = [...(v.signatures ?? []).filter((s) => s.slotId !== slotId), newSig]
+      const totalSlots = v.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
+      return { ...v, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
     })
   }
 
@@ -1091,6 +1093,11 @@ function DocTile({
         {doc.pending && (
           <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
             <Landmark className="h-2.5 w-2.5" />
+          </span>
+        )}
+        {readyToSend && (
+          <span className="absolute inset-x-0 bottom-0 bg-primary py-1 text-center text-[10px] font-semibold text-primary-foreground">
+            Submit to Delaware
           </span>
         )}
       </button>
