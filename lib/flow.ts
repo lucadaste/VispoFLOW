@@ -830,19 +830,6 @@ const USER_AGREEMENT: TransactionItem = {
   ],
 }
 
-const TERMS_OF_SERVICE: TransactionItem = {
-  id: "terms-of-service",
-  title: "Terms of Service",
-  short: "Terms of Service",
-  description: "General terms of service for the product or website.",
-  fields: [
-    companyNameField,
-    { name: "productName", label: "Product / website name", placeholder: "e.g. acme.com" },
-    { name: "governingState", label: "Governing state", placeholder: "e.g. Delaware" },
-    { name: "subscriptionTerms", label: "Subscription / payment terms", type: "textarea", optional: true },
-  ],
-}
-
 /* ---- IP, Licensing and NDAs ---- */
 
 const NDA: TransactionItem = {
@@ -1018,7 +1005,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "customers",
     label: "Early Customers",
     chatResponse: "Here are the agreements for early customers. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "customers-docs", title: "Early Customers", items: [PILOT_AGREEMENT, USER_AGREEMENT, TERMS_OF_SERVICE] }],
+    groups: [{ id: "customers-docs", title: "Early Customers", items: [PILOT_AGREEMENT, USER_AGREEMENT] }],
   },
   {
     id: "ip-nda",
