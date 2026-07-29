@@ -8,7 +8,7 @@ import { SidebarPanel } from "@/components/sidebar-panel"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
-import { DocumentLibrary, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
+import { DocumentLibrary, withDocSignatures, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
 import { getSignerSlots } from "@/lib/document-signers"
 import { primaryOfficerTitle } from "@/lib/signature"
 import { Landing } from "@/components/landing"
@@ -927,11 +927,8 @@ export function IncorporationApp() {
       ? "documents"
       : "chat"
 
-  const withSignature = (doc: LibraryDoc): LibraryDoc => {
-    const signatures = signedDocs[doc.id] ?? []
-    const totalSlots = doc.content ? getSignerSlots(doc.id, effectiveAnswers, doc.values).length : 0
-    return { ...doc, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
-  }
+  const withSignature = (doc: LibraryDoc): LibraryDoc =>
+    withDocSignatures(doc, signedDocs[doc.id] ?? [], effectiveAnswers)
 
   const incorporationLibraryDocs: LibraryDoc[] = DOCUMENTS.filter(
     (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing" || docStatuses[d.id] === "filed",
@@ -1058,6 +1055,7 @@ export function IncorporationApp() {
               <DocumentTracker
                 statuses={docStatuses}
                 answers={effectiveAnswers}
+                signedDocs={signedDocs}
                 onGoToLibrary={() => handlePhaseClick("documents")}
                 onDeleteRestart={() => setIncorporationRestartConfirm(true)}
                 coiSigned={coiSigned}
@@ -1079,6 +1077,7 @@ export function IncorporationApp() {
               <DocumentTracker
                 statuses={docStatuses}
                 answers={effectiveAnswers}
+                signedDocs={signedDocs}
                 onGoToLibrary={() => handlePhaseClick("documents")}
                 onDeleteRestart={() => setIncorporationRestartConfirm(true)}
                 coiSigned={coiSigned}
@@ -1094,6 +1093,7 @@ export function IncorporationApp() {
           <ComplianceView
             key={complianceKey}
             answers={effectiveAnswers}
+            signedDocs={signedDocs}
             onItemComplete={handleComplianceDocComplete}
             onItemDeleted={handleComplianceDocDeleted}
             startExpanded={complianceFromFlow}
@@ -1105,6 +1105,7 @@ export function IncorporationApp() {
           <TransactionsOnboarding
             key={transactionsKey}
             answers={effectiveAnswers}
+            signedDocs={signedDocs}
             onDocumentReady={handleTransactionDocReady}
             onItemDeleted={handleTransactionDocDeleted}
             onGoToLibrary={() => handlePhaseClick("documents")}

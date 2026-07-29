@@ -4,19 +4,21 @@ import { useState } from "react"
 import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, Info } from "lucide-react"
 import { DOCUMENTS, type DocStatus, type FlowAnswers, type LegalDoc } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
-import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { cn } from "@/lib/utils"
 
 export function DocumentTracker({
   statuses,
   answers,
+  signedDocs,
   onGoToLibrary,
   onDeleteRestart,
   coiSigned,
 }: {
   statuses: Record<string, DocStatus>
   answers: FlowAnswers
+  signedDocs?: Record<string, DocSignature[]>
   onGoToLibrary?: () => void
   onDeleteRestart?: () => void
   /** Whether the drafted COI has already collected its signature — distinguishes "ready to
@@ -73,14 +75,18 @@ export function DocumentTracker({
                 // Only a drafted doc has a primary action (view it) — the row itself is inert
                 // until then, so it doesn't duplicate what the (i) icon already does.
                 const openRow = () =>
-                  setViewing({
-                    id: doc.id,
-                    title: doc.label,
-                    subtitle: doc.group,
-                    content: content ?? undefined,
-                    pending: status === "filing",
-                    filed: status === "filed",
-                  })
+                  setViewing(withDocSignatures(
+                    {
+                      id: doc.id,
+                      title: doc.label,
+                      subtitle: doc.group,
+                      content: content ?? undefined,
+                      pending: status === "filing",
+                      filed: status === "filed",
+                    },
+                    signedDocs?.[doc.id] ?? [],
+                    answers,
+                  ))
 
                 return (
                   <li

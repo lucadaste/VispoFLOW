@@ -18,7 +18,7 @@ import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
-import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -66,12 +66,14 @@ function prefillValue(answers: FlowAnswers, key?: keyof FlowAnswers | "computed"
 
 export function ComplianceView({
   answers,
+  signedDocs,
   onItemComplete,
   onItemDeleted,
   startExpanded = false,
   onGoToLibrary,
 }: {
   answers: FlowAnswers
+  signedDocs?: Record<string, DocSignature[]>
   onItemComplete?: (doc: LibraryDoc) => void
   onItemDeleted?: (id: string) => void
   startExpanded?: boolean
@@ -375,7 +377,7 @@ export function ComplianceView({
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc, item, groupTitle })}
+      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })}
     />
   )
 

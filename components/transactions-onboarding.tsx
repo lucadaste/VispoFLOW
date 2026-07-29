@@ -21,7 +21,7 @@ import { FieldComposer } from "@/components/field-composer"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
-import { DocumentViewer, type LibraryDoc } from "@/components/document-library"
+import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
 import { renderTransactionDocument } from "@/lib/transaction-templates"
 
 type TransactionsPersisted = {
@@ -59,11 +59,13 @@ const looksLikeQuestion = (text: string) =>
 
 export function TransactionsOnboarding({
   answers = initialAnswers,
+  signedDocs,
   onDocumentReady,
   onItemDeleted,
   onGoToLibrary,
 }: {
   answers?: FlowAnswers
+  signedDocs?: Record<string, DocSignature[]>
   onDocumentReady?: (doc: LibraryDoc) => void
   onItemDeleted?: (id: string) => void
   onGoToLibrary?: () => void
@@ -330,7 +332,7 @@ export function TransactionsOnboarding({
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc, item, groupTitle })}
+      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })}
     />
   )
 

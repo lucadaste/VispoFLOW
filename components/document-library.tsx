@@ -42,6 +42,14 @@ export type LibraryDoc = {
   signed?: boolean
 }
 
+/** Merges the account's collected signatures for `doc.id` onto an otherwise-unsigned `LibraryDoc` —
+ *  the single source of truth every doc viewer (My Docs, and each flow's own sidebar) should go
+ *  through, so a document signed in one place shows as signed everywhere it can be viewed from. */
+export function withDocSignatures(doc: LibraryDoc, signatures: DocSignature[], answers: FlowAnswers): LibraryDoc {
+  const totalSlots = doc.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
+  return { ...doc, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
+}
+
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }
 type SendToSignPayload = { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string }
