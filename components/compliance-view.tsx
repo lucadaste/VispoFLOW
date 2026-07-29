@@ -58,10 +58,22 @@ const looksLikeQuestion = (text: string) =>
   /\?\s*$/.test(text) ||
   /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
 
-function prefillValue(answers: FlowAnswers, key?: keyof FlowAnswers | "computed"): string {
-  if (!key || key === "computed") return ""
-  const v = answers[key]
-  return typeof v === "string" ? v : ""
+// Prefills a field from the company's formation answers first (e.g. company name), then falls
+// back to whatever value the user already gave for a field of the same name on any other
+// completed (and not-deleted) compliance filing — e.g. a registered agent's name/address given
+// on one filing carries over to the next one that asks for it — mirroring the same fallback in
+// components/transactions-onboarding.tsx.
+function prefillValue(answers: FlowAnswers, docs: Record<string, LibraryDoc>, field?: ComplianceField): string {
+  if (!field) return ""
+  if (field.prefillKey && field.prefillKey !== "computed") {
+    const v = answers[field.prefillKey]
+    if (typeof v === "string" && v) return v
+  }
+  for (const doc of Object.values(docs)) {
+    const v = doc.values?.[field.name]
+    if (v) return v
+  }
+  return ""
 }
 
 export function ComplianceView({
@@ -234,7 +246,7 @@ export function ComplianceView({
 
   const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
 
-  const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
+  const prefill = (field?: ComplianceField): string => prefillValue(answers, docs, field)
 
   // Asks for one field in a chat-mode filing. A fixed option set (select) always gets a
   // clickable choice bubble, and a date gets a calendar picker — unless we already have the
@@ -244,7 +256,7 @@ export function ComplianceView({
   const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
     const field = item.fields[fieldIndex]
     await pushBotTyped(fieldPrompt(field))
-    const prefilled = prefillValue(answers, field.prefillKey)
+    const prefilled = prefillValue(answers, docs, field)
     if (field.type === "select" || (field.type === "date" && !prefilled)) {
       if (addChoices) {
         setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
@@ -252,7 +264,7 @@ export function ComplianceView({
     } else {
       setValue(prefilled)
     }
-  }, [pushBotTyped, answers])
+  }, [pushBotTyped, answers, docs])
 
   const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
     const doc: LibraryDoc = {
@@ -260,6 +272,7 @@ export function ComplianceView({
       title: item.title,
       subtitle: groupTitle,
       content: renderComplianceDocument(item.id, values) ?? undefined,
+      values,
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -801,12 +814,12 @@ function FilingFormCard({
   item: ComplianceItem
   groupTitle: string
   done: boolean
-  prefill: (key?: keyof FlowAnswers | "computed") => string
+  prefill: (field?: ComplianceField) => string
   onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f.prefillKey)]))
+    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
   )
 
   const isEmpty = (f: ComplianceField) => !f.optional && !values[f.name]?.trim()
