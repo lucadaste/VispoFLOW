@@ -488,6 +488,7 @@ export type TransactionCategory = {
     | "ip-nda"
     | "commercial"
     | "separation"
+    | "dissolution"
   label: string
   chatResponse: string
   groups: TransactionGroup[]
@@ -993,7 +994,7 @@ const DISTRIBUTION_AGREEMENT: TransactionItem = {
   ],
 }
 
-/* ---- Founder Separation and Dissolution ---- */
+/* ---- Founder Separation ---- */
 
 const FOUNDER_SEPARATION_AGREEMENT: TransactionItem = {
   id: "founder-separation-agreement",
@@ -1009,17 +1010,64 @@ const FOUNDER_SEPARATION_AGREEMENT: TransactionItem = {
   ],
 }
 
-const CORPORATE_DISSOLUTION: TransactionItem = {
-  id: "corporate-dissolution",
-  title: "Corporate Dissolution",
-  short: "Corporate Dissolution",
-  description: "Documentation to formally wind down and dissolve the corporation.",
+const FOUNDERS_REORGANIZATION_AGREEMENT: TransactionItem = {
+  id: "founders-reorganization-agreement",
+  title: "Founders Reorganization Agreement",
+  short: "Founders Reorganization Agreement",
+  description: "Agreement among the founders reallocating equity and roles following a founder separation.",
   fields: [
     companyNameField,
-    { name: "dissolutionBasis", label: "Basis for dissolution", placeholder: "e.g. board and shareholder approval" },
+    { name: "date", label: "Date", type: "date", question: "What's the date of this agreement?" },
+  ],
+}
+
+/* ---- Dissolution ---- */
+
+const PLAN_OF_DISSOLUTION: TransactionItem = {
+  id: "plan-of-dissolution",
+  title: "Plan of Dissolution",
+  short: "Plan of Dissolution",
+  description: "Plan setting out how the company will wind down its affairs, settle liabilities, and distribute remaining assets.",
+  fields: [
+    companyNameField,
     { name: "effectiveDate", label: "Effective date", type: "date" },
     { name: "assetDistributionPlan", label: "Asset distribution plan", type: "textarea" },
     { name: "outstandingLiabilities", label: "Outstanding liabilities to resolve", type: "textarea", optional: true },
+  ],
+}
+
+const CERTIFICATE_OF_DISSOLUTION: TransactionItem = {
+  id: "certificate-of-dissolution",
+  title: "Certificate of Dissolution",
+  short: "Certificate of Dissolution",
+  description: "Certificate filed with the state to formally dissolve the corporation.",
+  fields: [
+    companyNameField,
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
+    { name: "dissolutionBasis", label: "Basis for dissolution", placeholder: "e.g. board and shareholder approval" },
+    { name: "effectiveDate", label: "Effective date", type: "date" },
+  ],
+}
+
+const BOARD_CONSENT_DISSOLUTION: TransactionItem = {
+  id: "board-consent-dissolution",
+  title: "Board Consent re Dissolution",
+  short: "Board Consent re Dissolution",
+  description: "Board consent approving the dissolution of the company.",
+  fields: [
+    companyNameField,
+    { name: "date", label: "Date", type: "date", question: "What's the date of this consent?" },
+  ],
+}
+
+const MAJORITY_STOCKHOLDERS_CONSENT_DISSOLUTION: TransactionItem = {
+  id: "majority-stockholders-consent-dissolution",
+  title: "Majority Stockholders Consent re Dissolution",
+  short: "Majority Stockholders Consent re Dissolution",
+  description: "Majority stockholder consent approving the dissolution of the company.",
+  fields: [
+    companyNameField,
+    { name: "date", label: "Date", type: "date", question: "What's the date of this consent?" },
   ],
 }
 
@@ -1064,9 +1112,15 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   },
   {
     id: "separation",
-    label: "Founder Separation and Dissolution",
-    chatResponse: "Here are the founder separation and dissolution documents. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "separation-docs", title: "Founder Separation and Dissolution", items: [FOUNDER_SEPARATION_AGREEMENT, CORPORATE_DISSOLUTION] }],
+    label: "Founder Separation",
+    chatResponse: "Here are the founder separation documents. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
+    groups: [{ id: "separation-docs", title: "Founder Separation", items: [FOUNDER_SEPARATION_AGREEMENT, FOUNDERS_REORGANIZATION_AGREEMENT] }],
+  },
+  {
+    id: "dissolution",
+    label: "Dissolution",
+    chatResponse: "Here are the dissolution documents. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
+    groups: [{ id: "dissolution-docs", title: "Dissolution", items: [PLAN_OF_DISSOLUTION, CERTIFICATE_OF_DISSOLUTION, BOARD_CONSENT_DISSOLUTION, MAJORITY_STOCKHOLDERS_CONSENT_DISSOLUTION] }],
   },
 ]
 
