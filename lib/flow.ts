@@ -487,20 +487,6 @@ const companyNameField: TransactionField = {
 
 /* ---- Financing ---- */
 
-const SAFE: TransactionItem = {
-  id: "safe",
-  title: "SAFE",
-  short: "SAFE",
-  description: "Simple Agreement for Future Equity — convertible investment instrument used for early-stage financing.",
-  fields: [
-    companyNameField,
-    { name: "investorName", label: "Investor name", placeholder: "e.g. Jane Ventures" },
-    { name: "investmentAmount", label: "Investment amount", placeholder: "e.g. $100,000" },
-    { name: "valuationCap", label: "Valuation cap", placeholder: "e.g. $8,000,000" },
-    { name: "discountRate", label: "Discount rate", placeholder: "e.g. 20%", optional: true, hint: "Leave blank if none." },
-  ],
-}
-
 const FOUNDER_LOAN: TransactionItem = {
   id: "founder-loan",
   title: "Founder Loan",
@@ -947,7 +933,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "financing",
     label: "Financing",
     chatResponse: "Here are the financing documents available — SAFEs, term sheets, and founder loans. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "financing-docs", title: "Financing", items: [SAFE, FOUNDER_LOAN] }],
+    groups: [{ id: "financing-docs", title: "Financing", items: [FOUNDER_LOAN] }],
   },
   {
     id: "contributors",
