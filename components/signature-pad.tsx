@@ -10,6 +10,7 @@ type Mode = "typed" | "drawn"
 export function SignaturePad({
   defaultName,
   lockedName,
+  confirmLabel = "Save signature",
   onCapture,
 }: {
   defaultName: string
@@ -17,6 +18,7 @@ export function SignaturePad({
    *  signature request already knows who's signing, so their name is guaranteed to match the
    *  document line it needs to land on */
   lockedName?: string
+  confirmLabel?: string
   onCapture: (dataUrl: string, method: Mode, name: string) => void
 }) {
   const [mode, setMode] = useState<Mode>("typed")
@@ -156,7 +158,7 @@ export function SignaturePad({
         disabled={!canConfirm}
         className="w-full rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Save signature
+        {confirmLabel}
       </button>
     </div>
   )

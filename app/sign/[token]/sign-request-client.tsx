@@ -91,7 +91,12 @@ export function SignRequestClient({
               I agree that typing or drawing my name below constitutes my electronic signature on this document.
             </label>
             {consented ? (
-              <SignaturePad defaultName={recipientName ?? ""} lockedName={lockedName ?? undefined} onCapture={handleCapture} />
+              <SignaturePad
+                defaultName={recipientName ?? ""}
+                lockedName={lockedName ?? undefined}
+                confirmLabel="Sign"
+                onCapture={handleCapture}
+              />
             ) : (
               <p className="text-xs text-muted-foreground">Check the box above to sign.</p>
             )}
