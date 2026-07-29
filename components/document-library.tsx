@@ -1395,7 +1395,7 @@ export function DocumentViewer({
             )}
             {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
             {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
-            {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
+            {doc.content && !onGoToLibrary && <DownloadMenuButton doc={doc} answers={answers} />}
             {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
             <button
               onClick={onClose}
