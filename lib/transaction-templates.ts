@@ -2046,6 +2046,169 @@ The SLA does not apply to any: (a) features or Services designated Alpha or Beta
 Periodic pre-scheduled maintenance windows which will typically not impact uptime will not be included in the uptime calculation.`
 }
 
+/* ---- Founder Matters ---- */
+
+function founderSeparationAgreement(v: Record<string, string>): string {
+  return `SEPARATION AND SETTLEMENT AGREEMENT
+
+This Separation and Settlement Agreement (the "Agreement") is entered as of the date written below (the "Effective Date") by and between ${v.companyName} (the "Company") and ${v.departingFounder} ("Founder") (the Company and Founder are collectively referred to as the "parties").
+
+RECITALS
+
+A. Founder is a Company founder, holding ${v.sharesHeld} shares of common stock of the Company;
+
+B. Founder is leaving the Company as of ${formatDate(v.separationDate)}, is ceasing to be a service provider, and is agreeing to relinquish 100% of the shares held by Founder as of such date, whether vested or unvested.
+
+C. The parties have determined that it is in the best interest of everyone to enter into a global separation and settlement agreement, and that the repurchase transactions and mutual releases are sufficient and adequate consideration for the transactions contemplated herein;
+
+D. As such, the parties deem it advisable to enter into this Agreement in order to provide for the above.
+
+AGREEMENT
+
+For good and valuable consideration, receipt of which is acknowledged, the parties hereby agree as follows:
+
+1. Founder agrees to (a) the cancellation of ${v.vestedSharesCancelled} vested shares of Company common stock currently issued and outstanding in the name of Founder, and (b) the repurchase of ${v.unvestedSharesRepurchased} unvested shares of Company common stock by the Company, for the aggregate sum of $${v.repurchaseAmount}, so as that Founder shall be left with no shares of Company common stock. In connection therewith, Founder shall return to the Company any stock certificate or other corporate instruments evidencing Founder's stock ownership, and the Company shall update its ledger to remove Founder's cancelled stock.
+
+2. Founder will immediately cease making any representations that Founder is an active employee, officer, or agent of the Company. Except as provided in this Agreement, all other agreements between Founder and the Company are terminated. Founder is resigning from all positions with the Company and its Board on the Effective Date. Founder represents and warrants that Founder has disclosed to the Company the existence of all Company investors, customers, bank accounts, and credit cards that Founder has knowledge of.
+
+3. Founder hereby releases the Company and each of its present and/or former partners, affiliates, directors, officers, employees, agents, representatives, and predecessors (collectively, the "Company Released Parties") from all claims, causes of actions, and liabilities that Founder has or may have against the Company Released Parties, including those that were or could have previously been raised, by reason of any act, omission, transaction or occurrence, whether known or unknown, arising prior to and/or including the Effective Date. This release includes, but is not limited to, claims related to wrongful discharge, constructive discharge, breach of contract (whether express or implied), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+4. The Company hereby releases Founder and each of Founder's present and/or former agents, representatives, and predecessors (collectively, the "Founder Released Parties") from all claims, causes of actions, and liabilities that the Company has or may have against the Founder Released Parties, including those that were or could have previously been raised, by reason of any act, omission, transaction or occurrence, whether known or unknown, arising prior to and/or including the Effective Date. This release includes, but is not limited to, claims related to wrongful discharge, constructive discharge, breach of contract (whether express or implied), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+5. As used throughout this Agreement, "claims" means and includes all claims for tort, breach of contract, fraud, discrimination on any prohibited basis (including, but not limited to, race, color, ancestry, national origin, religion, disability, age, sex, sexual orientation, gender identity, medical condition, marital status, or veteran status), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+6. Each of the parties acknowledges and specifically waives the provisions of Civil Code section 1542 which provides:
+
+A general release does not extend to claims that the creditor or releasing party does not know or suspect to exist in his or her favor at the time of executing the release and that, if known by him or her, would have materially affected his or her settlement with the debtor or released party.
+
+The parties agree that the releases in this Agreement do not apply to claims which cannot be waived as a matter of law or public policy.
+
+7. The parties agree that this Agreement and the subject matter thereof shall remain confidential. Neither party shall disparage each other in any manner or form with respect to the subject matter of this Agreement. In the event of a breach of any of the provisions of this Agreement, the breaching party agrees to indemnify and hold harmless all the non-breaching parties from any and all damages, losses, liabilities, costs and expenses arising out of or relating to such breach.
+
+8. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by California law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in San Francisco, California.
+
+9. If any provision of this Agreement is found invalid by any court having jurisdiction, the remainder of this Agreement shall be fully valid and enforceable. The parties understand this is a binding, legal agreement. In the event of a dispute, the prevailing party shall be entitled to reasonable attorneys' fees and costs. This Agreement may be signed via facsimile or PDF in multiple counterparts, each of which shall be equally valid.
+
+10. Each party acknowledges that he, she or it has obtained independent legal advice regarding all of the terms and conditions contained within this Agreement, and has entered into this agreement freely and voluntarily.
+
+11. THIS AGREEMENT WAS PREPARED BY COMPANY COUNSEL, SOLELY REPRESENTING THE COMPANY AND NOT FOUNDER OR ANY OTHER INDIVIDUAL.
+
+EACH PARTY SHOULD CONSULT WITH ITS OR THEIR OWN INDEPENDENT TAX ADVISOR WITH REGARD TO ANY TAX ASPECTS ASSOCIATED WITH THE TRANSACTIONS CONTEMPLATED UNDER THIS AGREEMENT.
+
+
+SIGNATURE PAGE TO SEPARATION AND SETTLEMENT AGREEMENT
+
+Effective Date: ${formatDate(v.date)}
+
+COMPANY:
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+FOUNDER:
+
+_________________________
+(Signature)
+
+${v.departingFounder}`
+}
+
+function foundersReorganizationAgreement(v: Record<string, string>): string {
+  return `FOUNDERS REORGANIZATION AGREEMENT
+
+This Founders Reorganization Agreement (the "Agreement") is entered as of the date written below (the "Effective Date") by and among ${v.companyName} (the "Company") and each of ${v.founder1Name} and ${v.founder2Name} (the Company and ${v.founder1Name} and ${v.founder2Name} are collectively referred to as the "parties").
+
+RECITALS
+
+A. The Company is undergoing a reorganization whereby its ownership needs to be restructured;
+
+B. ${v.founder1Name} currently holds ${v.founder1SharesBefore} shares of common stock of the Company;
+
+C. ${v.founder2Name} desires to acquire certain Company shares of ${v.founder1Name};
+
+D. The parties intend to enter into a share reorganization pursuant to which certain Company shares held by ${v.founder1Name} will be transferred to ${v.founder2Name}, as described in the "After" column of the Cap Table attached as Exhibit A;
+
+E. As such, the parties deem it advisable to enter into this Agreement in order to provide for the above.
+
+AGREEMENT
+
+For good and valuable consideration, receipt of which is acknowledged, the parties hereby agree as follows effective as of the effective date written on the signature page below:
+
+1. ${v.founder1Name} agrees to sell and transfer to ${v.founder2Name} shares of Company common stock as described in the "After" column of the Cap Table attached as Exhibit A;
+
+2. ${v.founder2Name} will pay ${v.founder1Name} the aggregate sum of $${v.paymentAmount};
+
+3. Except as provided in this Agreement, all prior agreements, understandings and arrangements relating to promised founder stock are hereby voided and superseded.
+
+4. Each party hereby releases the Company and each of its present and/or former partners, affiliates, directors, officers, employees, agents, representatives, and predecessors (collectively, the "Company Released Parties") from all claims, causes of actions, and liabilities that a party has or may have against the Company Released Parties, including those that were or could have previously been raised, by reason of any act, omission, transaction or occurrence, whether known or unknown, arising prior to and/or including the Effective Date. This release includes, but is not limited to, claims related to wrongful discharge, constructive discharge, breach of contract (whether express or implied), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+5. The Company hereby releases each party and each of that party's present and/or former agents, representatives, and predecessors (collectively, the "Founder Released Parties") from all claims, causes of actions, and liabilities that the Company has or may have against the Founder Released Parties, including those that were or could have previously been raised, by reason of any act, omission, transaction or occurrence, whether known or unknown, arising prior to and/or including the Effective Date. This release includes, but is not limited to, claims related to wrongful discharge, constructive discharge, breach of contract (whether express or implied), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+6. As used throughout this Agreement, "claims" means and includes all claims for tort, breach of contract, fraud, discrimination on any prohibited basis (including, but not limited to, race, color, ancestry, national origin, religion, disability, age, sex, sexual orientation, gender identity, medical condition, marital status, or veteran status), breach of the covenant of good faith and fair dealing, breach of promise, detrimental reliance, promissory estoppel, equitable estoppel, unjust enrichment, quantum meruit, violation of public policy, tortious conduct, libel, slander, defamation, false light, interference with contract or a prospective economic advantage, fraud, fraud in the inducement, misrepresentation, invasion of privacy, assault, battery, personal injury, harassment, hostile work environment, failure to promote, violation of federal, state, or local whistleblower or anti-retaliation personnel laws or regulations, infliction of emotional distress (negligent and intentional), compensatory damages, economic damages, and punitive damages; and any claims for attorneys' fees, costs, disbursements and/or the like.
+
+7. Each of the parties acknowledges and specifically waives the provisions of Civil Code section 1542 which provides:
+
+A general release does not extend to claims that the creditor or releasing party does not know or suspect to exist in his or her favor at the time of executing the release and that, if known by him or her, would have materially affected his or her settlement with the debtor or released party.
+
+The parties agree that the releases in this Agreement do not apply to claims which cannot be waived as a matter of law or public policy.
+
+8. The parties agree that this Agreement and the subject matter thereof shall remain confidential. Neither party shall disparage each other in any manner or form with respect to the subject matter of this Agreement. In the event of a breach of any of the provisions of this Agreement, the breaching party agrees to indemnify and hold harmless all the non-breaching parties from any and all damages, losses, liabilities, costs and expenses arising out of or relating to such breach.
+
+9. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by California law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in San Francisco, California.
+
+10. If any provision of this Agreement is found invalid by any court having jurisdiction, the remainder of this Agreement shall be fully valid and enforceable. The parties understand this is a binding, legal agreement. In the event of a dispute, the prevailing party shall be entitled to reasonable attorneys' fees and costs. This Agreement may be signed via facsimile or PDF in multiple counterparts, each of which shall be equally valid.
+
+11. Each party acknowledges that he, she or it has obtained independent legal advice regarding all of the terms and conditions contained within this Agreement, and has entered into this agreement freely and voluntarily.
+
+12. THIS AGREEMENT WAS PREPARED BY COMPANY COUNSEL, SOLELY REPRESENTING THE COMPANY AND NOT A FOUNDER OR ANY OTHER INDIVIDUAL. EACH PARTY SHOULD CONSULT WITH THEIR OWN INDEPENDENT TAX ADVISOR WITH REGARD TO ANY TAX ASPECTS ASSOCIATED WITH THE TRANSACTIONS CONTEMPLATED UNDER THIS AGREEMENT.
+
+
+SIGNATURE PAGE TO FOUNDERS REORGANIZATION AGREEMENT
+
+Effective Date: ${formatDate(v.date)}
+
+COMPANY:
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+FOUNDER 1:
+
+_________________________
+(Signature)
+
+${v.founder1Name}
+
+
+FOUNDER 2:
+
+_________________________
+(Signature)
+
+${v.founder2Name}
+
+
+Exhibit A
+
+Cap Table
+
+${v.founder1Name}
+Before: ${v.founder1SharesBefore} shares of Common Stock
+After: ${v.founder1SharesAfter} shares of Common Stock
+
+${v.founder2Name}
+Before: ${v.founder2SharesBefore} shares of Common Stock
+After: ${v.founder2SharesAfter} shares of Common Stock`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   "safe-cap": safeCap,
   "safe-mfn": safeMfn,
@@ -2063,6 +2226,8 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
   "agent-marketing-agreement": agentMarketingAgreement,
   "distribution-agreement": distributionAgreement,
   "saas-reseller-agreement": saasResellerAgreement,
+  "founder-separation-agreement": founderSeparationAgreement,
+  "founders-reorganization-agreement": foundersReorganizationAgreement,
 }
 
 export function renderTransactionDocument(docId: string, values: Record<string, string>): string | null {

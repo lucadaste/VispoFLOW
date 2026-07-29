@@ -1008,13 +1008,16 @@ const FOUNDER_SEPARATION_AGREEMENT: TransactionItem = {
   id: "founder-separation-agreement",
   title: "Founder Separation Agreement",
   short: "Founder Separation Agreement",
-  description: "Agreement documenting the terms of a departing founder's separation from the company.",
+  description: "Agreement documenting the terms of a departing founder's separation from the company, including share cancellation/repurchase and mutual releases.",
   fields: [
     companyNameField,
-    { name: "departingFounder", label: "Departing founder", placeholder: "e.g. Jane Founder" },
-    { name: "separationDate", label: "Separation date", type: "date" },
-    { name: "equityTreatment", label: "Equity treatment", type: "textarea", placeholder: "e.g. unvested shares repurchased, vested shares retained" },
-    { name: "severanceTerms", label: "Severance terms", type: "textarea", optional: true },
+    { name: "departingFounder", label: "Departing founder", question: "Who's the departing founder?", placeholder: "e.g. Jane Founder" },
+    { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
+    { name: "separationDate", label: "Separation date", type: "date", question: "What date is the Founder leaving the Company and ceasing to be a service provider?" },
+    { name: "sharesHeld", label: "Shares currently held by Founder", question: "How many shares of common stock does the Founder currently hold?", placeholder: "e.g. 1,000,000" },
+    { name: "vestedSharesCancelled", label: "Vested shares being cancelled", question: "How many vested shares of common stock will be cancelled?", placeholder: "e.g. 600,000" },
+    { name: "unvestedSharesRepurchased", label: "Unvested shares being repurchased", question: "How many unvested shares of common stock will the Company repurchase?", placeholder: "e.g. 400,000" },
+    { name: "repurchaseAmount", label: "Aggregate repurchase payment", question: "What's the aggregate dollar amount the Company will pay for the repurchase?", placeholder: "e.g. 1,000" },
   ],
 }
 
@@ -1022,10 +1025,17 @@ const FOUNDERS_REORGANIZATION_AGREEMENT: TransactionItem = {
   id: "founders-reorganization-agreement",
   title: "Founders Reorganization Agreement",
   short: "Founders Reorganization Agreement",
-  description: "Agreement among the founders reallocating equity and roles following a founder separation.",
+  description: "Agreement among the founders reallocating equity via a share transfer between them.",
   fields: [
     companyNameField,
-    { name: "date", label: "Date", type: "date", question: "What's the date of this agreement?" },
+    { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
+    { name: "founder1Name", label: "Founder 1 (transferring shares)", question: "Who's Founder 1 — the founder transferring shares?", placeholder: "e.g. Jane Founder" },
+    { name: "founder2Name", label: "Founder 2 (receiving shares)", question: "Who's Founder 2 — the founder receiving shares?", placeholder: "e.g. Alex Founder" },
+    { name: "founder1SharesBefore", label: "Founder 1's shares before the transfer", question: "How many shares of common stock does Founder 1 hold before the transfer?", placeholder: "e.g. 2,000,000" },
+    { name: "founder2SharesBefore", label: "Founder 2's shares before the transfer", question: "How many shares of common stock does Founder 2 hold before the transfer?", placeholder: "e.g. 1,000,000" },
+    { name: "founder1SharesAfter", label: "Founder 1's shares after the transfer", question: "How many shares will Founder 1 hold after the transfer?", placeholder: "e.g. 1,000,000" },
+    { name: "founder2SharesAfter", label: "Founder 2's shares after the transfer", question: "How many shares will Founder 2 hold after the transfer?", placeholder: "e.g. 2,000,000" },
+    { name: "paymentAmount", label: "Payment from Founder 2 to Founder 1", question: "How much will Founder 2 pay Founder 1 for the transferred shares?", placeholder: "e.g. 10,000" },
   ],
 }
 

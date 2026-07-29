@@ -197,6 +197,31 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "founder-separation-agreement": {
+      // This template calls its own execution block "COMPANY:" rather than "THE COMPANY:", and
+      // the Founder's block is a bare blank line under a "FOUNDER:" header with no printed name —
+      // normalized at render time to the standard blank-line -> (Signature) -> name shape, so this
+      // is counterpartySlot()'s usual "named" routing.
+      const slots: SignerSlot[] = [{ id: "officer", label: "Company officer", kind: "officer", headerPattern: /^COMPANY:$/i }]
+      if (values?.departingFounder) {
+        slots.push(counterpartySlot("founder", `Founder: ${values.departingFounder}`, values.departingFounder))
+      }
+      return slots
+    }
+
+    case "founders-reorganization-agreement": {
+      // Same "COMPANY:" header quirk as the Separation Agreement, plus two counterparties instead
+      // of one — both Founder 1 and Founder 2 sign under their own bare blank line.
+      const slots: SignerSlot[] = [{ id: "officer", label: "Company officer", kind: "officer", headerPattern: /^COMPANY:$/i }]
+      if (values?.founder1Name) {
+        slots.push(counterpartySlot("founder1", `Founder 1: ${values.founder1Name}`, values.founder1Name))
+      }
+      if (values?.founder2Name) {
+        slots.push(counterpartySlot("founder2", `Founder 2: ${values.founder2Name}`, values.founder2Name))
+      }
+      return slots
+    }
+
     case "pilot-agreement": {
       // Unlike the SAFE Investor/NDA Counterparty blocks (officer-kind, left blank until signed),
       // the pilot's Customer signer name and title are collected up front as their own fields, so
