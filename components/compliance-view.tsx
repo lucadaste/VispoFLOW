@@ -38,6 +38,7 @@ type ChatMsg =
   | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string }
   | { id: number; role: "categories" }
   | { id: number; role: "fieldChoices"; item: ComplianceItem; groupTitle: string; fieldIndex: number }
+  | { id: number; role: "note"; text: string }
 
 type ActiveFiling = {
   item: ComplianceItem
@@ -92,6 +93,7 @@ export function ComplianceView({
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: ComplianceItem; groupTitle: string }
     | { mode: "abandon"; fromItem: ComplianceItem; item: ComplianceItem; groupTitle: string }
+    | { mode: "switchInput"; target: "chat" | "form"; fromItem: ComplianceItem }
     | null
   >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -102,6 +104,10 @@ export function ComplianceView({
 
   const pushBot = useCallback((text: string) => {
     setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
+  }, [])
+
+  const pushNote = useCallback((text: string) => {
+    setMessages((m) => [...m, { id: ++idRef.current, role: "note", text }])
   }, [])
 
   const pushUser = useCallback((text: string) => {
@@ -224,6 +230,8 @@ export function ComplianceView({
     return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}`
   }
 
+  const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
+
   const prefill = (key?: keyof FlowAnswers | "computed"): string => prefillValue(answers, key)
 
   // Asks for one field in a chat-mode filing. A fixed option set (select) always gets a
@@ -342,6 +350,22 @@ export function ComplianceView({
     setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
   }, [activeItemId, allItems, openItem])
 
+  // Switching Chat/Questionnaire mode mid-filing abandons whatever's in progress —
+  // confirm first, then clear the active flow so the chat bar reverts to free-form.
+  const requestSetInputMode = useCallback((target: "chat" | "form") => {
+    if (target === inputMode) return
+    if (!activeItemId) {
+      setInputMode(target)
+      return
+    }
+    const fromItem = allItems.find((i) => i.id === activeItemId)
+    if (!fromItem) {
+      setInputMode(target)
+      return
+    }
+    setSwitchConfirm({ mode: "switchInput", target, fromItem })
+  }, [inputMode, activeItemId, allItems])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
@@ -364,7 +388,7 @@ export function ComplianceView({
             <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
               <button
-                onClick={() => setInputMode("chat")}
+                onClick={() => requestSetInputMode("chat")}
                 className={cn(
                   "rounded-full px-3 py-1 font-medium transition-colors",
                   inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -373,7 +397,7 @@ export function ComplianceView({
                 Chat
               </button>
               <button
-                onClick={() => setInputMode("form")}
+                onClick={() => requestSetInputMode("form")}
                 className={cn(
                   "rounded-full px-3 py-1 font-medium transition-colors",
                   inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
@@ -412,6 +436,9 @@ export function ComplianceView({
                   active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
                   onChoose={(val) => submitFieldAnswer(val)}
                 />
+              )
+              if (m.role === "note") return (
+                <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
               )
               return null
             })}
@@ -520,14 +547,31 @@ export function ComplianceView({
       )}
       {switchConfirm && (
         <ConfirmModal
-          title={switchConfirm.mode === "restart" ? "Would you like to restart this filing?" : "Would you like to abandon the filing you're currently working on?"}
+          title={
+            switchConfirm.mode === "restart"
+              ? "Would you like to restart this filing?"
+              : switchConfirm.mode === "abandon"
+              ? "Would you like to abandon the filing you're currently working on?"
+              : "Switch modes and abandon this filing?"
+          }
           description={
             switchConfirm.mode === "restart"
               ? `You're partway through "${switchConfirm.item.title}". Restarting will erase your progress and start over from the first question.`
-              : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
+              : switchConfirm.mode === "abandon"
+              ? `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Switching to ${switchConfirm.target === "chat" ? "Chat" : "Questionnaire"} mode will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart filing" : "Abandon & switch"}
           onConfirm={() => {
+            if (switchConfirm.mode === "switchInput") {
+              const { target } = switchConfirm
+              setSwitchConfirm(null)
+              setActiveFiling(null)
+              setActiveItemId(null)
+              setInputMode(target)
+              pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode — select which filing you'd like to begin from the right, or ask me anything.`)
+              return
+            }
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
             openItem(item, groupTitle)

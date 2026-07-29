@@ -52,6 +52,11 @@ const inputClass =
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 14))
 
+/** Heuristic for whether a chat message sent mid-filing is a question rather than an answer. */
+const looksLikeQuestion = (text: string) =>
+  /\?\s*$/.test(text) ||
+  /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
+
 export function TransactionsOnboarding({
   answers = initialAnswers,
   onDocumentReady,
@@ -257,6 +262,26 @@ export function TransactionsOnboarding({
     }
   }, [activeFiling, pushUser, pushBotTyped, handleDocComplete])
 
+  // Text/textarea/address fields accept free text, so what's typed might be a genuine question
+  // rather than an answer — in which case explain and re-ask instead of recording it as the value.
+  // Select/date fields have no free-text entry to begin with, so there's nothing to disambiguate.
+  const handleFieldInput = useCallback((raw: string) => {
+    if (!activeFiling) return
+    const { item, fieldIndex } = activeFiling
+    const field = item.fields[fieldIndex]
+    const val = raw.trim()
+    const canAskQuestion = field.type !== "select" && field.type !== "date"
+    if (canAskQuestion && val && looksLikeQuestion(val)) {
+      pushUser(val)
+      ;(async () => {
+        await pushBotTyped(field.hint ?? item.description)
+        await pushBotTyped(fieldPrompt(field))
+      })()
+      return
+    }
+    handleFieldSubmit(raw)
+  }, [activeFiling, pushUser, pushBotTyped, handleFieldSubmit])
+
   const prefill = (key?: keyof FlowAnswers | "computed"): string => {
     if (!key || key === "computed") return ""
     const v = answers[key]
@@ -384,7 +409,7 @@ export function TransactionsOnboarding({
                 key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
                 field={activeFiling.item.fields[activeFiling.fieldIndex]}
                 initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex].prefillKey)}
-                onSubmit={handleFieldSubmit}
+                onSubmit={handleFieldInput}
               />
             ) : (
               <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">

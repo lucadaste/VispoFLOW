@@ -20,6 +20,12 @@ export function FieldComposer({
     (field.optional
       ? "Type an answer, ask a question, or press Enter to skip…"
       : "Type your answer, or feel free to ask a question…")
+  // A question doesn't always advance the field (the parent may re-prompt instead), so this
+  // component can't rely on remounting (via the parent's `key`) to clear itself after submit.
+  const submit = (v: string) => {
+    onSubmit(v)
+    setValue("")
+  }
   return (
     <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
       <div className="flex-1 px-1">
@@ -44,7 +50,7 @@ export function FieldComposer({
           <AddressAutocomplete
             value={value}
             onChange={setValue}
-            onEnter={() => canSubmit && onSubmit(value)}
+            onEnter={() => canSubmit && submit(value)}
             placeholder={placeholder}
             rows={1}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
@@ -55,21 +61,21 @@ export function FieldComposer({
             value={value}
             placeholder={placeholder}
             onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && canSubmit && onSubmit(value)}
+            onKeyDown={(e) => e.key === "Enter" && canSubmit && submit(value)}
             className="w-full bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
         )}
       </div>
       {field.optional && (
         <button
-          onClick={() => onSubmit("")}
+          onClick={() => submit("")}
           className="shrink-0 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           Skip
         </button>
       )}
       <button
-        onClick={() => onSubmit(value)}
+        onClick={() => submit(value)}
         disabled={!canSubmit}
         className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
       >
