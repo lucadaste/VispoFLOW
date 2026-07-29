@@ -121,7 +121,7 @@ export function TopBar({
             {menuOpen ? <X className="h-4 w-4" strokeWidth={2.5} /> : <Menu className="h-4 w-4" strokeWidth={2.5} />}
           </button>
 
-          {phase !== "documents" && phase !== "home" && (
+          {phase === "chat" && (
             <button
               onClick={handleRestartClick}
               className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
