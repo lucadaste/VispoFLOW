@@ -1419,6 +1419,633 @@ CONTACT US
 If you have any questions or concerns regarding this User Agreement or the Privacy Policy, please feel free to contact us at ${v.companyEmail}.`
 }
 
+function agentMarketingAgreement(v: Record<string, string>): string {
+  return `AGENT MARKETING AGREEMENT
+
+This agreement ("Agreement") is entered into as of ${formatDate(v.date)} (the "Effective Date"), by and between ${v.companyName} ("Company") and ${v.agentName} ("Agent" or "you").
+
+WHEREAS, Company is a provider of ${v.companyServiceDescription} ("Company Service");
+
+WHEREAS, Company desires to engage Agent and Agent desires to provide services to promote Company's business and/or the Company Service, all on the terms and conditions of this Agreement;
+
+NOW, THEREFORE, in consideration of the above and other good and valuable consideration, the receipt and sufficiency of which is hereby acknowledged, Company and Agent hereby agree as follows:
+
+1. SERVICES TO BE PERFORMED: Agent will participate in a marketing campaign to promote the various features and benefits of the Company Service (the "Campaign"), participate in activities and manage and deliver all communications and other deliverables as described in Exhibit A (hereinafter, "Services"). Agent shall provide all deliverables in form and content reflective of Company's values, image and brand as determined by Company in Company's sole discretion and in accordance with any and all guidelines or instructions provided by Company to Agent. All deliverables shall be subject to Company's written approval, in Company's sole discretion (which approvals can be made via e-mail), prior to Agent's posting or distribution (as applicable) of such deliverables.
+
+Company has the right, in Company's sole discretion, to request revisions to or removal of any social media post ("Post") or other deliverable created for or concerning Company from social media channels and Agent shall immediately remove such items. Revisions to any Post or other deliverable must be approved in writing by Company (which approvals can be made via e-mail). Without limiting the foregoing, if such immediate compliance is not possible, Agent will notify Company of the issue and cooperate with Company to promptly resolve the issue.
+
+Each party may propose changes or additions to the Services or deliverables set forth in this Agreement (such as the number of Posts to be created). Any such changes as well as any related impact to the cost may be agreed to by the parties in writing in a change order (email is sufficient for documenting such agreement). Any services that are not specifically set forth herein or agreed to by the parties in a change order shall be considered out of scope services and subject to the execution of a separate written agreement between the parties.
+
+2. COMPENSATION: In consideration of the Services rendered hereunder and as full compensation therefor, Company agrees to pay Agent the amounts specified in Exhibit B attached hereto at the times specified therein (the "Compensation"). Agent shall be solely responsible for any travel or other costs or expenses incurred in connection with the performance of the Services, and in no event shall Company reimburse Agent for any such costs or expenses unless Company and Agent agree in writing (which can be via e-mail) prior to Agent incurring such expense for certain travel or other costs to be reimbursed, such as media tour travel. Agent shall provide sufficient documentation with each invoice for Company to validate such reimbursable expenses. Payments shall be made in U.S. dollars and are subject to receipt of a valid, undisputed invoice. Company shall pay each undisputed invoice within thirty (30) days of receipt.
+
+3. TERM; TERMINATION: This Agreement commences as of the Effective Date and, unless extended or terminated in accordance with the provisions herein, terminates twelve (12) months thereafter (the "Initial Term"). The Agreement may be extended by the parties upon mutual written agreement prior to the termination of the Initial Term or then-current Extension Period for the period agreed to by the parties (each, an "Extension Period"). The Initial Term and all Extension Periods are collectively referred to as the "Term".
+
+Each party shall be permitted to terminate this Agreement for (uncured, following 10 days' written notice) material breach by the other of any agreement, representation or warranty hereunder. In the event of such termination, Agent shall promptly close out all activities hereunder and deliver to Company all deliverables and all records or other property and Company Materials, including, without limitation, products, samples or materials belonging to or containing confidential information of Company.
+
+4. USAGE RIGHTS; PUBLICITY RIGHTS; COMPANY MATERIALS: Agent irrevocably authorizes and grants Company the perpetual, worldwide, sub-licensable (through multiple levels of sublicensees), irrevocable, fully-paid, royalty-free, right and license to share and/or repost, publish, copy, reproduce, distribute, market, sell, display and otherwise use any and all Posts and other content produced by or on behalf of the Agent for the Company, including, without limitation, all Publicity Rights contained therein or related thereto (the "Agent Content").
+
+Company may provide its name(s), trademark(s), logo(s), indicia, materials, photographs, video, products and other content (collectively, the "Company Materials") as reasonably requested by Agent for use by the Agent in the Agent Content or otherwise in connection with the Services. Company is, and shall remain, the sole and exclusive owner of all right, title and interest in and to such Company Materials and all derivative works thereof. Agent shall only use such Company Materials with Company's prior written approval and shall promptly return such Company Materials to Company and cease use of such Company Materials upon termination or expiration of this Agreement or upon Company's earlier request. No right is granted to the Agent to modify or make derivative works of Company Materials. To the extent the Agent obtains any rights, including any intellectual property rights or other proprietary rights in or to the Company Materials or any derivative works thereof, the Agent shall assign, transfer and convey and hereby does assign, transfer and convey all such rights, including any and all intellectual property rights and other proprietary rights, to Company.
+
+Except for the rights and licenses expressly set forth in this Agreement, each party and its licensors shall retain the exclusive right, title and interest in and to its and their respective intellectual property rights and other proprietary rights, whether preexisting or otherwise, and any and all derivative works of the foregoing. Nothing in this Agreement shall be construed as conferring any rights by implication, estoppel, or otherwise, under any intellectual property right or other proprietary right, other than the rights expressly granted in this Agreement. Nothing herein shall constitute any obligation on Company, its agents, assignees, licensees and others working for it or on its behalf to make any use of any of the rights set forth herein.
+
+5. INDEPENDENT CONTRACTOR: Each of the parties agrees that its status hereunder is that of an independent contractor and nothing herein will be construed as creating any relationship of employer/employee, partnership, agency, joint venture, or otherwise between the parties. Any persons engaged by a party in performing its obligations hereunder shall not be deemed to be employees of the other party. Agent will not give any warranties or make any representations or guarantees to others except as may be authorized in writing by Company.
+
+6. REPRESENTATIONS AND WARRANTIES/INDEMNIFICATIONS: Agent represents and warrants that:
+
+(a) all Services shall be provided (i) in accordance with applicable professional standards and practices and (ii) in a competent, timely and professional manner;
+
+(b) Agent has secured (or will secure prior to use) all necessary agreements with any and all third party authorizing Company to use the Agent Content as set forth in Section 4;
+
+(c) Agent shall comply with any and all particular restrictions or information Company desires to be included in the Agent Content;
+
+(d) Agent will perform the Services in compliance with all applicable federal, state and local laws, regulations and ordinances, including the regulations of the Federal Trade Commission ("Applicable Laws");
+
+(e) Agent shall disclose its affiliation with Company in accordance with the Federal Trade Commission Guides Concerning the Use of Endorsements and Testimonial in Advertising) (including, without limitation, identifying each Post as a marketing message by utilizing the hashtags #sponsored, #ad or other acceptable disclosure under Federal Trade Commission guidelines), as required by law;
+
+(f) Agent's performance of the Services does not and will not conflict with or result in any breach or default under any other agreement or obligation to which it is subject;
+
+(g) Except for Company Materials and any other content directed by Company to be included in Agent Posts hereunder (the "Company-Directed Content"), any and all communications, representations, requests, Agent Content, deliverables and other materials provided to Company under this Agreement originate from Agent; and
+
+(h) Agent is the sole owner and creator of its Agent Content and, excluding the Company Materials and Company-Directed Content has all right, title and interest, including intellectual property rights and other proprietary rights, in such Agent Content; and, excluding the Company Materials and Company-Directed Content, the Services and deliverables shall not infringe, misappropriate or otherwise violate any intellectual property rights or other proprietary rights (including any rights of publicity or privacy) of any person or entity or contain any scandalous, libelous or unlawful matter.
+
+Each party hereby represents and warrants that it has the power and authority to enter into this Agreement and perform all obligations required of it hereunder.
+
+Each party agrees to defend, indemnify and hold harmless the other, its affiliates, and those working for them or on their behalf from and against any and all third-party claims, losses, costs, damages, and expenses (including, without limitation, reasonable attorneys' fees and settlement costs) ("Losses") arising out of or resulting from any breach or alleged breach by the indemnifying party of any of its agreements, representations or warranties hereunder.
+
+7. NOTICES: All notices required or permitted under this Agreement shall be given or made at the respective address of the parties as set forth above, unless notification of a change of address is given in writing. All notices shall be sent by postage prepaid, certified mail, return receipt requested, via overnight delivery service, or via e-mail, and shall be deemed given at the time they are sent unless otherwise specified herein.
+
+8. WAIVER OF BREACH: Waiver by either party hereto of a breach of any provision of this Agreement by other party shall not operate or be constructed as a waiver of any subsequent breach by such party.
+
+9. CONFIDENTIALITY: Each party agrees not to disclose to any third party any non-public, confidential or proprietary information and materials disclosed to it by the other party, including, without limitation, any information concerning any of the disclosing party's marketing plans and any of the terms of this Agreement ("Confidential Information"), unless required by law or legal process. In such case, the receiving party must give the disclosing party prompt notice of any order and provide reasonable assistance to the disclosing party in its efforts to quash the order, obtain a protective order or otherwise protect the confidentiality of such Confidential Information. "Confidential Information" shall not include information: (i) that was publicly available, or that subsequently becomes publicly available, except by the wrongful disclosure hereunder by the receiving party and except for personal data; (ii) that was in the receiving party's possession prior to receipt of the same hereunder; (iii) that was received from a person who was not under any obligation of confidentiality with respect to such information; (iv) that can be proven to have been independently developed by the receiving party without any use of or reference to the disclosing party's Confidential Information, as established by written documentation produced contemporaneously with the development of the information; or (vi) that is approved by the disclosing party in writing for release by the receiving party. Either party shall be permitted to disclose to its Representatives only to the minimal extent necessary, provided such Representatives are legally bound by a written agreement to protect such Confidential Information in accordance with this subsection. "Representatives" shall mean, collectively: directors, officers, employees, shareholders, agents, attorneys, accountants, suppliers, contractors, sub-contractors, service providers and advisors. Either party may also disclose the other party's Confidential Information to: (a) potential purchasers of the whole or part of that party or its affiliates and/or its business, including potential purchasers of any properties owned by that party or its affiliates to the extent required to evaluate the proposed purchase; and (b) business partners of that party or its affiliates, including investors and partners in joint ventures who need to know the information, provided the foregoing are legally bound by a written agreement to protect such Confidential Information in accordance with this subsection, only to the minimal extent necessary. Each party remains responsible for any act or omission by its Representatives or other permitted recipient hereunder.
+
+10. NON-DISPARAGEMENT: Neither party shall not make any statement, orally or in writing, nor take any action, that disparages the other party or its affiliates or any of their products or services, or that harms or reasonably should be expected to harm the reputation or goodwill of any of the foregoing.
+
+12. LIABILITY: EXCEPT FOR BREACHES OF SECTION 9 (CONFIDENTIALITY), OR A PARTY'S GROSS NEGLIGENCE OR WILFUL MISCONDUCT, IN NO EVENT SHALL EITHER PARTY BE LIABLE TO THE OTHER PARTY FOR ANY SPECIAL, INDIRECT, INCIDENTAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES (INCLUDING, WITHOUT LIMITATION, LOST PROFITS, LOST SAVINGS, OR LOSS OF GOODWILL) ARISING OUT OF OR IN CONNECTION WITH A BREACH OR ALLEGED BREACH OF THIS AGREEMENT, EVEN IF SUCH OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+13. REMEDIES CUMULATIVE: The rights and remedies of the parties are cumulative and not alternative.
+
+14. NO THIRD PARTY BENEFICIARIES: This Agreement is not intended to confer upon any other person or entity any rights or remedies hereunder, except for the indemnified parties as expressly set forth herein.
+
+15. ASSIGNMENT: Agent shall not assign or otherwise transfer any of its rights, or delegate, subcontract or otherwise transfer any of its obligations or performance, under this Agreement. Any purported assignment, delegation, or transfer in violation of this Section 15 is void and of no effect. Company may freely assign or otherwise transfer any or all of its rights, or delegate or otherwise transfer any or all of its obligations or performance, under this Agreement. Subject to the foregoing, this Agreement is binding upon and inures to the benefit of the parties hereto and their respective successors and permitted assigns.
+
+16. PUBLICITY: Agent shall not use Company's or its licensors' name, logo, proprietary indicia, trade name, trademarks, or service marks or refer to Company in any media release, listing on a website, presentation, public announcement, or public disclosure relating to this Agreement, its subject matter or any part thereof without the written consent of Company, which consent may be granted or withheld in Company's sole discretion. Company shall not be deemed to have granted Agent a license to, or any rights in, any of the foregoing by entering into this Agreement.
+
+17. APPLICABLE LAW/JURISDICTION: The Agreement and all matters and/or issues collateral thereto shall be governed by the laws of the State of California, without regard to its conflict laws of principles. Any controversies or disputes arising out of or relating to this Agreement shall be resolved exclusively in either the state or federal courts located in California, and each party hereby consents to the personal jurisdiction of such courts over it.
+
+18. ENTIRE AGREEMENT; MODIFICATION: This Agreement sets forth the entire understanding of the parties, and supersedes and merges any and all prior agreements and discussions between the parties relating to the subject matter contained herein. No modification, amendment or waiver of any of the provisions of this Agreement shall be effective unless contained in writing specifically referring to this Agreement and signed by each of the parties hereto.
+
+[Signatures on Next Page]
+
+ACCEPTED AND AGREED TO:
+
+THE COMPANY:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Date:_________________________
+
+
+AGENT:
+
+${v.agentName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Date:_________________________
+
+
+Exhibit A
+
+SERVICES DESCRIPTION
+
+Agent shall provide the following Services and deliverables to Company during the Term in connection with the Campaign:
+
+${v.servicesDescription}
+
+
+EXHIBIT B
+
+COMPENSATION
+
+Pursuant to Section 2 (Compensation) of the Agreement, the following compensation terms apply:
+
+${v.compensationTerms}`
+}
+
+function distributionAgreement(v: Record<string, string>): string {
+  return `Distribution Agreement
+
+This Distribution Agreement (the "Agreement") is entered into and made effective as of ${formatDate(v.date)} (the "Effective Date") by and between ${v.companyName} ("Company"), and ${v.distributorName}, a corporation organized under the laws of the State of Delaware (hereinafter the "Distributor").
+
+Company and the Distributor agree as follows:
+
+1. Appointment and Acceptance:
+
+1. Company appoints the Distributor, on a non-exclusive basis and on the terms and conditions of this Agreement, as a distributor authorized to purchase and re-sell the Company Products (as defined in Section 3) for use in the Territory (as defined below) and the Field (as defined below).
+
+2. Company, its affiliates, and each of their respective distributors and agents retain the right to contact potential customers regarding the sale of and make sales to such potential customers of Company Products in the Territory without the involvement of the Distributor.
+
+3. Distributor will not resell any Company Product to any distributor, customer, or agent if Distributor reasonably believes that such Company Product will be used outside the Field. All sales of Company Products to Distributor will be made under the provisions of this Agreement.
+
+2. Territory and Field:
+
+2.1 The "Territory" is ${v.territory}. Proposed sales outside the Territory are treated as "Territory Exceptions" and may be done with Company written approval.
+
+2.2 The "Field" is ${v.fieldDefinition}. Proposed sales outside the Field are treated as "Field Exceptions" and may be done with Company written approval.
+
+2.3 Territory Exceptions and Field Exceptions will be documented and updated in Schedule 2.
+
+3. Company Products:
+
+"Company Products" means those products set forth on Schedule 1 and any other product that Company, in its sole discretion, makes available to Distributor to purchase, repackage and/or add value, and re-sell hereunder. If Company intends to amend or otherwise alter Schedule 1, including to add or remove products from or to changed the description or specifications of Company Products, it shall discuss and negotiate with Distributor prior to at least six (6) months and may do so upon agreement by Distributor by reason of its obligation to supply its cusomters with Company Products on a constant and stable basis, and will provide Distributor with an updated Schedule 1 at least semi-annually;
+
+4. Interaction and Protection:
+
+4.1 Company hereby grants Distributor a non-exclusive right on the terms and conditions of this Agreement to use Company's brand and marks to promote and re-sell Company Products in the Territory for use in the Field during the term of this Agreement.
+
+2. All sales of Company Products to Distributor will be made pursuant to the terms and conditions attached hereto as Exhibit A (the "Terms and Conditions"), and the provisions of this Agreement. Unless otherwise mutually agreed in writing by the parties, any document that either party may use from time to time for their mutual convenience such as purchase orders or sales acknowledgment forms will be deemed to be for administrative convenience only and the terms and conditions of this Agreement (including the Terms and Conditions) will supersede and take precedence over any terms and conditions which may be contained in any such forms.
+
+3. The price Company charges to Distributor for Company Products is set forth in Exhibit A. For the avoidance of doubt, in case of price change of Company Products, Company shall notify Distributor of the proposed price change that details the reason of the change at least six (6) months prior to the change. The prices before the change shall be applicable to all purchase orders placed by Distributor prior to the actual date of the change.
+
+4. No commission, discount or payment of any kind will be due hereunder from Company to Distributor in connection with any and all sales opportunities identified by Distributor or otherwise. Recipient's inducement for entering into this Agreement consists of the limited non-exclusive rights granted by Company to Distributor hereunder.
+
+5. Distributor acknowledges that the Company Products are subject to U.S. export control laws and restrictions, and accordingly in certain instances Company may not be authorized to sell its Company Product in response to a particular opportunity or may only be authorized to do so after first security clearance or an export license.
+
+5. Duration of the Agreement:
+
+The Agreement will be in effect as of the Effective Date and will continue to be in full force until ${formatDate(v.terminationDate)}, at which point this Agreement will automatically renew for successive one (1) year terms unless either Party provides written notice of non-renewal at least six (6) months prior to the then current termination date.
+
+6. Termination:
+
+6.1 Either Party may terminate this Agreement upon written notice to the breaching Party if the breaching Party fails to cure a material breach of a provision of this Agreement within thirty (30) days after the receipt of written notice alleging such breach.
+
+6.2 Either Party may terminate this Agreement immediately if the other Party (a) becomes insolvent, files for bankruptcy, or a petition is filed against such other Party under the provisions of the applicable laws of insolvency or bankruptcy, (b) intentionally or in a willful, wanton or reckless manner made any material, false representation, report or claim relative hereto; (c) violated such Party's copyrights or trademarks; (d) engaged in any deceptive trade practices under the laws of any jurisdiction; or (e) asserted or threatened to assert any claim against such Party for matters unrelated to the Agreement.
+
+6.3 Company will have the right to terminate this Agreement immediately if Distributor (or any direct or indirect parent company of Distributor) undergoes a change of control, sale of substantially all of its assets, or other similar transaction.
+
+6.4 It is agreed that in the event of expiration or termination of this Agreement for any reason whatsoever, (a) upon such termination, all claims for compensation for loss of agency, loss of goodwill or any similar loss are agreed to be waived and (b) following such expiration or termination, the Distributor will have the right to sell its existing stock of Company Products, subject to the limitations set forth in Article 1 and Sections 4.3, 4.5, 7.3, 7.10, and 7.11; provided, however, that the Distributor has no right to return Company Products to Company or request Company to re-purchase such unsold Company Products.
+
+7. Duties of the Distributor; Joint Compliance with Laws:
+
+In addition to the covenants, duties, representations, and other obligations assumed by the Distributor elsewhere in this Agreement:
+
+7.1 Distributor agrees that it will actively at all times use its best efforts to promote and market Company Products in the Territory.
+
+7.2 The Distributor will comply with all reasonable and lawful instructions, given by Company from time to time, concerning the promotion and the arrangement for the sale of the Company Products. Without limiting the foregoing and if requested by Company, Distributor will cooperate with Company in the administration of any incentive, promotion or allowance programs offered by Company.
+
+7.3 Distributor will promptly notify Company if it becomes aware of any claims of failure or defect in any Company Product delivered by Company, or the commencement of any action based on any such claim.
+
+7.4 Distributor will provide such assistance as Company may reasonably request in Company's administration of product recall or warranty replacements programs. Distributor shall in good faith cooperate with Company with respect to recall of any of Company Products, provided that Company shall provide Distributor with all information reasonably requested by Distributor with respect to such recall. Distributor shall inform Company about requests, claims or complaints from the customers or users whom Distributor contacts. Company shall be responsible for and reimburse Distributor for all the reasonable external costs and expenses incurred by Distributor in carrying out activities requested by Company in conducting such recall.
+
+7.5 Distributor will promptly notify Company if it becomes aware of any infringement known or suspected concerning any intellectual property or proprietary rights belonging to Company or any of its affiliates.
+
+7.6 Distributor will not promote, market, sell, offer for sale, sell or export any products or services of Company or any of its affiliates other than as permitted herein.
+
+7.7 Distributor will provide regular updates and reports to Company concerning its activities in support of Company and the sale of Company Products in the Territory and targeted opportunities being pursued by it.
+
+7.8 Distributor covenants that it will not promote the products or technical capabilities of any third party in competition with or in lieu of the Company Product.
+
+7.9 Distributor will not do any of the following:
+
+7.9.1 Hold itself out as being authorized to bind Company or any of its affiliates in any way or incur any liability on Company's or any of its affiliates' behalf.
+
+7.9.2 Pledge Company's credit.
+
+7.9.3 Receive payment on behalf of Company.
+
+7.9.4 Export or re-export, or facilitate the export or re-export, of any goods or technology available from Company unless such export or re-export complies fully with all regulations of the United States relating to such export or re-export. The goods and technology from Company are subject to the restrictions on export or re-export imposed by regulations issued by the U.S. Bureau of Industry and Security and the U.S. Department of Treasury. Any diversion of Company's goods or technology contrary to the laws of the United States is prohibited.
+
+7.10 Distributor will comply with all applicable laws in the performance its duties. Without limiting the generality the foregoing, the Distributor represents and covenants that it will not exert or propose to exert improper influence, including through bribery of any person, to solicit or obtain orders. In addition, the Distributor represents and covenants that it will not pay, offer or promise to pay, or authorize the payment directly or indirectly, of any monies or anything of value to any government official or employee or any political party or candidate for political office for the purpose of influencing any act or decision of such official or of the government to obtain or retain orders for Company Products, or to direct business related to the Company Products to any person or entity. In the event that Company has reason to believe that a breach of any of the covenants set forth in this Section 7.10 (collectively, the "Compliance Covenants") has occurred or may occur, Company may withhold sales of Company Products to Distributor until such time as it has received confirmation to its satisfaction that no such breach has occurred or will occur. Company will not be liable to the Distributor for any claim, losses or damages whatsoever related to its decision to withhold sales under this provision. In the event that Company has reason to believe that a breach of any of the Compliance Covenants has occurred or may occur, Company will have the right to audit the Distributor's business records in order to satisfy itself that no such breach has occurred. The Distributor will fully cooperate in any such audit, whether conducted by or on behalf of Company. In the event of a breach of any of the Compliance Covenants, this Agreement will be void ab initio without the requirement of any written notice of cancellation. Any claims by the Distributor with regard to any transaction for which a breach of any of the Compliance Covenants has occurred, including claims for sales or services previously rendered will be automatically terminated and cancelled. The Distributor will further indemnify and hold harmless Company against any and all claims, losses or damages (direct, indirect, consequential, punitive, foreseeable or unforeseeable) arising from or related any breach of any of the Compliance Covenants.
+
+8. Duties of Company. In addition to the covenants, duties, representations, and other obligations assumed by Company elsewhere in this Agreement:
+
+8.1 Company will send a reasonable quantity of brochures, documents, datasheets and samples to the Distributor to support its efforts at no cost to the Distributor.
+
+8.2 Company guarantees that any of Company Products shall be from any defect in materials and workmanship for a period of twelve (12) months after delivery to a customer by Distributor ("Warranty Period"). In case any defect is found during the Warranty Period, Company shall repair or supply Distributor with alternative Company Product free of charge, and compensate for any losses incurred by Distributor.
+
+8.3 For the avoidance of doubt, Company will not have any direct customer support, warranty, service, or other similar obligations to any third party that purchases Company Products from Distributor.
+
+8.4 Company will provide to Distributor, on an annual basis, training, at a location of Company's choice, covering the specifications (including the specified conditions of use) of the Company Products, the handling of the Company Products, and the connecterization of the Company Products. Each such training will be for one (1) day and will be provided at the cost of Company; provided, however, that Distributor will bear all travel and accommodation expenses for its attendees.
+
+8.5 In case any third party suffers from any damage including but not limited to injury, death or personal property due to a defect of any of Company Products in the Territory, Company shall defend and hold Distributor, its officers, directors and/or workers including temporary workers harmless from any claim alleged by the third party and it shall indemnify Distributor of any and all losses, obligations, liabilities, costs and expenses (including attorney's fee), damages arising out of or related to such defect.
+
+8.6 Each of Company and Distributor will comply with all applicable laws in the performance its duties. Without limiting the generality the foregoing, each of Company and Distributor represents and covenants that it will not exert or propose to exert improper influence, including through bribery of any person, to solicit or obtain orders. In addition, each of Company and Distributor represents and covenants that it will not pay, offer or promise to pay, or authorize the payment directly or indirectly, of any monies or anything of value to any government official or employee or any political party or candidate for political office for the purpose of influencing any act or decision of such official or of the government to obtain or retain orders for Company Products, or to direct business related to the Company Products to any person or entity. In the event that either Company or Distributor has reason to believe that a breach of any of the covenants set forth in this Section 8.6 (collectively, the "Compliance Covenants") has occurred or may occur, that party may withhold sales of Company Products until such time as it has received confirmation to its satisfaction that no such breach has occurred or will occur. Neither party will be liable to the other for any claim, losses or damages whatsoever related to its decision to withhold sales under this provision. In the event that Company has reason to believe that a breach of any of the Compliance Covenants has occurred or may occur, Company will have the right to audit Company's business records in order to satisfy itself that no such breach has occurred. Distributor will fully cooperate in any such audit, whether conducted by or on behalf of Company. In the event of a breach of any of the Compliance Covenants, this Agreement will be void ab initio without the requirement of any written notice of cancellation. The breaching party will further indemnify and hold harmless the non-breaching party and its officers, directors, agents and employees against any and all claims, losses or damages (direct, indirect, consequential, punitive, foreseeable or unforeseeable) arising from or related any breach of any of the Compliance Covenants.
+
+9. Ordering Procedures; Forecast.
+
+9.1 Each purchase order issued by Distributor hereunder will specify the relevant Company Product, quantity ordered, Company Product description, price, delivery address, requested delivery date, and relevant shipping instructions.
+
+9.2 Company's acknowledgment or commencement of performance of any order will be deemed to be an acceptance of such order under this Agreement.
+
+9.3 The terms and conditions of sale associated with all Company Products will be as set forth in this Agreement. Any terms or conditions of purchase or sale set forth or referenced in any purchase order, order acknowledgment, invoice, or other written documentation exchanged between the Parties in the course of the administration of this Agreement will be null and void and will have no legal force or effect. The written documentation so exchanged will merely serve the administrative function of specifying quantities of Products ordered, delivery dates, delivery destination, and line item prices consistent in all cases with the terms set forth in this Agreement. In the event of conflict between the terms of this Agreement and any term or condition on the face of a purchase order, the term or condition set forth in this Agreement will prevail.
+
+9.4 Prior to October 1 of each calendar year, Distributor will provide to Company a good faith, non-binding forecast of Distributor's anticipated demand for Company Products for the upcoming calendar year (the "Forecast"). Distributor will provide Company with any supporting documentation related to the Forecast reasonably requested by Company for the purpose of validating the Forecast as a good faith estimate. If Company determines, in good faith, that the Forecast overestimates Distributor's anticipated demand for the upcoming calendar year, the Parties agree to discuss, in good faith, an appropriate adjustment to the Forecast.
+
+9.5 At Company's request not more frequently than two (2) times per calendar quarter, the Parties shall meet telephonically to discuss Distributor's business prospects, current Forecast, Company Product updates, Company Product roadmap, and other matters as mutually agreed by the Parties.
+
+10. Payment
+
+10.1 The selling prices, discounts, payment terms and return privileges offered by the Distributor to its customers will be determined by the Distributor in its sole and exclusive discretion.
+
+11. Trademarks and Intellectual Property Rights
+
+11.1 Distributor acknowledges that the trademarks, tradenames, and logos associated with the Company Products are extremely valuable to Company and provide a competitive advantage in those fields where the Company Products compete. Company hereby provides to Distributor a limited license to use those trademarks and logos associated with the Company Products including such other marks as Company may develop that become associated with Company Products introduced into the marketplace after the effective date of this Agreement (collectively, the "Licensed Trademarks"). The Licensed Trademarks may only be used by Distributor in connection with the promotion, marketing and re-sale of the Company Products as permitted herein. Before using a Licensed Trademark in any promotional material or administrative form, a design copy of such material or form must be presented to and approved by Company before its first use, which approval will not unreasonably be withheld. The Licensed Trademarks will not be used by Distributor for any purpose other than as permitted herein and any goodwill or value attributable to Distributor's use of a Licensed Trademark will belong solely to Company. This license will remain valid and effective for the term of this Agreement. Upon the expiration or earlier termination of this Agreement, Distributor will immediately cease to use any Licensed Trademark.
+
+11.2 Distributor will have no rights to use the Licensed Trademarks (including the corporate name of Company), except as provided herein. Distributor shall not, for any reason:
+
+A. Use any trademark which is identical or confusingly similar to any Company trademarks;
+
+B. Alter, deface or remove any trademarks, patent numbers, notices, information or legends on the Company Products;
+
+C. Use the Licensed Trademarks in connection with any products other than the Company Products, particularly, excluding the use of the Licensed Trademarks as the trademark for products in which Company Products are a component; or
+
+D. Use any trademark in connection with the Company Products, other than those specified by Company.
+
+11.3 Whatever use Distributor makes of the Licensed Trademarks as provided herein, will be for the exclusive benefit of Company. Distributor agrees that it will not register, or cause to be registered, in the Territory or elsewhere anywhere, any trademark or trade name utilized by Company or any of its affiliates in connection with its products, or any other trade name, trademark, word, or symbol that is identical or similar to any trademark or trade name owned or utilized by Company or any of its affiliates.
+
+11.4 Intellectual Property Rights. If a third party alleges against Distributor that any of Company Products infringes any patent, utility model, design, trademark, copyright, or other intellectual property right in the Territory, then Company shall defend and hold Distributor harmless from any claim or suit of the infringement and indemnify Distributor any costs and expenses incurred by Distributor in connection with the infringement.
+
+12. No Equity Relationship:
+
+This Agreement does not and is not intended to create any partnership, joint venture, agency or similar relationship between the parties. Neither party will hold itself out as representative of the other nor having the authority to legally bind the other for any purpose whatsoever.
+
+13. Confidentiality:
+
+No commercial or technical information provided by Company, the terms and conditions of this Agreement, or any information in any sales reports prepared by the Distributor for Company may be used by the Distributor, the Distributor's employees or its contractors for any purpose other than to pursue commercial and business opportunities in accordance with this Agreement. Without limiting the foregoing, Company and the Distributor agree that Distributor will use confidential information solely as permitted and, in any event, will not publish or otherwise disclose such confidential information to any third party. Upon the termination or earlier expiration of this Agreement, the Distributor will return to Company all proprietary or confidential information owned or provided by Company, including commercial and technical information provided by Company and any information in any sales reports prepared by the Distributor for Company, or certify in writing that all such information has been destroyed and is not retrievable. The Distributor will protect Company's proprietary and confidential information from disclosure and misuse using the same standard of care as the Distributor would use to protect its own confidential information, but, in any case, not less than a commercially reasonable standard of care. The obligations under this paragraph will survive the expiration or termination of this Agreement for any cause whatsoever.
+
+14. Assignment:
+
+The Distributor may not assign, transfer or subcontract any rights or obligations of, or services to be rendered by it under this Agreement without the prior written consent of Company.
+
+15. Dispute Resolution; Governing Law:
+
+15.1 Governing Law. This Agreement will be governed by, interpreted and construed, and performance hereunder will be determined in accordance with the law of the State of California, without regard to its conflicts of law principles.
+
+15.1 Negotiation and Mediation. Notice of any dispute or claim arising hereunder will be provided in accordance with the notice provisions below. Company and Distributor will make good faith efforts to amicably resolve any dispute arising hereunder via direct negotiation between authorized representatives of each party. In the event that such representatives are unable to resolve the dispute, or in the event that sixty (60) days have passed since the initial written notice of the dispute and the matter continues to be unresolved, either party may request confidential mediation of the dispute through a mediator experienced in commercial mediation selected by each party (or his or her designee).
+
+Notwithstanding the foregoing, either party may immediately pursue litigation seeking equitable relief of any form, including but not limited to addressing any breach of confidentiality hereunder.
+
+15.2 Characterization of Negotiations; Continued Performance. All negotiations between the parties with respect to any dispute, claim or controversy arising out of or relating to this Agreement, or the validity, enforcement, or breach thereof and all communications made to the mediators will be confidential and will be treated as compromise and settlement negotiations for purposes of the United States Federal Rules of Evidence and any applicable state rules of evidence, provided that either party may specifically waive in writing these rights of privilege and confidentiality with respect to any communications it has made. Notwithstanding the existence of a dispute being considered under the applicable dispute resolution provisions, each party will continue the performance of its respective obligations under this Agreement until otherwise provided in connection with the resolution of such dispute.
+
+16. Notices:
+
+Any legal notice or demand required to be given under this Agreement will be deemed to have been sufficiently given when received by registered mail (return receipt requested) to the receiving party at the respective address as set forth above. Either party may give written notice of a change of address, in which event any such notice or request will thereafter be given to it as provided herein.
+
+17. Entire Agreement:
+
+This Agreement represents the entire agreement and understanding between Company and the Distributor with respect to its subject matter. This Agreement supersedes all prior and contemporaneous agreements, documents, certifications, understandings, commitments, negotiations, and undertakings between Company and the Distributor.
+
+18. Modifications:
+
+Except as expressly contemplated by this Agreement, this Agreement may not be altered, modified, amended, or otherwise changed unless such change is documented in writing, signed by an authorized representative of Company and the Distributor, and evidences and intention on the part of both parties to change this Agreement.
+
+19. Counterparts:
+
+This Agreement may be executed simultaneously in two or more counterparts, each of which will be deemed an original, but all of which together constitutes one and the same instrument. Delivery of signatures to this Agreement by facsimile transmission or in PDF document format exchanged via electronic mail will be legally binding and effective for all purposes, including evidentiary purposes.
+
+20. Interpretation:
+
+The paragraph headings contained in this Agreement are for reference purposes only and will not affect in any way the meaning or interpretation of this Agreement or any of its provisions. When a reference is made in this Agreement to a Section, Schedule, or Exhibit such reference will be to a Section, Schedule, or Exhibit to this Agreement unless otherwise indicated. Whenever the words "include," "includes," or "including" are used in this Agreement, they will be deemed to be followed by the words "without limitation." Whenever the word "or" is used in this Agreement, it will not be deemed exclusive. The words "hereof," "herein," and "hereunder" and words of similar import when used in this Agreement will refer to this Agreement as a whole and not to any particular provision of this Agreement. The definitions contained in this Agreement are applicable to the singular as well as to the plural forms of such terms and to the masculine as well as to the feminine and neuter genders of such terms. Whenever the context requires, any pronouns used herein will include the corresponding masculine, feminine, or neuter forms. The preparation of this Agreement has been and will be a joint effort of both parties; this Agreement will not be construed more severely against either party. If any provision of this Agreement is determined by a court to be invalid, the remainder of this Agreement will remain in full force and effect. This Agreement is intended solely for the benefit of the parties. Nothing herein is to be construed to create any duty or standard of care to any person or entity not a party to this Agreement.
+
+20. Waiver:
+
+No party will be deemed to have waived the exercise of any right that it holds under this Agreement or at law unless such waiver is expressly made in writing. Failure of party at any time, and for any length of time, to require performance by the other party of any obligation under this Agreement will in no event affect the right to require performance of that obligation or the right to claim remedies for breach under the Agreement or at law. A waiver by a party of any breach of any provision of this Agreement, unless otherwise expressly stated in writing, is not to be construed as a waiver of any continuing or succeeding breach of such provision, a waiver or modification of the provision itself, or a waiver or modification of any right under this Agreement or at law.
+
+[Remainder of Page Intentionally Left Blank]
+
+IN WITNESS WHEREOF, this Agreement has been executed for and on behalf of Company and the Distributor by their duly authorized representatives identified beneath their respective signatures below.
+
+THE COMPANY:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+DISTRIBUTOR:
+
+${v.distributorName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+
+Exhibit A
+
+Terms and Conditions; Price`
+}
+
+function saasResellerAgreement(v: Record<string, string>): string {
+  return `RESELLER AGREEMENT
+
+This RESELLER AGREEMENT (the "Agreement") is entered into as of ${formatDate(v.effectiveDate)} (the "Effective Date") by and between ${v.companyName}, a ${v.companyStateOfIncorporation} corporation with its principal place of business at ${v.companyAddress} ("Company"), and ${v.resellerName}, a ${v.resellerStateOfIncorporation} corporation with its principal place of business at ${v.resellerAddress} ("Reseller").
+
+RECITALS
+
+WHEREAS, Company develops and distributes a software-as-a-service platform for accessing applications in the cloud;
+
+WHEREAS, Reseller is experienced and engaged in the business of distributing and reselling the kinds of services and products sold by Company to end users and providing them with complementary services or products, such as installation, integration, support and training services; and
+
+WHEREAS, the parties desire to set forth the terms and conditions under which the Reseller will acquire from Company or reproduce from originals provided by Company and distribute to Customers, the Products (as defined below).
+
+NOW, THEREFORE, in consideration of the mutual promises and covenants set forth herein and for other good and valuable consideration, the receipt and adequacy of which are hereby acknowledged, and intending to be legally bound, the parties hereby agree as follows:
+
+1. Definitions.
+
+"Company Price List" means the price list for Company products most recently published for use in the trade, an example of which is set forth in Exhibit A. The Company Price List shall be published in a manner determined in Company's sole discretion, including, without limitation, by publication on Company's then-current website.
+
+"Confidential Information" shall mean (a) any information disclosed by Company to Reseller that is in written, graphic, machine readable or other tangible form and is marked "Confidential," "Proprietary" or in some other manner to indicate its confidential nature; (b) oral information disclosed by Company to Reseller pursuant to this Agreement that is designated as confidential at the time of disclosure, and reduced to a writing marked as confidential and delivered by Company to Reseller within a reasonable time; and (c) any information a reasonable person in the circumstances would understand to be confidential. Notwithstanding any failure to so identify it, all source code embodied in the Products, including without limitation the source code underlying object code and bitmaps embodied in the Products, shall be Confidential Information.
+
+"Customer" means any third party that obtains a Product solely for its own internal business purposes and not for further distribution or resale.
+
+"Delivery Date" shall mean the date on which Company delivers the Product electronically by sending an e-mail to Reseller setting out the service code or other necessary credentials for use of the Products licensed to Customers.
+
+"Documentation" means published written documentation related to the use or maintenance of the Products provided by Company or a Supplier under this Agreement.
+
+"Product" means the software-as-a-service specified in each Statement of Work, as issued from time to time and related products or services, including: (a) any Documentation that Company may provide for the software; (b) access to the latest updates for the software as they are commercially released by Company; and (c) separately-priced options, modules and updates that Company makes generally available from time to time pursuant to this Agreement and published on the then-current Company Price List.
+
+"Reseller Customers" means a Customer where the Reseller has licensed any Products to such Customer.
+
+"Statement of Work" means a statement of work in the form attached as Exhibit A, describing the Product, pricing, Territory and other terms and conditions pursuant to which Reseller will be permitted to operate under this Agreement.
+
+"Supplier" means any provider of third party software or related products and services included with Products provided under this Agreement.
+
+"Territory" means the geographic region, industry segment or defined set of Customers specified in Exhibit A.
+
+"Updates" means any corrections, enhancements, bug fixes or other modifications for the Products provided to Reseller by Company pursuant to this Agreement.
+
+2. Appointment of Reseller; Obligations of Reseller.
+
+(a) Appointment. Subject to the terms and conditions of this Agreement, Company hereby appoints Reseller as an authorized Reseller to license the Products to Customers within the Territory during the Term of this Agreement, and Reseller accepts such appointment. This appointment is non-transferable and nonexclusive.
+
+(b) Non-Exclusivity. Company reserves all rights not expressly granted in this Agreement, including without limitation the right to distribute, promote, solicit and accept orders for the Products or related services directly to any Customers within or outside the Territory and through any other remarketers, dealers, distributors, sales representatives or other channels, and for any purposes, including, but not limited to, the marketing and provision of upgraded licenses for the Products and/or other products or services to any Customer that has previously obtained a licensed Product from Reseller. Any such sale, distribution or license of Products or related services shall not constitute a violation of this Agreement.
+
+(c) License to Customers. Any use of the Products by Customers will be subject to the terms and conditions of this Agreement and the then-current Terms and Conditions for the Products as it may be amended from time to time and made available to Customer and Reseller (the "TOC"). Reseller acknowledges and agrees that it is only authorized to license those Products on the then current Company Price List. Subject to the terms and conditions of this Agreement, Reseller will be free to establish its own pricing for Products; provided that Reseller may not offer pricing lower than the prices offered by Company on the then current Company Price List. Upon at least thirty (30) days' prior notice to Reseller, Company may add new Products to or delete existing Products from this Agreement and the Company Price List.
+
+(d) Terms and Conditions.
+
+(i) Each license of Products under this Agreement will be subject to, and will be governed by, this Agreement, including without limitation the import and export restrictions set forth in Section 14, and the TOC. Company may modify or replace the TOC at any time, in whole or in part, in its sole discretion. Reseller will solicit an express agreement from Customers that use of the Products is governed by the terms and conditions of the TOC. Reseller will not modify the TOC and will not make any warranty or representation in relation to the Products which broadens or contradicts any warranty, representation or term contained in the TOC. Company will not be bound by, and specifically objects to, any term, condition or other provision which is different from or in addition to the provisions of this Agreement or the TOC and which is submitted by Reseller in any order, receipt, acceptance, confirmation, correspondence or otherwise, unless Company specifically agrees to such provision in a writing signed by Company.
+
+(ii) Reseller acknowledges that the Product may contain or be provided with products or services of Company's Suppliers as identified in associated documentation or other printed materials ("Third Party Product") which is obtained under a license from such Suppliers. All Suppliers retain all right, title and interest in and to such Third Party Product and all copies thereof, including all copyright and other intellectual property rights. Reseller's use and distribution of any Third Party Product shall be subject to and Reseller shall comply and cause all Customers to comply with the applicable restrictions and other terms and conditions set forth (A) in this Agreement and the Documentation applicable to the Products and (b) in such Third Party Product documentation or printed materials.
+
+(e) Marketing.
+
+(i) Reseller shall use its best efforts to actively market, promote, distribute, solicit and obtain orders for the Products in the Territory from both new and existing Customers of the Products. These efforts may include without limitation (A) the use of mailings, advertising, seminars, and other customary marketing techniques; (B) providing competent sales and support representatives trained in and knowledgeable about the Products and capable of answering Customer questions regarding the Products, demonstrating the Products, informing Customers about the Product features, and assisting Customers in determining which Products will best meet their needs; and (C) making Product sales and promotional materials available to Customers. Reseller represents that: (x) it possesses the experience, skills and resources required to carry out these promotion and solicitation activities; (y) it will maintain sufficient facilities and staff to effectively carry out its obligations under this Agreement; and (z) it will ensure that its appropriate staff participate in training sessions offered from time to time by Company in the use and sale of the Products.
+
+(ii) Reseller shall perform adequate diligence on all Customers that Reseller will be sourcing. Diligence will be considered adequate to the extent that either Reseller has a pre-existing substantive relationship with the Customer, or the Customer is a publicly listed company on a national stock exchange, with information made available through periodic reporting obligations.
+
+(iii) During the Term of this Agreement, Reseller shall provide Company with a good faith rolling six (6) month promotional plan specifying independent and/or joint promotional activities to be conducted. Each calendar quarter, Reseller shall update the plan to encompass the next six (6) month period, and Company and Reseller shall conduct a quarterly business review meeting, reviewing Reseller's actual promotional activity and progress to date.
+
+(iv) Company shall provide sales, applications, and marketing support as set forth in Exhibit B. Reseller will use the brochures and other promotional materials describing the Products that Company may provide to Reseller and will comply with the Company guidelines for marketing and promoting the Products. Reseller may reproduce the promotional literature provided that Reseller includes the Company copyright and proprietary notices on all such reproductions.
+
+(f) Feedback. Reseller shall provide Company with prompt written notification of any comments or complaints about the Products that are made by Customers, and of any problems with the Products or their use of which Reseller becomes aware. Such written notification shall be the property of Company, and shall be considered to be part of Company's Confidential Information.
+
+(g) Independent Contractor. Reseller affirms that it or its management is experienced in marketing products such as the Products and that Reseller does not expect or rely upon, nor has it received, any guidance or assistance from Company with respect to its method of operation or the conduct of its business. Reseller will conduct business for its own account, in its own name, and will determine, in its own judgment, how to perform its obligations under this Agreement. Reseller is an independent contractor, not an employee, partner, agent, or representative of Company. Reseller is not authorized to, and will not attempt to, create or assume any obligation or liability, express or implied, in the name of or otherwise on behalf of Company. Without limiting the generality of the foregoing, Reseller will not enter into any contract, agreement or other commitment, make any warranty or guaranty, or incur any obligation or liability in the name or otherwise on behalf of Company. This Agreement will not be interpreted or construed as creating or evidencing any agency, franchise, association, joint venture or partnership among the parties.
+
+(h) Invoicing. Reseller shall be solely responsible for invoicing and obtaining payment of its prices from Customers. Delays or failures in obtaining such payment shall not affect Reseller's obligation to make payments of amounts due to Company under this Agreement.
+
+(i) Enforcement. If Reseller learns that any Customer has breached any provision of the applicable TOC or has infringed upon Company intellectual property rights, including, but not limited to, unauthorized use of the Products, Reseller shall immediately notify Company and shall take all reasonable steps that Company requests to assist Company in enforcing the TOC or any other rights that Company may have against the customer. If Reseller fails to take these steps in a timely and adequate manner, Company may take them in its own name or on behalf of the Reseller.
+
+(j) Business Practices. Reseller shall: (i) conduct its business in a manner that reflects favorably on the Products and on Company' goodwill and reputation; (ii) avoid deceptive, misleading or unethical practices; (iii) make no false or misleading representations with respect to Company or the Products; (iv) not solicit orders from a Customer if Reseller has actual knowledge that such Customer engages in illegal or deceptive trade practices or any other practices prohibited under this Agreement or under applicable laws.
+
+3. License.
+
+(a) Grant. Subject to the terms and conditions of this Agreement, Company grants to Reseller a limited, non-exclusive, non-transferable license to use, license and offer to license the Products to Customers within the Territory.
+
+(b) Restrictions. The license set forth above does not include any rights to and Reseller shall not (i) modify all or any portion of the Products, except for such limited modifications as Company may pre-approve in writing, (ii) sell, rent, lease, license, loan, provide, distribute or otherwise transfer all or any portion of the Products, except as set forth in Section 2, (iii) reverse engineer, reverse assemble or otherwise attempt to gain access to the source code of all or any portion of the Products, (iv) use the Products for third-party outsourcing, commercial time-sharing or service bureau use, (v) remove, alter, cover or obfuscate any copyright notices, trademark notices or other proprietary rights notices placed or embedded on or in the Products, or (vi) cause or permit any third party to do any of the foregoing. Reseller acknowledges that information necessary to achieve interoperability of the Products with other programs is available upon request.
+
+(c) Updates. Company may provide Updates at its sole discretion. Updates to any component of the Products may only be used as permitted for such component in this Section 3.
+
+4. Prices and Payment.
+
+(a) Per-Seat Fees. Reseller will pay the fees set forth in the then-current Company Price List in accordance with the provisions of this Section 4 for Products licensed from Company by Reseller.
+
+(b) Payment Terms. Company shall submit an invoice to Reseller upon delivery of Products to Reseller. The invoice shall state the amount to be paid by Reseller for all Products in such delivery, as well as any taxes, duties or excises paid by Company which shall be reimbursed by Reseller. Subject to approval of Reseller's credit by Company, the full invoiced amount for each delivery of Products from Company to Reseller shall be paid net thirty (30) days. All payments shall be in U.S. Dollars.
+
+(c) Price List; Price Changes. Reseller shall pay Company for each license granted to a Customer pursuant to this Agreement the price for such Products as set forth in then-current Company Price List. All monetary amounts in this Agreement are in U.S. Dollars and do not include shipping charges, value-added taxes, sales taxes or other applicable taxes or duties, which will be paid by Reseller. Company shall have the right to revise the Company Price List at any time in Company's sole discretion, provided that Company shall not change the Company Price List within less than thirty (30) days of any preceding change. Price increases shall apply to all orders received and all copies of Products made by Reseller or third parties after the effective date of such price changes; provided, that Company shall honor any prices quoted in valid, unexpired, formal written price quotations provided by Company to Reseller in connection with specific transactions between Reseller and its Customers.
+
+(d) Late Payments. All amounts which are not paid by Reseller as required by this Agreement shall be subject to a late charge equal to one and one-half percent (1.5%) per month (or, if less, the maximum allowed by applicable law). In the event that any payment due hereunder is overdue, Company reserves the right, at its discretion and without limiting any other right or remedy available to Company, to suspend performance until such delinquency is corrected, delay the delivery or processing of any orders or payments, or terminate this Agreement.
+
+(e) Credit Limit. Company may, in its discretion, set a credit limit for Reseller which will be reviewed and adjusted by Company annually. Company will process orders up to the amount of Reseller's credit limit in accordance with the payment terms set out in this Agreement. When the total amount invoiced by Company to Reseller reaches the credit limit, whether or not such invoiced amounts are due, all future orders for Products must be pre-paid by Reseller until the total amount invoiced to Reseller has been reduced to less than the credit limit.
+
+(f) Expenses; Taxes. Reseller will be solely responsible for the payment of all expenses incurred by Reseller in its performance of this Agreement, including, but not limited to, local promotion and advertising, travel, delivery and handling charges, bad debts, debt collection, lawsuits between Reseller and any third party, and all taxes and tariffs levied by a government authority in the Territory, including, but not limited to, excise taxes, sales taxes, withholding taxes, use taxes and value-added taxes associated with the use, importation or supply of the Products. If, for any reason, Company is required to pay any of the expenses, taxes, duties or excises noted above which are not included in the per-seat fees charged for the Product, Reseller will reimburse Company and such charges will be added to the invoiced amounts as separate itemized charges, provided, that Reseller shall not be required to make any such reimbursement if it provides a valid tax exemption certificate to Company prior to delivery.
+
+5. Supply of Products.
+
+(a) Orders. Reseller shall initiate orders under this Agreement by using the Company online ordering capability or such other form as Company may prescribe or accept from time to time, and by issuing a valid order which references this Agreement. Such orders shall state license quantities, product descriptions, requested Delivery Dates, and delivery instructions. No order shall be binding upon Company until accepted by Company in writing. Company reserves the right to reject orders in whole or in part if the volume of orders from Customers for Products exceeds Company's capacity to supply such Products. Partial delivery of an order shall not constitute acceptance of the entire order. In the event that Company is unable to fill an accepted order in accordance with the schedule set forth therein, Company shall use commercially reasonable efforts to fill such order on an allotment or scheduled release basis. This Agreement shall govern all orders placed by Reseller for licenses of the Products. No terms on orders, invoices or like documents produced by Reseller shall alter or add to the terms of this Agreement. The terms of this Agreement will apply to all orders and will not be superseded or supplemented by any terms contained in any Reseller order.
+
+(b) Delivery. Unless otherwise agreed by the parties, Company will deliver the Product electronically by sending an e-mail to Reseller setting out the service code or other necessary credentials for use of the Products licensed to Customer pursuant to this Agreement. Reseller is responsible for delivering the credentials to the Customers. Company will not be liable or responsible to Reseller, or anyone claiming through Reseller, for any loss or damage arising out of a failure or delay in delivery, late delivery or partial delivery of any credentials. Risk of loss or damage will pass to Reseller at the Company place of shipment upon delivery and will constitute full and final delivery by Company.
+
+6. Product Changes. Company shall have the right to make design modifications to Products at any time in its sole discretion. If any such modification to a Product represents a material change to the Product's form, fit, or function, Company shall provide written notice to Reseller and Reseller shall have the right to request adjustment to the quantity and/or Delivery Date for any open order for that Product, including to cancel such order, provided that if Company cannot in its reasonable discretion satisfy Reseller's request, Reseller's sole remedy shall be to cancel such order.
+
+7. Records; Audit.
+
+(a) Records. For two (2) years after each calendar quarter during the Term of this Agreement, Reseller will keep at Reseller's office(s) full and accurate books of account and copies of all documents and other materials for such quarter relating to this Agreement and Reseller's records, accounts and contracts relating to the distribution of the Products.
+
+(b) Audit. During the Term of this Agreement and for two (2) years thereafter, Company shall have the right to inspect and audit Reseller's use, deployment, and exploitation of the Products, and the records maintained by Reseller in accordance with Section 7(a), to confirm Reseller's compliance with the terms and conditions of this Agreement, including Reseller's payment obligations hereunder.
+
+8. Limited Warranty; Support.
+
+(a) Limited Warranty. During the Term, Company warrants that the Product will perform substantially in accordance with the accompanying Documentation. Company's entire liability and the Customers' and Resellers' exclusive remedy for a breach of the preceding limited warranty shall be, at Company's option, (i) to provide a fix, patch, or work-around, or (iii) if in Company's judgment (i) is not commercially practicable refund the license fee actually paid by the Reseller for the Product.
+
+(b) Administrative Support. Reseller shall be responsible for all customer support of all kinds in relation to its resale of the Products to Customers, including but not limited to setting up accounts, managing billing, and telephone and other customer support.
+
+9. Ownership.
+
+(a) Proprietary Rights. Company or its Suppliers own all right, title and interest (including without limitation all intellectual property rights), in and to the Products and any modifications or improvements thereto, whether or not made by Company. Reseller acknowledges that the licenses granted under this Agreement do not provide Reseller with title to or ownership of the Products, but only a right of limited use under the terms and conditions of this Agreement. Except as expressly set forth in Sections 2 and 3, Company reserves all rights and grants Reseller no licenses of any kind hereunder. Reseller hereby assigns to Company all information, including but not limited to feedback or suggestions, provided to Company with respect to the Products, and such information shall be deemed Confidential Information.
+
+(b) Proprietary Notices. Reseller will ensure that all copies of the Products or promotional materials will incorporate copyright and other proprietary notices in the same manner that Company incorporates such notices in the Products or in any manner reasonably requested by Company. Reseller will not remove any copyright or other proprietary notices incorporated on or in the Products or promotional materials by Company.
+
+(c) Use of Trademarks. During the Term of this Agreement, Reseller may advertise the Products under the trademarks, marks, and trade names that Company may provide from time to time (the "Company Trademarks"). Reseller understands that Company may have applied for applicable federal and state registration of certain of its trademarks and agrees, upon Company's request, to so indicate on the Products and in any advertisement, promotional materials or other documents that contain the Products' names. Nothing herein will grant to Reseller any right, title or interest in Company Trademarks. At no time during or after the Term of this Agreement will Reseller challenge or assist others to challenge Company Trademarks or the registration thereof or attempt to register any trademarks, marks or trade names confusingly similar to those of Company. Reseller will follow reasonable trademark usage guidelines communicated by Company, will provide examples of its usage of the Company Trademarks upon request by Company, and will promptly correct any deviations from such guidelines upon notification by Company of such deviations.
+
+(d) Use of Trade Names. Reseller will present and promote the sale of the Products fairly. Reseller may represent itself as an authorized reseller of Company and use Company's product names in Reseller's advertising and promotional media provided (i) that Reseller conspicuously indicates in all such media that such names are trademarks of Company and (ii) that Reseller submits all such media to Company for prior approval and satisfies the requirements set forth in Section 9(c). Upon termination of this Agreement for any reason, Reseller will immediately cease all use of the Products' names and Company Trademarks and, at Reseller's election, destroy or deliver to Company all materials in Reseller's control or possession which bear such names and trademarks, including any sales literature. Reseller will not challenge any intellectual property rights claimed by Company in such trademarks.
+
+(e) Use of Marketing Materials. Company may provide Reseller with marketing materials, such as marketing literature, Company logos, and/or artwork, as Company may determine in its sole discretion (the "Marketing Materials"). Company hereby grants Reseller permission to use, reproduce, translate, and distribute the Marketing Materials solely in connection with Reseller's distribution of Products hereunder. Upon termination of this Agreement for any reason, Reseller will immediately cease all use of the Marketing Materials and, at Reseller's election, destroy or deliver to Company all Marketing Materials in Reseller's control or possession.
+
+10. Confidentiality.
+
+(a) Confidential Information. During the Term of this Agreement and at all times thereafter, Reseller shall maintain Confidential Information in confidence and use the same degree of care, but in no event less than reasonable care, to avoid disclosure of Confidential Information as it uses with respect to its own confidential and proprietary information of similar type and importance. Reseller agrees to disclose Confidential Information only to its employees or other agents who have a bona fide need to know solely to perform its obligations or exercise its rights hereunder, who are each subject to written confidentiality obligations regarding the Confidential Information no less restrictive than those contained herein. Except for the distribution and resale of Products as expressly authorized herein, Reseller shall not sell, license, sublicense, publish, display, distribute, disclose or otherwise make available the Confidential Information to any third party nor use such information except as authorized by this Agreement. Reseller agrees to immediately notify Company of the unauthorized disclosure or use of the Products or Confidential Information and to assist Company in remedying such unauthorized use or disclosure. It is further understood and agreed that any breach of this Section 10 would cause irreparable harm to Company and its Suppliers, entitling Company or its Suppliers to injunctive relief in addition to all other remedies available at equity or law.
+
+(b) Exceptions. Notwithstanding the above, Reseller shall be under no obligation not to disclose any information that it can prove: (i) was in the public domain at the time it was disclosed or has entered the public domain through no fault of Reseller; (ii) was known to Reseller, without restriction, at the time of disclosure, as demonstrated by files in existence at the time of disclosure; (iii) is disclosed with the prior written approval of Company; (iv) becomes known to Reseller, without restriction, from a source other than Company without breach of this Agreement by Reseller and otherwise not in violation of Company's rights; or (v) is disclosed pursuant to the order or requirement of a court, administrative agency, or other governmental body; provided, however, that Reseller shall provide prompt notice thereof to Company to enable Company to seek a protective order or otherwise prevent or restrict such disclosure.
+
+11. Indemnification.
+
+(a) By Reseller. Reseller shall indemnify, defend and hold Company harmless against any and all third party claims for losses, costs, liabilities, and damages finally awarded by a court of competent jurisdiction against Company in connection with such claims or agreed to in a settlement, including reasonable attorneys' fees, which are arise or result from (i) any gross negligence, willful misconduct or fraud of Reseller or any of its employees or other agents; (ii) material uncured breach by Reseller or any of its employees or other agents of this Agreement; (iii) violation of any applicable law, rule or regulation; provided that Company (w) notifies Reseller promptly in writing of any such action; provided that Company's failure to timely provide such notice shall not relieve Reseller of its indemnification obligations except to the extent Reseller can demonstrate actual prejudice as a result of such failure, (x) gives Reseller exclusive control and authority over the defense or settlement of such action, (y) does not enter into any settlement or compromise of any such action without the prior written consent of Reseller and (z) provides all reasonable assistance to Reseller at the request of Reseller.
+
+(b) By Company. Company shall indemnify, defend and hold Reseller harmless against any and all third party claims alleging that the Products infringe any valid U.S. patent or copyright for losses, costs, liabilities, and damages finally awarded by a court of competent jurisdiction against Reseller in connection with such claims or agreed to in a settlement, including reasonable attorneys' fees; provided that Reseller (i) notifies Company promptly in writing of any such action; provided that Reseller's failure to timely provide such notice shall not relieve Company of its indemnification obligations except to the extent Company can demonstrate actual prejudice as a result of such failure, (ii) gives Company exclusive control and authority over the defense or settlement of such action, (iii) does not enter into any settlement or compromise of any such action without the prior written consent of Company and (iv) provides all reasonable assistance to Company at the request of Company. If any Product becomes, or in the opinion of Company may become, the subject of an infringement claim, Company may, at its option, (x) procure for Reseller or its Customer the right to continue using such Product, (y) modify or replace such Product with substantially equivalent noninfringing products, or (z) require the return or destruction of such Product and refund to Reseller a pro-rata portion of the license fee of such Product on a three-year straight line amortization of the license fee.
+
+(c) Exceptions. Notwithstanding the foregoing, Company shall have no indemnification obligations with respect to any third party action alleging that (i) the use of any Products, or any part of them, in combination with products or technology not supplied by Company, or (ii) any service or other process utilizing any Products, infringes any third party intellectual property right.
+
+(d) THIS SECTION 11 STATES THE ENTIRE LIABILITY FOR Company AND THE SOLE REMEDY FOR RESELLER FOR ANY CLAIM OF INFRINGEMENT OF ANY THIRD PARTY INTELLECTUAL PROPERTY RIGHTS BY THE PRODUCTS.
+
+12. Warranty Disclaimer. EXCEPT AS EXPRESSLY PROVIDED HEREIN, THE PRODUCTS ARE PROVIDED "AS IS", AND Company AND ITS SUPPLIERS MAKE NO WARRANTY, EXPRESS, IMPLIED, STATUTORY OR OTHERWISE, WITH RESPECT TO PRODUCTS OR ANY PART THEREOF, INCLUDING WITHOUT LIMITATION ANY IMPLIED WARRANTY OF TITLE, MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NONINFRINGEMENT, OR THOSE ARISING FROM COURSE OF PERFORMANCE, DEALING, USAGE OR TRADE. WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, NEITHER Company NOR ANY OF ITS SUPPLIERS WARRANT THAT THE PRODUCTS OR ANY PART THEREOF WILL MEET RESELLER'S REQUIREMENTS OR BE UNINTERRUPTED, OR ERROR-FREE, OR THAT ANY ERRORS IN THE PRODUCTS WILL BE CORRECTED.
+
+13. Term and Termination.
+
+(a) This Agreement shall commence as of the Effective Date and continue for a minimum 90 day commitment for service after first use. Thereafter, this Agreement shall be renewed automatically for one (1) year unless, at least thirty (30) days prior to the end of the term, either party gives written notice to the other that it does not intend to renew (the initial term and any renewal thereof together the "Term").
+
+(b) Termination for Convenience. Company may terminate this Agreement immediately at any time for any reason or for no reason by providing Reseller with thirty (30) days' prior written notice.
+
+(c) Termination for Cause. Except as set forth in the last sentence of this Section 13(b), either party may terminate this Agreement upon written notice if the other party defaults in the performance of any material provision of this Agreement and such default is not cured within thirty (30) days of written notice thereof. Notwithstanding the foregoing, if Reseller breaches the provisions of Sections 3(b) and/or 10, then Company shall be entitled to terminate this Agreement effective immediately upon delivery of written notice to Reseller.
+
+(d) Termination for Insolvency and Related Events. This Agreement shall terminate, without notice, (i) upon the institution by or against either party of insolvency, receivership or bankruptcy proceedings or any other proceedings for the settlement of such party's debts, (ii) upon either party's making an assignment for the benefit of creditors, or (iii) upon either party's dissolution or ceasing to do business.
+
+(e) Effect of Termination. If this Agreement is terminated, then all of Reseller's rights and licenses with respect to the Products shall terminate; provided that each Customer license granted in accordance with this Agreement shall survive in accordance with its terms, subject to termination for default in accordance with its terms. Upon termination, Reseller must destroy all copies of the Products and any and all promotional literature, price quotations, order forms, data, information and other items received by Reseller from Company in connection with this Agreement. In the event of termination by either party in accordance with any of the provisions of this Agreement, neither party shall be liable to the other, because of such termination, for compensation, reimbursement or damages on account of the loss of prospective profits or anticipated sales or on account of expenditures, inventory, investments, leases or commitments in connection with the business or goodwill of either party. Termination shall not, however, relieve either party of any obligations incurred prior to the termination, including, without limitation, the obligation of Reseller to pay Company for Products licensed to Customer pursuant to this Agreement.
+
+(f) Survival. The provisions of Sections 1, 7(a), 2(g), 2(h), 3(b), 7 and 9 through 17 of this Agreement, and all payment obligations incurred during the Term of this Agreement, shall survive the expiration or termination of this Agreement for any reason. All other rights and obligations of the parties shall cease upon termination of this Agreement.
+
+14. Import and Export Requirements. Reseller shall, at its own expense, pay all import and export licenses and permits, customs charges and duty fees, if any, and shall take all other actions, if any, required to accomplish the export and import of the Products licensed to Customer pursuant to this Agreement or reproduced by Reseller. The Products are specifically subject to U.S. Export Administration Regulations. Reseller agrees to strictly comply with all export, re-export and import restrictions and regulations of the Department of Commerce or other agency or authority of the United States or other applicable countries, and not to transfer, or authorize the transfer of, directly or indirectly, the Products or any direct product thereof to a prohibited country or otherwise in violation of any such restrictions or regulations. Reseller's failure to comply with this Section is a material breach of this Agreement.
+
+15. Government Restricted Rights. As defined in FAR section 2.101, DFAR section 252.2277014(a)(1) and DFAR section 252.227-7014(a)(5) or otherwise, the Products provided in connection with this Agreement are "commercial items," "commercial computer software" and/or "commercial computer software documentation." Consistent with DFAR section 227.7202, FAR section 12.212 and other sections, any use, modification, reproduction, release, performance, display, disclosure or distribution thereof by or for the U.S. Government shall be governed solely by the terms of this Agreement and shall be prohibited except to the extent expressly permitted by the terms of this Agreement. Any technical data provided that is not covered by the above provisions shall be deemed "technical data-commercial items" pursuant to DFAR section 227.7015(a). Any use, modification, reproduction, release, performance, display or disclosure of such technical data shall be governed by the terms of DFAR section 227.7015(b).
+
+16. Limitation of Liability. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL Company OR ITS SUPPLIERS BE LIABLE FOR THE COST OF PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES, LOSS OF PROFITS, OR FOR ANY SPECIAL, CONSEQUENTIAL, INCIDENTAL, PUNITIVE OR INDIRECT DAMAGES (OR DIRECT DAMAGES IN THE CASE OF THE SUPPLIERS) ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, TORT (INCLUDING WITHOUT LIMITATION NEGLIGENCE), STRICT LIABILITY OR OTHERWISE ARISING OUT OF OR UNDER THIS AGREEMENT OR ANY USE OR INABILITY TO USE THE PRODUCTS, OR FOR BREACH OF THIS AGREEMENT. Company'S TOTAL LIABILITY ARISING OUT OF OR UNDER THIS AGREEMENT, OR USE OR INABILITY TO USE THE PRODUCTS, OR FOR BREACH OF THIS AGREEMENT, WHETHER IN CONTRACT, TORT (INCLUDING WITHOUT LIMITATION NEGLIGENCE), STRICT LIABILITY OR OTHERWISE, SHALL NOT EXCEED THE AMOUNT RECEIVED BY Company FROM RESELLER HEREUNDER. THE LIMITATIONS SET FORTH IN THIS SECTION SHALL APPLY EVEN IF Company AND/OR ITS SUPPLIERS ARE ADVISED OF THE POSSIBILITY OF SUCH DAMAGE, AND NOTWITHSTANDING THE FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+
+17. General.
+
+(a) Governing Law and Jurisdiction. This Agreement is governed and interpreted in accordance with the laws of the State of California without reference to conflicts of laws principles and excluding the United Nations Convention on Contracts for the Sale of Goods. The parties consent to the exclusive jurisdiction of, and venue in, San Francisco County, California.
+
+(b) Legal Compliance. Reseller shall at all times perform its obligations hereunder in compliance in all material respects with all applicable federal, state, and local laws and regulations of all applicable domestic jurisdictions, and in such a manner as not to cause Company to be in violation of any applicable laws or regulations including, without limitation, any applicable requirements of any federal, state, and local authority relating to the collection, dissemination, transfer, storage and use of data, specifically including, without limitation, the privacy and security of confidential, personal, sensitive or other protected data.
+
+(c) Assignment. Reseller shall not transfer, assign or delegate this Agreement or any rights or obligations hereunder, whether voluntarily, by operation of law or otherwise, without the prior written consent of Company. Company may freely transfer, assign, or delegate this Agreement without restriction. Any transfer or assignment in violation of this Section 17(c) shall be null and void and of no effect. Subject to the foregoing, the terms and conditions of this Agreement shall be binding upon and inure to the benefit of the parties to it and their respective heirs, successors, assigns and legal representatives.
+
+(d) Merger, Modification and Waiver. This Agreement constitutes the entire agreement between Company and Reseller with respect to the subject matter hereof, and merges all prior negotiations and drafts of the parties with regard thereto. No modification of or amendment to this Agreement, nor any waiver of any rights under this Agreement, by Company shall be effective unless in writing. If there is any conflict between the terms and conditions of this Agreement and the terms and conditions of any order or other document, the terms and conditions of this Agreement shall prevail. The waiver of one breach or default or any delay in exercising any rights shall not constitute a waiver of any subsequent breach or default.
+
+(e) Severability. If any of the provisions of this Agreement is held by a court of competent jurisdiction to be invalid or unenforceable under any applicable statute or rule of law, it shall be replaced with the valid provision that most closely reflects the intent of the parties and the remaining provisions shall continue in full force and effect.
+
+(f) Notices. All notices permitted or required under this Agreement shall be in writing and shall be delivered in person; by courier, overnight delivery, or confirmed fax; or mailed by first class, registered or certified mail, postage prepaid, to the address of the party specified above or such address as either party may specify in writing. Such notice shall be deemed to have been given upon receipt.
+
+(g) Counterparts. This Agreement may be executed in counterparts, each of which shall be deemed an original and all of which together shall constitute one instrument.
+
+(h) Advice of Legal Counsel. Each party acknowledges and represents that, in executing this Agreement, it has had the opportunity to seek advice as to its legal rights from legal counsel and that the person signing on its behalf has read and understood all of the terms and provisions of this Agreement. This Agreement shall not be construed against any party by reason of the drafting or preparation thereof.
+
+[Signature Page Follows]
+
+IN WITNESS WHEREOF, the parties have caused this Agreement to be executed by their duly authorized representatives.
+
+THE COMPANY:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+Date:_________________________
+
+
+RESELLER:
+
+${v.resellerName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+Date:_________________________
+
+
+EXHIBIT A
+
+STATEMENT OF WORK No. 1
+
+Products and Pricing:
+
+${v.productsAndPricing}
+
+Territory:
+
+${v.territory}
+
+Additional Terms:
+
+[The Reseller shall be entitled to a commission of ${v.commissionRate} on all net revenues collected by Company in the event of direct sales of any Products as described above to any Reseller Customers to the extent that such Customers have been previously identified in writing via report card submissions to be delivered by Reseller to Company no later than ${v.reportCardDeadline} after making a Customer introduction to Company.]
+
+
+EXHIBIT B
+
+SALES, APPLICATIONS, AND MARKETING SUPPORT AND TRAINING
+
+Company shall provide training and support to Reseller and Customers as follows:
+
+Sales Support
+
+Company may, from time to time, offer sales support to Reseller which may include assistance with Product demonstrations, qualification of potential Customers, proofs of concept, sales positioning and technical assistance. Company reserves the right to determine the nature and scope of any sales support offered to Reseller.
+
+Product Support
+
+While Reseller will be responsible for providing technical support for the Products for its Customers in the Territory, Company will provide emergency backup technical support services ("Support") to Customers in the Territory who maintain a valid subscription to the Product. Support will be provided in accordance with the applicable TOC for the Products.
+
+Marketing Support
+
+Promotional Materials. Company will provide Reseller with electronic brochures and other promotional literature in the English language that Company deems appropriate for Reseller to promote, solicit and obtain orders for the Products inside the Territory. At Reseller's request, Company will provide Reseller with any updated promotional literature that it makes generally available to its resellers.
+
+Promotional Product. Company will, at its discretion, provide Reseller with a reasonable number of licenses for the Products for the limited purposes of internal training, promotion and demonstration of the Products. Reseller will comply with and be bound by the terms of the applicable TOC for such Products and will not use such Product licenses other than for the limited purposes stated in this section. Reseller will not resell, lease, rent or license any Product licenses provided under this section. Reseller will maintain a detailed record of the number and location of all Product licenses, keys or credentials provided under this section and will provide Company with a copy of such record upon request.
+
+Training
+
+Company will make available to Reseller, from time to time, training in the sale, use and promotion of the Products. Reseller will submit the names, qualifications, skills and relevant experience of its proposed trainees to Company for prior approval. The training will be offered during regularly scheduled training sessions at a facility that Company may designate. Reseller will bear all travel, lodging and out-of-pocket expenses that its trainees may incur in attending these sessions. Company may charge Reseller for such training at the Company then-current standard rates.
+
+
+EXHIBIT C
+
+SERVICE LEVEL AGREEMENT
+
+Service Commitment
+
+Company will use commercially reasonable efforts to make the Company Service available with a Monthly Uptime Percentage, as described below, during any monthly billing cycle (the "Service Commitment"). In the event the Company Service does not meet the Service Commitment, you will be eligible to receive a Service Credit as described below.
+
+Definitions
+
+The following definitions apply to the SLA:
+
+"Covered Service" means the Company Service.
+
+"Error Rate" means the number of Valid Requests that result in a response with HTTP Status 500 and Code "Internal Error" divided by the total number of Valid Requests during that period. Repeated identical requests do not count towards the Error Rate unless they conform to the Back-off Requirements.
+
+"Monthly Uptime Percentage" means 100%, minus the average of Error Rates measured over each period during a monthly billing cycle.
+
+"Valid Requests" are requests that conform to the Documentation, and that would normally result in a non-error response.
+
+"Service Credit" means the following for the Multi-Regional storage class of RStor Storage Service:
+
+Monthly Uptime Percentage: Less than 99.98% but greater than or equal to 99.0% — Service Credit: 10%
+Monthly Uptime Percentage: Less than 99.0% but greater than or equal to 95.0% — Service Credit: 25%
+Monthly Uptime Percentage: Less than 95.0% — Service Credit: 100%
+
+Termination
+
+If Company fails to meet a Monthly Uptime Percentage of 98% during any two (2) months during any six (6) month period, Customer may terminate the Agreement thirty (30) days after written notice to Company of the second such failure.
+
+Customer Must Request Service Credit
+
+In order to receive any of the Service Credits described above, Customer must notify Support within thirty days from the time Customer becomes eligible to receive a Service Credit. Failure to comply with this requirement will forfeit Customer's right to receive a Service Credit.
+
+Maximum Service Credit
+
+The aggregate maximum number of Service Credits to be issued by Company to Customer in a single billing month will not exceed 50% of the amount due by Customer for the applicable the Service for the applicable month. Service Credits will be made in the form of a monetary credit applied to future use of the Storage Service and will be applied within 60 days after the Service Credit was requested.
+
+SLA Exclusions
+
+The SLA does not apply to any: (a) features or Services designated Alpha or Beta (unless otherwise set forth in the associated Documentation), (b) features or Services excluded from the SLA (in the associated Documentation) or (c) errors: (i) caused by factors outside of Company's reasonable control; (ii) that resulted from Customer's software or hardware or third party software or hardware, or both; (iii) that resulted from abuses or other behaviors that violate the Agreement.
+
+Periodic pre-scheduled maintenance windows which will typically not impact uptime will not be included in the uptime calculation.`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   "safe-cap": safeCap,
   "safe-mfn": safeMfn,
@@ -1433,6 +2060,9 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
   nda: ndaAgreement,
   "pilot-agreement": pilotProgramAgreement,
   "user-agreement": userAgreement,
+  "agent-marketing-agreement": agentMarketingAgreement,
+  "distribution-agreement": distributionAgreement,
+  "saas-reseller-agreement": saasResellerAgreement,
 }
 
 export function renderTransactionDocument(docId: string, values: Record<string, string>): string | null {

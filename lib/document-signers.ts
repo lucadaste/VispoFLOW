@@ -148,6 +148,55 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "agent-marketing-agreement": {
+      // Neither party's block in this template has a Title line (just By:/Name:/Date:), and
+      // Agent's block prints no name in advance — so this is "officer"-kind against its own
+      // "AGENT:" header, same idea as the NDA's COUNTERPARTY block.
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.agentName) {
+        slots.push({
+          id: "agent",
+          label: `Agent: ${values.agentName}`,
+          kind: "officer",
+          headerPattern: /^AGENT:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
+    case "saas-reseller-agreement": {
+      // The Reseller's block is a full By:/Name:/Title:/Date: execution block, same shape as the
+      // company's own — "officer"-kind against its own "RESELLER:" header.
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.resellerName) {
+        slots.push({
+          id: "reseller",
+          label: `Reseller: ${values.resellerName}`,
+          kind: "officer",
+          headerPattern: /^RESELLER:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
+    case "distribution-agreement": {
+      // The Distributor's block is a full By:/Name:/Title: execution block — "officer"-kind
+      // against its own "DISTRIBUTOR:" header.
+      const slots: SignerSlot[] = [OFFICER_SLOT]
+      if (values?.distributorName) {
+        slots.push({
+          id: "distributor",
+          label: `Distributor: ${values.distributorName}`,
+          kind: "officer",
+          headerPattern: /^DISTRIBUTOR:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
     case "pilot-agreement": {
       // Unlike the SAFE Investor/NDA Counterparty blocks (officer-kind, left blank until signed),
       // the pilot's Customer signer name and title are collected up front as their own fields, so
