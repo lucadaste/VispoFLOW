@@ -1112,9 +1112,9 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   },
   {
     id: "separation",
-    label: "Founder Separation",
-    chatResponse: "Here are the founder separation documents. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "separation-docs", title: "Founder Separation", items: [FOUNDER_SEPARATION_AGREEMENT, FOUNDERS_REORGANIZATION_AGREEMENT] }],
+    label: "Founder Matters",
+    chatResponse: "Here are the founder matters documents. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
+    groups: [{ id: "separation-docs", title: "Founder Matters", items: [FOUNDER_SEPARATION_AGREEMENT, FOUNDERS_REORGANIZATION_AGREEMENT] }],
   },
   {
     id: "dissolution",
