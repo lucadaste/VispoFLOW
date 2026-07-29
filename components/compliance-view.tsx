@@ -60,15 +60,20 @@ const looksLikeQuestion = (text: string) =>
 
 // Prefills a field from the company's formation answers first (e.g. company name), then falls
 // back to whatever value the user already gave for a field of the same name on any other
-// completed (and not-deleted) compliance filing — e.g. a registered agent's name/address given
-// on one filing carries over to the next one that asks for it — mirroring the same fallback in
-// components/transactions-onboarding.tsx.
+// completed (and not-deleted) compliance filing — e.g. the same DE registered agent's name given
+// on the original appointment carries over to its renewal — mirroring the same fallback in
+// components/transactions-onboarding.tsx. This only fires for fields explicitly marked `shared`
+// in lib/flow.ts — a `name` collision alone isn't enough, since plenty of unrelated fields
+// (e.g. "otherMatters", "effectiveDate") happen to share a name across filings without meaning
+// the same real-world value. See the `ComplianceField.shared` doc comment for why each opt-in
+// was judged safe.
 function prefillValue(answers: FlowAnswers, docs: Record<string, LibraryDoc>, field?: ComplianceField): string {
   if (!field) return ""
   if (field.prefillKey && field.prefillKey !== "computed") {
     const v = answers[field.prefillKey]
     if (typeof v === "string" && v) return v
   }
+  if (!field.shared) return ""
   for (const doc of Object.values(docs)) {
     const v = doc.values?.[field.name]
     if (v) return v

@@ -286,16 +286,19 @@ export function TransactionsOnboarding({
 
   // Prefills a field from the company's formation answers first (e.g. company name), then falls
   // back to whatever value the user already gave for a field of the same name on any other
-  // transaction doc they've completed and not deleted (e.g. an Investor name or date typed for
-  // one SAFE carries over to the next) — same time-saving idea, just sourced from `docs` instead
-  // of `answers` since these fields (Investor name, purchase amount, etc.) aren't part of the
-  // company's global FlowAnswers.
+  // transaction doc they've completed and not deleted (e.g. the Investor name typed for one SAFE
+  // carries over to the next). This fallback only fires for fields explicitly marked `shared` in
+  // lib/flow.ts — a `name` collision alone isn't enough, since plenty of unrelated fields
+  // (e.g. "date") happen to share a name across documents without meaning the same real-world
+  // value, and blindly reusing e.g. the wrong document's date would be worse than just asking
+  // again. See the `TransactionField.shared` doc comment for why each opt-in was judged safe.
   const prefill = (field?: TransactionField): string => {
     if (!field) return ""
     if (field.prefillKey && field.prefillKey !== "computed") {
       const v = answers[field.prefillKey]
       if (typeof v === "string" && v) return v
     }
+    if (!field.shared) return ""
     for (const doc of Object.values(docs)) {
       const v = doc.values?.[field.name]
       if (v) return v

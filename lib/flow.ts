@@ -130,6 +130,14 @@ export type ComplianceField = {
   placeholder?: string
   hint?: string
   optional?: boolean
+  /** Opts this field into the Compliance Center's cross-filing prefill fallback (see
+   *  components/compliance-view.tsx's `prefillValue`) — filled in from another completed, not-
+   *  deleted filing's same-named field. Deliberately opt-in rather than automatic: many fields
+   *  across filings coincidentally share a `name` (e.g. "agentName" on the DE agent appointment
+   *  vs. a future CA one, "otherMatters" on unrelated board consents) without meaning the same
+   *  real-world value, so only set this where that filing's counterpart is confirmed to represent
+   *  the literal same fact (e.g. the same Delaware registered agent being renewed). */
+  shared?: boolean
 }
 
 export type ComplianceItem = {
@@ -219,7 +227,7 @@ const DE_REGISTERED_AGENT: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "deFileNumber", label: "Delaware file number", question: "Do you have a Delaware file number yet?", placeholder: "e.g. 1234567", optional: true },
-    { name: "agentName", label: "Registered agent name", question: "Who's serving as the registered agent?", placeholder: "e.g. Corporation Service Company" },
+    { name: "agentName", label: "Registered agent name", question: "Who's serving as the registered agent?", placeholder: "e.g. Corporation Service Company", shared: true },
     { name: "agentAddress", label: "Registered agent Delaware address", question: "What's the registered agent's Delaware address?", type: "address" },
   ],
 }
@@ -301,8 +309,8 @@ const DE_AGENT_RENEWAL: ComplianceItem = {
   deadline: "Annually",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "agentName", label: "Registered agent name", question: "Who's the registered agent being renewed?" },
-    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
+    { name: "agentName", label: "Registered agent name", question: "Who's the registered agent being renewed?", shared: true },
+    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"], shared: true },
   ],
 }
 
@@ -335,7 +343,7 @@ const CA_AGENT_RENEWAL: ComplianceItem = {
   deadline: "Annually",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"] },
+    { name: "renewalPeriod", label: "Renewal period", question: "Which year is this renewal for?", type: "select", options: ["2025", "2026", "2027", "2028", "2029", "2030"], shared: true },
   ],
 }
 
@@ -447,6 +455,14 @@ export type TransactionField = {
   /** Conversational phrasing used when asking for this field one at a time in Chat mode.
    *  Falls back to `label` if omitted. */
   question?: string
+  /** Opts this field into the Transaction Center's cross-document prefill fallback (see
+   *  components/transactions-onboarding.tsx's `prefill`) — filled in from another completed, not-
+   *  deleted document's same-named field. Deliberately opt-in rather than automatic: many fields
+   *  across documents coincidentally share a `name` (e.g. "date" appears on nearly every
+   *  document, meaning a different real-world date each time) without meaning the same real-world
+   *  value, so only set this where that document's counterpart is confirmed to represent the
+   *  literal same fact (e.g. the same Investor across a SAFE and its Pro Rata Side Letter). */
+  shared?: boolean
 }
 
 export type TransactionItem = {
@@ -495,11 +511,11 @@ const SAFE_CAP: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
-    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "valuationCap", label: "Post-money valuation cap", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
   ],
 }
 
@@ -511,10 +527,10 @@ const SAFE_MFN: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
-    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
   ],
 }
 
@@ -526,8 +542,8 @@ const SAFE_DISCOUNT: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware" },
-    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures" },
+    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     {
       name: "discountPercent",
@@ -536,7 +552,7 @@ const SAFE_DISCOUNT: TransactionItem = {
       placeholder: "e.g. 20",
       hint: "The document's Discount Rate is shown as 100 minus this number (a 20% discount becomes an 80% Discount Rate).",
     },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
   ],
 }
 
@@ -548,7 +564,7 @@ const PRO_RATA_SIDE_LETTER: TransactionItem = {
   fields: [
     { name: "date", label: "Date", type: "date", question: "What's the date of this agreement?" },
     companyNameField,
-    { name: "investorName", label: "Investor name", question: "Who's the Investor this side letter is with?", placeholder: "e.g. Jane Ventures" },
+    { name: "investorName", label: "Investor name", question: "Who's the Investor this side letter is with?", placeholder: "e.g. Jane Ventures", shared: true },
   ],
 }
 
