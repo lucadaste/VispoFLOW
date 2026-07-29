@@ -951,11 +951,11 @@ const IP_LICENSE: TransactionItem = {
 
 /* ---- Commercial Agreements ---- */
 
-const SALES_AGREEMENT: TransactionItem = {
-  id: "sales-agreement",
-  title: "Sales Agreement",
-  short: "Sales Agreement",
-  description: "Agreement for the sale of a product or service to a customer.",
+const AGENT_MARKETING_AGREEMENT: TransactionItem = {
+  id: "agent-marketing-agreement",
+  title: "Agent Marketing Agreement",
+  short: "Agent Marketing Agreement",
+  description: "Agreement engaging an agent to market or sell the company's product or service.",
   fields: [
     companyNameField,
     { name: "customerName", label: "Customer name", placeholder: "e.g. Acme Corp" },
@@ -965,24 +965,10 @@ const SALES_AGREEMENT: TransactionItem = {
   ],
 }
 
-const RESELLER_AGREEMENT: TransactionItem = {
-  id: "reseller-agreement",
-  title: "Reseller Agreement",
-  short: "Reseller Agreement",
-  description: "Agreement authorizing a reseller to sell the company's product.",
-  fields: [
-    companyNameField,
-    { name: "resellerName", label: "Reseller name", placeholder: "e.g. Acme Distribution" },
-    { name: "territory", label: "Territory", placeholder: "e.g. North America" },
-    { name: "discountTerms", label: "Discount / margin terms", placeholder: "e.g. 20% off list price" },
-    { name: "termLength", label: "Term length", placeholder: "e.g. 1 year, auto-renewing" },
-  ],
-}
-
-const SAAS_AGREEMENT: TransactionItem = {
-  id: "saas-agreement",
-  title: "SaaS Agreement",
-  short: "SaaS Agreement",
+const SAAS_RESELLER_AGREEMENT: TransactionItem = {
+  id: "saas-reseller-agreement",
+  title: "Saas Reseller Agreement",
+  short: "Saas Reseller Agreement",
   description: "Subscription agreement for access to the company's SaaS product.",
   fields: [
     companyNameField,
@@ -1074,7 +1060,7 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
     id: "commercial",
     label: "Commercial Agreements",
     chatResponse: "Here are the commercial agreements available. Select which one you'd like to prepare by clicking it on the right — I'll walk you through it.",
-    groups: [{ id: "commercial-docs", title: "Commercial Agreements", items: [SALES_AGREEMENT, RESELLER_AGREEMENT, SAAS_AGREEMENT, DISTRIBUTION_AGREEMENT] }],
+    groups: [{ id: "commercial-docs", title: "Commercial Agreements", items: [AGENT_MARKETING_AGREEMENT, SAAS_RESELLER_AGREEMENT, DISTRIBUTION_AGREEMENT] }],
   },
   {
     id: "separation",
