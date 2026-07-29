@@ -4,7 +4,7 @@ import { Fragment, useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillSignedDateLine, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
+import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillSignedDateLine, findBlankFieldLabels, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import type { FlowAnswers } from "@/lib/flow"
 import { SignaturePad } from "@/components/signature-pad"
@@ -20,6 +20,9 @@ export type DocSignature = {
   signedAt: string
   /** for the officer slot only — the title used to fill the "THE COMPANY:" block's Name:/Title: lines */
   officerTitle?: string
+  /** for officer-kind slots only — values (e.g. Address, Email) to fill any other blank single-line
+   *  fields in the same execution block; see lib/signature.ts's findBlankFieldLabels */
+  extraFields?: Record<string, string>
 }
 
 export type LibraryDoc = {
@@ -62,7 +65,16 @@ export function withDocSignatures(doc: LibraryDoc, signatures: DocSignature[], a
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }
-type SendToSignPayload = { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string }
+type SendToSignPayload = {
+  recipientEmail: string
+  recipientName?: string
+  slotId: string
+  slotLabel: string
+  lockedName?: string
+  /** extra single-line fields (e.g. "Address", "Email") this slot's block leaves blank — the
+   *  recipient will be asked to fill these in alongside their signature. */
+  requiredFields?: string[]
+}
 /** An outstanding (not-yet-signed) request to sign a given doc, keyed by doc.id. */
 export type PendingSignRequest = { id: string; slotLabel: string; recipientEmail: string; recipientName?: string | null }
 
@@ -111,7 +123,15 @@ function signedContent(doc: LibraryDoc, answers: FlowAnswers): string {
   const slots = getSignerSlots(doc.id, answers, doc.values)
   for (const sig of doc.signatures ?? []) {
     const slot = slots.find((s) => s.id === sig.slotId) ?? { id: sig.slotId, label: sig.slotLabel, kind: "officer" as const }
-    if (sig.officerTitle) content = fillCompanyExecutionBlock(content, sig.signerName, [sig.officerTitle], slot.headerPattern)
+    if (slot.kind === "officer") {
+      content = fillCompanyExecutionBlock(
+        content,
+        sig.signerName,
+        sig.officerTitle ? [sig.officerTitle] : [],
+        slot.headerPattern,
+        sig.extraFields,
+      )
+    }
     for (const lineIndex of resolveSignatureLines(content, slot, sig.signerName)) {
       content = fillSignedDateLine(content, lineIndex, sig.signedAt)
     }
@@ -912,12 +932,15 @@ function SendToSignPopoverContent({
 
   const send = () => {
     if (!email.trim()) return
+    const requiredFields =
+      selectedSlot.kind === "officer" ? findBlankFieldLabels(doc.content ?? "", selectedSlot.headerPattern) : undefined
     onSendToSign(doc, {
       recipientEmail: email.trim(),
       recipientName: name.trim() || undefined,
       slotId: selectedSlot.id,
       slotLabel: selectedSlot.label,
       lockedName: selectedSlot.kind === "named" ? selectedSlot.matchName : undefined,
+      requiredFields: requiredFields?.length ? requiredFields : undefined,
     })
     onDone()
   }

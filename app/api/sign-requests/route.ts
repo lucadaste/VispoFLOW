@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { docId, docTitle, docContent, recipientEmail, recipientName, senderCompanyName, slotId, slotLabel, lockedName } = body
+  const { docId, docTitle, docContent, recipientEmail, recipientName, senderCompanyName, slotId, slotLabel, lockedName, requiredFields } = body
 
   if (!docId || !docTitle || !docContent || !recipientEmail || !slotId || !slotLabel) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -33,7 +33,20 @@ export async function POST(req: NextRequest) {
 
   const [row] = await db
     .insert(signatureRequests)
-    .values({ id, token, ownerId: userId, docId, docTitle, docContent, recipientEmail, recipientName, slotId, slotLabel, lockedName })
+    .values({
+      id,
+      token,
+      ownerId: userId,
+      docId,
+      docTitle,
+      docContent,
+      recipientEmail,
+      recipientName,
+      slotId,
+      slotLabel,
+      lockedName,
+      requiredFields: Array.isArray(requiredFields) && requiredFields.length ? requiredFields : null,
+    })
     .returning()
 
   const origin = req.nextUrl.origin

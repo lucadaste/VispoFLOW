@@ -15,6 +15,7 @@ export function SignRequestClient({
   alreadySigned,
   signerName,
   signedAt,
+  requiredFields,
 }: {
   token: string
   docTitle: string
@@ -25,21 +26,30 @@ export function SignRequestClient({
   alreadySigned: boolean
   signerName: string | null
   signedAt: string | null
+  requiredFields: string[]
 }) {
   const [signed, setSigned] = useState(alreadySigned)
   const [signedByName, setSignedByName] = useState(signerName ?? "")
   const [consented, setConsented] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fields, setFields] = useState<Record<string, string>>(() =>
+    Object.fromEntries(requiredFields.map((label) => [label, ""])),
+  )
+  const missingFields = requiredFields.filter((label) => !fields[label]?.trim())
 
   const handleCapture = async (dataUrl: string, _method: "typed" | "drawn", name: string) => {
+    if (missingFields.length > 0) {
+      setError(`Please fill in your ${missingFields.join(" and ").toLowerCase()} before signing.`)
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
       const res = await fetch(`/api/sign/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signerName: name, signatureDataUrl: dataUrl }),
+        body: JSON.stringify({ signerName: name, signatureDataUrl: dataUrl, fields }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -81,6 +91,23 @@ export function SignRequestClient({
           </div>
         ) : (
           <div className="rounded-lg border border-border bg-background p-4">
+            {requiredFields.length > 0 && (
+              <div className="mb-4 space-y-3">
+                <p className="text-xs font-medium text-foreground">This document also needs your:</p>
+                {requiredFields.map((label) => (
+                  <div key={label}>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
+                    <input
+                      type={label === "Email" ? "email" : "text"}
+                      value={fields[label] ?? ""}
+                      onChange={(e) => setFields((f) => ({ ...f, [label]: e.target.value }))}
+                      placeholder={label}
+                      className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             <label className="mb-3 flex items-start gap-2 text-xs text-muted-foreground">
               <input
                 type="checkbox"

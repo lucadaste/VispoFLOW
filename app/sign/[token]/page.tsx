@@ -27,6 +27,7 @@ export default async function SignPage({ params }: { params: Promise<{ token: st
       alreadySigned={row.status === "signed"}
       signerName={row.signerName}
       signedAt={row.signedAt ? row.signedAt.toISOString() : null}
+      requiredFields={(row.requiredFields as string[] | null) ?? []}
     />
   )
 }

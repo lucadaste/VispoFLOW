@@ -128,29 +128,118 @@ export function resolveSignatureLines(content: string, slot: SignatureRouting, s
   return companyLines.length > 0 ? companyLines : findDateAdjacentLines(lines)
 }
 
+/** The "other" single-line blanks (beyond Name:/Title:) that can appear in a party's execution
+ *  block in a form simple enough to fill unambiguously — a label immediately followed by a run of
+ *  underscores on the same line. */
+const EXTRA_BLOCK_FIELD_LABELS = ["Address", "Email"]
+
+/** Matches a blank line meant to hold one line of a multi-line address — a run of underscores,
+ *  optionally split into a couple of groups by whitespace (the "city, state zip" line's shape,
+ *  e.g. "__________ ______"). */
+function isBlankAddressLine(line: string): boolean {
+  return /^_{3,}(\s+_{2,})*$/.test(line.trim())
+}
+
+/** Finds the blank line(s) under a bare "Address:" label — the shape used when a party's address
+ *  doesn't fit inline (e.g. the NDA's execution blocks: "Address:" on its own line, then one or
+ *  more blank continuation lines). Returns at most two indices, since that's all a street +
+ *  city/state/zip split ever needs. Stops at the first line that isn't blank or a blank-address
+ *  line — a fixed value like "United States", another field's label, or the next party's header —
+ *  so it never wanders into unrelated content. Returns [] if the window has no bare "Address:"
+ *  line (the inline "Address:____" shape is handled separately, by the caller's own regex).
+ */
+function findMultilineAddressBlanks(lines: string[], from: number, to: number): number[] {
+  let labelIndex = -1
+  for (let i = from; i <= to; i++) {
+    if (/^Address:$/i.test(lines[i].trim())) { labelIndex = i; break }
+  }
+  if (labelIndex === -1) return []
+  const blanks: number[] = []
+  for (let j = labelIndex + 1; j <= Math.min(to, labelIndex + 6) && blanks.length < 2; j++) {
+    const trimmed = lines[j].trim()
+    if (!trimmed) continue
+    if (isBlankAddressLine(trimmed)) { blanks.push(j); continue }
+    break
+  }
+  return blanks
+}
+
+/** Fills the blank line(s) found by `findMultilineAddressBlanks`, splitting `address` on its
+ *  first comma so the street goes on the first blank line and city/state/zip on the second — a
+ *  single blank line gets the whole address. Leftover blank lines beyond what `address` has parts
+ *  for are left as-is (there's nothing more specific to put there). */
+function fillMultilineAddressBlanks(lines: string[], blanks: number[], address: string): void {
+  const commaIndex = address.indexOf(",")
+  const parts =
+    blanks.length > 1 && commaIndex !== -1
+      ? [address.slice(0, commaIndex).trim(), address.slice(commaIndex + 1).trim()]
+      : [address]
+  blanks.forEach((lineIndex, i) => {
+    if (parts[i]) lines[lineIndex] = parts[i]
+  })
+}
+
 /**
- * Fills the blank "Name:____"/"Title:____" lines of every company execution block with the
- * signer's name and officer title, so the printed block matches who actually signed on the By:
- * line. No-op if the signer holds no officer-type role or the document has no such block.
- * `headerPattern` lets a document use a party label other than the default "THE COMPANY:"
- * (e.g. a loan agreement's "BORROWER:").
+ * Fills the blank "Name:____"/"Title:____" lines of a party's execution block with the signer's
+ * name and officer title, so the printed block matches who actually signed on the By: line. Name
+ * fills unconditionally (it's just who signed); Title only fills if the signer holds a
+ * recognized officer-type role — an external counterparty (e.g. a SAFE's Investor) usually holds
+ * neither, and the block simply keeps its blank Title line in that case. `extraFields` additionally
+ * fills any of `EXTRA_BLOCK_FIELD_LABELS` present with a non-empty value — Address either inline
+ * ("Address:____") or, if the block instead uses a bare "Address:" label with blank continuation
+ * lines, spread across those (see findMultilineAddressBlanks). No-op if the document has no block
+ * matching `headerPattern` (default "THE COMPANY:"; a document can use a different party label,
+ * e.g. a loan agreement's "BORROWER:").
  */
 export function fillCompanyExecutionBlock(
   content: string,
   signerName: string,
   roles: string[],
   headerPattern: RegExp = /^THE COMPANY:$/i,
+  extraFields?: Record<string, string>,
 ): string {
   const officerTitle = primaryOfficerTitle(roles)
-  if (!officerTitle) return content
   const lines = content.split("\n")
   for (const byIndex of findByLineIndices(lines, headerPattern)) {
-    for (let j = byIndex; j <= Math.min(byIndex + 6, lines.length - 1); j++) {
-      if (/^Name:_{3,}$/i.test(lines[j].trim())) lines[j] = `Name: ${signerName}`
-      if (/^Title:_{3,}$/i.test(lines[j].trim())) lines[j] = `Title: ${officerTitle}`
+    const windowEnd = Math.min(byIndex + 12, lines.length - 1)
+    for (let j = byIndex; j <= windowEnd; j++) {
+      const trimmed = lines[j].trim()
+      if (/^Name:_{3,}$/i.test(trimmed)) lines[j] = `Name: ${signerName}`
+      if (officerTitle && /^Title:_{3,}$/i.test(trimmed)) lines[j] = `Title: ${officerTitle}`
+      for (const label of EXTRA_BLOCK_FIELD_LABELS) {
+        const value = extraFields?.[label]
+        if (value && new RegExp(`^${label}:_{3,}$`, "i").test(trimmed)) lines[j] = `${label}: ${value}`
+      }
+    }
+    const address = extraFields?.Address
+    if (address) {
+      const blanks = findMultilineAddressBlanks(lines, byIndex, windowEnd)
+      if (blanks.length > 0) fillMultilineAddressBlanks(lines, blanks, address)
     }
   }
   return lines.join("\n")
+}
+
+/**
+ * The extra fields (from `EXTRA_BLOCK_FIELD_LABELS`) that appear as blanks — inline or, for
+ * Address, spread across multi-line continuation blanks too — in a party's execution block. Used
+ * at "send to sign" time to ask an invited signer for exactly the extra fields their block
+ * actually requires, instead of only ever collecting a signature/name/date.
+ */
+export function findBlankFieldLabels(content: string, headerPattern: RegExp = /^THE COMPANY:$/i): string[] {
+  const lines = content.split("\n")
+  const found = new Set<string>()
+  for (const byIndex of findByLineIndices(lines, headerPattern)) {
+    const windowEnd = Math.min(byIndex + 12, lines.length - 1)
+    for (let j = byIndex; j <= windowEnd; j++) {
+      const trimmed = lines[j].trim()
+      for (const label of EXTRA_BLOCK_FIELD_LABELS) {
+        if (new RegExp(`^${label}:_{3,}$`, "i").test(trimmed)) found.add(label)
+      }
+    }
+    if (findMultilineAddressBlanks(lines, byIndex, windowEnd).length > 0) found.add("Address")
+  }
+  return [...found]
 }
 
 /**

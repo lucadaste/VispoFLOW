@@ -31,9 +31,16 @@ export const signatureRequests = pgTable("signature_requests", {
   /** for "named"/"officer" slots, the exact name the recipient must sign as — sent to the public
    *  page so the name field can be pre-filled and locked, guaranteeing correct line placement */
   lockedName: text("locked_name"),
+  /** extra single-line fields (e.g. ["Address", "Email"]) this slot's execution block leaves
+   *  blank beyond Name/Title/Date — computed at send time (see findBlankFieldLabels) so the public
+   *  sign page knows to prompt the recipient for them. */
+  requiredFields: jsonb("required_fields"),
   status: text("status").notNull().default("sent"), // "sent" | "viewed" | "signed"
   signerName: text("signer_name"),
   signerRoles: jsonb("signer_roles"),
+  /** the recipient's values for `requiredFields`, e.g. { "Address": "123 Main St", "Email": "..." } —
+   *  folded into the signer's DocSignature.extraFields once the request comes back signed. */
+  fields: jsonb("fields"),
   signatureDataUrl: text("signature_data_url"),
   signerIp: text("signer_ip"),
   signedAt: timestamp("signed_at", { withTimezone: true }),

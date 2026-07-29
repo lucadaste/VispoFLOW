@@ -74,6 +74,17 @@ export function ProfileForm({
       </div>
 
       <div>
+        <label className={labelClass}>Your contact email</label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+          placeholder="e.g. jane@acmetech.com"
+          className={fieldClass}
+        />
+      </div>
+
+      <div>
         <label className={labelClass}>Your role(s) at the company</label>
         <p className="mb-2 text-xs text-muted-foreground">
           Select every title you hold — this puts your signature on the matching line in each document.

@@ -20,13 +20,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ tok
     recipientName: row.recipientName,
     slotLabel: row.slotLabel,
     lockedName: row.lockedName,
+    requiredFields: row.requiredFields ?? [],
   })
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const body = await req.json()
-  const { signerName, signatureDataUrl } = body
+  const { signerName, signatureDataUrl, fields } = body
 
   if (!signerName || !signatureDataUrl) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
@@ -42,6 +43,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Signer name doesn't match the assigned signer" }, { status: 400 })
   }
 
+  const requiredFields = (row.requiredFields as string[] | null) ?? []
+  const submittedFields: Record<string, string> = {}
+  for (const label of requiredFields) {
+    const value = typeof fields?.[label] === "string" ? fields[label].trim() : ""
+    if (!value) return NextResponse.json({ error: `${label} is required` }, { status: 400 })
+    submittedFields[label] = value
+  }
+
   const signerIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
 
   await db
@@ -50,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       status: "signed",
       signerName,
       signatureDataUrl,
+      fields: Object.keys(submittedFields).length ? submittedFields : null,
       signerIp,
       signedAt: new Date(),
     })

@@ -22,6 +22,8 @@ export type UserProfile = {
   personalAddress: string
   /** full legal name, used both for the signature block text and as the incorporator's name */
   signerName: string
+  /** contact email, used to fill blank "Email:____" lines in a signed document's execution block */
+  email: string
   /** titles held at the company, used to route the signature onto the matching line in each document */
   roles: string[]
   signatureMethod: "typed" | "drawn" | null
@@ -35,6 +37,7 @@ export const emptyProfile: UserProfile = {
   companyAddress: "",
   personalAddress: "",
   signerName: "",
+  email: "",
   roles: [],
   signatureMethod: null,
   signatureDataUrl: null,

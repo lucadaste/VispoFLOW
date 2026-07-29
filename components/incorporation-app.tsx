@@ -125,6 +125,8 @@ type SignRequest = {
   signerName: string | null
   signatureDataUrl: string | null
   signedAt: string | null
+  /** the recipient's values for any extra fields (e.g. Address, Email) their slot's block required */
+  fields: Record<string, string> | null
 }
 
 type LibraryPersisted = {
@@ -283,6 +285,7 @@ export function IncorporationApp() {
         signatureDataUrl: req.signatureDataUrl,
         signerName: req.signerName,
         signedAt: req.signedAt,
+        extraFields: req.fields ?? undefined,
       }
       setSignedDocs((docs) => ({
         ...docs,
@@ -309,7 +312,14 @@ export function IncorporationApp() {
   const handleSendToSign = useCallback(
     async (
       doc: LibraryDoc,
-      payload: { recipientEmail: string; recipientName?: string; slotId: string; slotLabel: string; lockedName?: string },
+      payload: {
+        recipientEmail: string
+        recipientName?: string
+        slotId: string
+        slotLabel: string
+        lockedName?: string
+        requiredFields?: string[]
+      },
     ) => {
       const res = await fetch("/api/sign-requests", {
         method: "POST",
@@ -324,6 +334,7 @@ export function IncorporationApp() {
           slotId: payload.slotId,
           slotLabel: payload.slotLabel,
           lockedName: payload.lockedName,
+          requiredFields: payload.requiredFields,
         }),
       })
       if (res.ok) {
@@ -453,12 +464,18 @@ export function IncorporationApp() {
     (doc: LibraryDoc, signature: { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }) => {
       const slotId = signature.slotId ?? "officer"
       const slot = getSignerSlots(doc.id, effectiveAnswers, doc.values).find((s) => s.id === slotId)
+      const isAccountHolder = signature.signerName.trim().toLowerCase() === profile.signerName.trim().toLowerCase()
       // The ad-hoc "type/draw a signature" path (used when no saved profile signature exists yet)
       // doesn't collect roles. If the typed name matches the account holder, fall back to their
       // saved profile roles so the company execution block still gets filled in correctly.
-      const roles =
-        signature.roles ??
-        (signature.signerName.trim().toLowerCase() === profile.signerName.trim().toLowerCase() ? profile.roles : undefined)
+      const roles = signature.roles ?? (isAccountHolder ? profile.roles : undefined)
+      // Self-signing only ever represents the company (external slots go through "send to sign"
+      // instead — see selfSignableSlotsFor), so any blank Address/Email in this block is the
+      // account holder's own saved company info.
+      const extraFields =
+        slot?.kind === "officer" && !slot.external && isAccountHolder
+          ? { Address: profile.companyAddress, Email: profile.email }
+          : undefined
       const newSig: DocSignature = {
         slotId,
         slotLabel: signature.slotLabel ?? slot?.label ?? "Company officer",
@@ -466,13 +483,14 @@ export function IncorporationApp() {
         signerName: signature.signerName,
         signedAt: new Date().toISOString(),
         officerTitle: slot?.kind === "officer" ? primaryOfficerTitle(roles ?? []) ?? undefined : undefined,
+        extraFields,
       }
       setSignedDocs((docs) => ({
         ...docs,
         [doc.id]: [...(docs[doc.id] ?? []).filter((s) => s.slotId !== slotId), newSig],
       }))
     },
-    [profile.signerName, profile.roles, effectiveAnswers],
+    [profile.signerName, profile.roles, profile.companyAddress, profile.email, effectiveAnswers],
   )
 
   const handleTransactionDocReady = useCallback((doc: LibraryDoc) => {
