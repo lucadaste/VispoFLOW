@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Send } from "lucide-react"
 import type { ChatField } from "@/lib/flow"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { formatNumberInput } from "@/lib/number-format"
 
 /** One-at-a-time input for a single field in a conversational (chat mode) flow. */
 export function FieldComposer({
@@ -58,9 +59,10 @@ export function FieldComposer({
         ) : (
           <input
             type={field.type === "date" ? "date" : "text"}
+            inputMode={field.type === "number" ? "decimal" : undefined}
             value={value}
             placeholder={placeholder}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => setValue(field.type === "number" ? formatNumberInput(e.target.value) : e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && canSubmit && submit(value)}
             className="w-full bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />

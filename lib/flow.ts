@@ -4,7 +4,7 @@ export const AUTHORIZED_SHARES = 10_000_000
 export type ChatField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select" | "address"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
   options?: string[]
   placeholder?: string
   hint?: string
@@ -124,7 +124,7 @@ export type ComplianceField = {
   label: string
   /** How this field is asked in chat mode — a natural question. Falls back to `label` if omitted. */
   question?: string
-  type?: "text" | "date" | "textarea" | "select" | "address"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -210,8 +210,8 @@ const EIGHTY_THREE_B: ComplianceItem = {
     { name: "taxpayerTin", label: "Taxpayer's SSN or ITIN (Box 1)", question: "What's the taxpayer's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX" },
     { name: "taxpayerAddress", label: "Taxpayer's address (Box 1)", question: "What's the taxpayer's mailing address?", type: "address", prefillKey: "incorporatorAddress", placeholder: "Street, City, State, ZIP" },
     { name: "grantDate", label: "Date property was transferred (Box 3)", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The election must be filed within 30 days of this date." },
-    { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
-    { name: "pricePerShare", label: "Price paid per share, in USD (Boxes 6a, 7a)", question: "What price per share was paid? This is normally also the shares' fair market value at grant.", placeholder: "e.g. 0.0001" },
+    { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", type: "number", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
+    { name: "pricePerShare", label: "Price paid per share, in USD (Boxes 6a, 7a)", type: "number", question: "What price per share was paid? This is normally also the shares' fair market value at grant.", placeholder: "e.g. 0.0001" },
     { name: "vestingSchedule", label: "Restrictions on the property (Box 5)", question: "What vesting schedule or restrictions apply to these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
     { name: "companyAddress", label: "Company's address, for Box 9 (optional)", question: "What's the company's principal address? This is optional — Box 9 isn't required to make a valid election.", type: "address", prefillKey: "corpAddress", optional: true },
     { name: "companyEin", label: "Company's EIN, if issued yet, for Box 9 (optional)", question: "Has the company's EIN been issued yet? If so, what is it?", optional: true },
@@ -267,8 +267,8 @@ const NOTICE_25102F: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "firstSaleDate", label: "Date of first sale of securities", question: "What date was the first sale of securities?", type: "date" },
-    { name: "amount", label: "Aggregate amount raised in California (USD)", question: "What's the aggregate amount raised from California purchasers?" },
-    { name: "purchasers", label: "Number of California purchasers", question: "How many California purchasers were there?" },
+    { name: "amount", label: "Aggregate amount raised in California (USD)", type: "number", question: "What's the aggregate amount raised from California purchasers?" },
+    { name: "purchasers", label: "Number of California purchasers", type: "number", question: "How many California purchasers were there?" },
   ],
 }
 
@@ -282,7 +282,7 @@ const NOTICE_25102O: ComplianceItem = {
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "planName", label: "Equity incentive plan name", question: "What's the equity incentive plan called?", placeholder: "e.g. 2025 Equity Incentive Plan" },
     { name: "adoptionDate", label: "Plan adoption date", question: "When was the plan adopted?", type: "date" },
-    { name: "poolShares", label: "Shares reserved under the plan", question: "How many shares are reserved under the plan?", prefillKey: "poolShares" },
+    { name: "poolShares", label: "Shares reserved under the plan", type: "number", question: "How many shares are reserved under the plan?", prefillKey: "poolShares" },
   ],
 }
 
@@ -295,8 +295,8 @@ const DE_ANNUAL_REPORT: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "reportYear", label: "Report year", question: "Which year is this report for?", placeholder: "e.g. 2025" },
-    { name: "authorizedShares", label: "Total authorized shares", question: "How many total authorized shares does the company have?" },
-    { name: "grossAssets", label: "Total gross assets (USD)", question: "What are the company's total gross assets?", hint: "Used to calculate franchise tax under the assumed par value method." },
+    { name: "authorizedShares", label: "Total authorized shares", type: "number", question: "How many total authorized shares does the company have?" },
+    { name: "grossAssets", label: "Total gross assets (USD)", type: "number", question: "What are the company's total gross assets?", hint: "Used to calculate franchise tax under the assumed par value method." },
     { name: "directors", label: "Names and addresses of all directors", question: "Who are the company's directors, and what are their addresses?", type: "textarea" },
   ],
 }
@@ -387,7 +387,7 @@ const SPECIAL_STOCKHOLDERS_CONSENT: ComplianceItem = {
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
     { name: "matter", label: "Matter being approved", question: "What matter is being approved?", type: "textarea", placeholder: "e.g. approval of a financing round" },
-    { name: "sharesVoting", label: "Shares voting in favor", question: "How many shares are voting in favor?" },
+    { name: "sharesVoting", label: "Shares voting in favor", type: "number", question: "How many shares are voting in favor?" },
   ],
 }
 
@@ -446,7 +446,7 @@ export const COMPLIANCE_GROUPS: ComplianceGroup[] = COMPLIANCE_CATEGORIES.flatMa
 export type TransactionField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select" | "address"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -527,8 +527,8 @@ const SAFE_CAP: TransactionItem = {
     companyNameField,
     { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
-    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
-    { name: "valuationCap", label: "Post-money valuation cap", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
+    { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    { name: "valuationCap", label: "Post-money valuation cap", type: "number", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
     { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
   ],
 }
@@ -543,7 +543,7 @@ const SAFE_MFN: TransactionItem = {
     companyNameField,
     { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
-    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
   ],
 }
@@ -558,7 +558,7 @@ const SAFE_DISCOUNT: TransactionItem = {
     companyNameField,
     { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
-    { name: "purchaseAmount", label: "Purchase amount", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
+    { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     {
       name: "discountPercent",
       label: "Discount",
@@ -596,11 +596,12 @@ const FOUNDER_LOAN: TransactionItem = {
       question: "Who's the founder lending the money — that's the Lender on this agreement?",
       placeholder: "e.g. Jane Founder",
     },
-    { name: "loanAmount", label: "Loan amount", question: "How much is the loan for?", placeholder: "e.g. 25,000" },
-    { name: "interestRate", label: "Interest rate", question: "What interest rate will apply to the loan?", placeholder: "e.g. 5" },
+    { name: "loanAmount", label: "Loan amount", type: "number", question: "How much is the loan for?", placeholder: "e.g. 25,000" },
+    { name: "interestRate", label: "Interest rate", type: "number", question: "What interest rate will apply to the loan?", placeholder: "e.g. 5" },
     {
       name: "interestRateNumber",
       label: "Interest rate, as a decimal",
+      type: "number",
       question: "And what's that rate as a decimal?",
       placeholder: "e.g. 0.05",
       hint: "5% would be 0.05.",
@@ -670,10 +671,11 @@ const PROMISED_OPTIONS_LETTER: TransactionItem = {
       question: "Who's this letter addressed to — the recipient of the promised options?",
       placeholder: "e.g. Jane Developer",
     },
-    { name: "hoursPerWeek", label: "Hours per week", question: "How many hours per week will they work?", placeholder: "e.g. 10" },
+    { name: "hoursPerWeek", label: "Hours per week", type: "number", question: "How many hours per week will they work?", placeholder: "e.g. 10" },
     {
       name: "companyProFormaValuation",
       label: "Company pro forma valuation",
+      type: "number",
       question: "What's the company's pro forma valuation?",
       placeholder: "e.g. 10,000,000",
       hint: "Used to calculate the per-share value automatically.",
@@ -681,12 +683,14 @@ const PROMISED_OPTIONS_LETTER: TransactionItem = {
     {
       name: "optionsVestingPerWeek",
       label: "Options vesting per week",
+      type: "number",
       question: "How many options vest per week?",
       placeholder: "e.g. 500",
     },
     {
       name: "termWeeks",
       label: "Term (weeks)",
+      type: "number",
       question: "What's the term, in weeks?",
       placeholder: "e.g. 104",
       hint: "Total options are calculated automatically as vesting-per-week times this term.",
@@ -707,7 +711,7 @@ const OFFER_LETTER: TransactionItem = {
     { name: "employeeName", label: "Employee name", question: "Who's this offer letter for?", placeholder: "e.g. Jane Employee" },
     { name: "employeePosition", label: "Employee position", question: "What position are they being offered?", placeholder: "e.g. Head of Engineering" },
     { name: "startDate", label: "Start date", question: "What's their start date?", type: "date" },
-    { name: "annualSalary", label: "Annual salary", question: "What's the annual salary?", placeholder: "e.g. $150,000" },
+    { name: "annualSalary", label: "Annual salary", type: "number", question: "What's the annual salary?", placeholder: "e.g. $150,000" },
     {
       name: "salaryIncreaseClause",
       label: "Include a salary increase clause tied to the next financing?",
@@ -718,6 +722,7 @@ const OFFER_LETTER: TransactionItem = {
     {
       name: "nextFinancingAmount",
       label: "Minimum next financing amount that triggers the increase",
+      type: "number",
       question: "What's the minimum size of the next financing round that triggers the increase?",
       placeholder: "e.g. $2,000,000",
       optional: true,
@@ -726,12 +731,13 @@ const OFFER_LETTER: TransactionItem = {
     {
       name: "updatedAnnualSalary",
       label: "Updated annual salary",
+      type: "number",
       question: "What will the salary increase to?",
       placeholder: "e.g. $170,000",
       optional: true,
       hint: "Only needed if you're including the salary increase clause.",
     },
-    { name: "numberOfOptions", label: "Number of stock options", question: "How many stock options will they be granted?", placeholder: "e.g. 40,000" },
+    { name: "numberOfOptions", label: "Number of stock options", type: "number", question: "How many stock options will they be granted?", placeholder: "e.g. 40,000" },
     { name: "signatureDate", label: "Signature date", question: "What's the signature date?", type: "date" },
   ],
 }
@@ -769,6 +775,7 @@ const CONSULTING_AGREEMENT: TransactionItem = {
     {
       name: "numberOfOptions",
       label: "Number of stock options (Exhibit B)",
+      type: "number",
       question: "How many stock options, if any, will the consultant receive?",
       placeholder: "e.g. 10,000",
       optional: true,
@@ -810,7 +817,7 @@ const ADVISOR_AGREEMENT: TransactionItem = {
       type: "textarea",
       placeholder: "e.g. Go-to-market strategy and introductions to potential customers.",
     },
-    { name: "numberOfOptions", label: "Number of stock options (Exhibit B)", question: "How many stock options will the advisor be granted?", placeholder: "e.g. 10,000" },
+    { name: "numberOfOptions", label: "Number of stock options (Exhibit B)", type: "number", question: "How many stock options will the advisor be granted?", placeholder: "e.g. 10,000" },
     { name: "signatureDate", label: "Signature date", question: "What's the signature date?", type: "date" },
   ],
 }
@@ -1035,10 +1042,10 @@ const FOUNDER_SEPARATION_AGREEMENT: TransactionItem = {
     { name: "departingFounder", label: "Departing founder", question: "Who's the departing founder?", placeholder: "e.g. Jane Founder" },
     { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
     { name: "separationDate", label: "Separation date", type: "date", question: "What date is the Founder leaving the Company and ceasing to be a service provider?" },
-    { name: "sharesHeld", label: "Shares currently held by Founder", question: "How many shares of common stock does the Founder currently hold?", placeholder: "e.g. 1,000,000" },
-    { name: "vestedSharesCancelled", label: "Vested shares being cancelled", question: "How many vested shares of common stock will be cancelled?", placeholder: "e.g. 600,000" },
-    { name: "unvestedSharesRepurchased", label: "Unvested shares being repurchased", question: "How many unvested shares of common stock will the Company repurchase?", placeholder: "e.g. 400,000" },
-    { name: "repurchaseAmount", label: "Aggregate repurchase payment", question: "What's the aggregate dollar amount the Company will pay for the repurchase?", placeholder: "e.g. 1,000" },
+    { name: "sharesHeld", label: "Shares currently held by Founder", type: "number", question: "How many shares of common stock does the Founder currently hold?", placeholder: "e.g. 1,000,000" },
+    { name: "vestedSharesCancelled", label: "Vested shares being cancelled", type: "number", question: "How many vested shares of common stock will be cancelled?", placeholder: "e.g. 600,000" },
+    { name: "unvestedSharesRepurchased", label: "Unvested shares being repurchased", type: "number", question: "How many unvested shares of common stock will the Company repurchase?", placeholder: "e.g. 400,000" },
+    { name: "repurchaseAmount", label: "Aggregate repurchase payment", type: "number", question: "What's the aggregate dollar amount the Company will pay for the repurchase?", placeholder: "e.g. 1,000" },
   ],
 }
 
@@ -1052,11 +1059,11 @@ const FOUNDERS_REORGANIZATION_AGREEMENT: TransactionItem = {
     { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
     { name: "founder1Name", label: "Founder 1 (transferring shares)", question: "Who's Founder 1 — the founder transferring shares?", placeholder: "e.g. Jane Founder" },
     { name: "founder2Name", label: "Founder 2 (receiving shares)", question: "Who's Founder 2 — the founder receiving shares?", placeholder: "e.g. Alex Founder" },
-    { name: "founder1SharesBefore", label: "Founder 1's shares before the transfer", question: "How many shares of common stock does Founder 1 hold before the transfer?", placeholder: "e.g. 2,000,000" },
-    { name: "founder2SharesBefore", label: "Founder 2's shares before the transfer", question: "How many shares of common stock does Founder 2 hold before the transfer?", placeholder: "e.g. 1,000,000" },
-    { name: "founder1SharesAfter", label: "Founder 1's shares after the transfer", question: "How many shares will Founder 1 hold after the transfer?", placeholder: "e.g. 1,000,000" },
-    { name: "founder2SharesAfter", label: "Founder 2's shares after the transfer", question: "How many shares will Founder 2 hold after the transfer?", placeholder: "e.g. 2,000,000" },
-    { name: "paymentAmount", label: "Payment from Founder 2 to Founder 1", question: "How much will Founder 2 pay Founder 1 for the transferred shares?", placeholder: "e.g. 10,000" },
+    { name: "founder1SharesBefore", label: "Founder 1's shares before the transfer", type: "number", question: "How many shares of common stock does Founder 1 hold before the transfer?", placeholder: "e.g. 2,000,000" },
+    { name: "founder2SharesBefore", label: "Founder 2's shares before the transfer", type: "number", question: "How many shares of common stock does Founder 2 hold before the transfer?", placeholder: "e.g. 1,000,000" },
+    { name: "founder1SharesAfter", label: "Founder 1's shares after the transfer", type: "number", question: "How many shares will Founder 1 hold after the transfer?", placeholder: "e.g. 1,000,000" },
+    { name: "founder2SharesAfter", label: "Founder 2's shares after the transfer", type: "number", question: "How many shares will Founder 2 hold after the transfer?", placeholder: "e.g. 2,000,000" },
+    { name: "paymentAmount", label: "Payment from Founder 2 to Founder 1", type: "number", question: "How much will Founder 2 pay Founder 1 for the transferred shares?", placeholder: "e.g. 10,000" },
   ],
 }
 
@@ -1131,12 +1138,12 @@ const MAJORITY_STOCKHOLDERS_CONSENT_DISSOLUTION: TransactionItem = {
     { name: "dissolutionDeadlineYear", label: "Certificate of Dissolution filing deadline year", question: "By what year must the Certificate of Dissolution be filed with Delaware (e.g. the current year)?", placeholder: "e.g. 2026", shared: true },
     { name: "stockholder1Name", label: "Majority stockholder 1", question: "Who's the first majority stockholder signing this consent?", placeholder: "e.g. Jane Founder" },
     { name: "stockholder1Class", label: "Stockholder 1's stock class", question: "What class of stock does this stockholder hold?", placeholder: "e.g. Common" },
-    { name: "stockholder1Shares", label: "Stockholder 1's number of shares held", placeholder: "e.g. 4,000,000" },
-    { name: "stockholder1Percentage", label: "Stockholder 1's percentage of that class", placeholder: "e.g. 60" },
+    { name: "stockholder1Shares", label: "Stockholder 1's number of shares held", type: "number", placeholder: "e.g. 4,000,000" },
+    { name: "stockholder1Percentage", label: "Stockholder 1's percentage of that class", type: "number", placeholder: "e.g. 60" },
     { name: "stockholder2Name", label: "Majority stockholder 2", question: "Is there a second majority stockholder signing? If so, who? (leave blank if not)", placeholder: "e.g. Alex Founder", optional: true },
     { name: "stockholder2Class", label: "Stockholder 2's stock class", placeholder: "e.g. Series Seed Preferred", optional: true },
-    { name: "stockholder2Shares", label: "Stockholder 2's number of shares held", placeholder: "e.g. 1,000,000", optional: true },
-    { name: "stockholder2Percentage", label: "Stockholder 2's percentage of that class", placeholder: "e.g. 100", optional: true },
+    { name: "stockholder2Shares", label: "Stockholder 2's number of shares held", type: "number", placeholder: "e.g. 1,000,000", optional: true },
+    { name: "stockholder2Percentage", label: "Stockholder 2's percentage of that class", type: "number", placeholder: "e.g. 100", optional: true },
   ],
 }
 

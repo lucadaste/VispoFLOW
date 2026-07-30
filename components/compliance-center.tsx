@@ -18,6 +18,7 @@ import {
 } from "@/lib/flow"
 import { cn } from "@/lib/utils"
 import { ComplianceChat } from "@/components/compliance-chat"
+import { formatNumberInput } from "@/lib/number-format"
 
 const fieldClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
@@ -308,9 +309,15 @@ function FilingDrawer({
                 ) : (
                   <input
                     type={f.type === "date" ? "date" : "text"}
+                    inputMode={f.type === "number" ? "decimal" : undefined}
                     value={values[f.name] ?? ""}
                     placeholder={f.placeholder}
-                    onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                    onChange={(e) =>
+                      setValues((v) => ({
+                        ...v,
+                        [f.name]: f.type === "number" ? formatNumberInput(e.target.value) : e.target.value,
+                      }))
+                    }
                     className={fieldClass}
                   />
                 )}

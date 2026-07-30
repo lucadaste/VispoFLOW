@@ -1,5 +1,6 @@
 import type { StepInput } from "./steps"
 import { AUTHORIZED_SHARES, type Allocation, type ChatField, type FlowAnswers } from "./flow"
+import { parseNumberInput } from "./number-format"
 
 /**
  * Steps whose widget collects several fields at once (e.g. name + address together)
@@ -51,6 +52,7 @@ export function getChatFields(
         fields: founders.map((name, i) => ({
           name: `alloc_${i}`,
           label: `How many shares will ${name} hold?`,
+          type: "number" as const,
           // A computed even split, shown only as a placeholder/hint (never pre-filled as a
           // real value) — it's a suggestion, not data from the profile or an earlier answer.
           placeholder: String(founderDefault),
@@ -92,7 +94,7 @@ export function assembleChatAnswers(
     }
     case "allocations": {
       const founders = answers.directors.length ? answers.directors : ["Founder"]
-      const shares = founders.map((_, i) => Math.max(0, parseInt(values[`alloc_${i}`] ?? "", 10) || 0))
+      const shares = founders.map((_, i) => Math.max(0, Math.floor(parseNumberInput(values[`alloc_${i}`] ?? ""))))
       const used = shares.reduce((s, n) => s + n, 0)
       const overAllocated = used > AUTHORIZED_SHARES
       const pool = overAllocated ? 0 : AUTHORIZED_SHARES - used

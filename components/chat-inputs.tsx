@@ -21,6 +21,7 @@ import {
 } from "@/lib/flow"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { cn } from "@/lib/utils"
+import { formatNumberInput, parseNumberInput } from "@/lib/number-format"
 
 const KNOWN_FOUNDERS: string[] = []
 
@@ -495,9 +496,10 @@ function AllocationsInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmi
                 {r.name}
               </div>
               <input
-                type="number"
-                value={r.shares}
-                onChange={(e) => update(i, Math.max(0, Number(e.target.value)))}
+                type="text"
+                inputMode="numeric"
+                value={r.shares.toLocaleString()}
+                onChange={(e) => update(i, Math.max(0, Math.floor(parseNumberInput(formatNumberInput(e.target.value)))))}
                 className={cn(fieldClass, "tabular-nums")}
               />
               <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(r.shares)}%</span>
