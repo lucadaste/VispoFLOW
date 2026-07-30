@@ -1080,12 +1080,29 @@ const CERTIFICATE_OF_DISSOLUTION: TransactionItem = {
   id: "certificate-of-dissolution",
   title: "Certificate of Dissolution",
   short: "Certificate of Dissolution",
-  description: "Certificate filed with the state to formally dissolve the corporation.",
+  description: "Certificate filed with the Delaware Secretary of State to formally dissolve the corporation under DGCL Section 275.",
   fields: [
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
-    { name: "dissolutionBasis", label: "Basis for dissolution", placeholder: "e.g. board and shareholder approval" },
-    { name: "effectiveDate", label: "Effective date", type: "date" },
+    { name: "incorporationDate", label: "Original incorporation date", type: "date", question: "What date was the Certificate of Incorporation originally filed with Delaware?" },
+    { name: "boardConsentDate", label: "Board consent date", type: "date", question: "What date did the Board adopt its written consent approving the dissolution?", shared: true },
+    { name: "stockholderConsentDate", label: "Stockholder consent date", type: "date", question: "What's the date of the stockholders' written consent approving the dissolution?", shared: true },
+    {
+      name: "directorsListText",
+      label: "Directors — name and address",
+      question: "List each director's name and address, one per line.",
+      type: "textarea",
+      placeholder: "Jane Founder | 123 Main St, Wilmington, DE 19801",
+      hint: 'One per line, formatted as "Name | Address".',
+    },
+    {
+      name: "officersListText",
+      label: "Officers — name, title, and address",
+      question: "List each officer's name, title, and address, one per line.",
+      type: "textarea",
+      placeholder: "Jane Founder | Chief Executive Officer, Treasurer, Secretary | 123 Main St, Wilmington, DE 19801",
+      hint: 'One per line, formatted as "Name | Title | Address".',
+    },
+    { name: "executionDate", label: "Certificate execution date", type: "date", question: "What date is this certificate being executed?" },
   ],
 }
 

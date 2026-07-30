@@ -107,7 +107,9 @@ By:_________________________
 Name:_________________________
 Title:_________________________
 
-Address:_________________________
+Address:
+
+_________________________
 
 _________________________
 
@@ -122,7 +124,9 @@ By:_________________________
 Name:_________________________
 Title:_________________________
 
-Address:_________________________
+Address:
+
+_________________________
 
 _________________________
 
@@ -2452,9 +2456,13 @@ By:_________________________
 Name:_________________________
 Title:_________________________
 
-Notice Address:_________________________
+Address:
 
-Notice Email:_________________________
+_________________________
+
+_________________________
+
+Email:_________________________
 
 
 LICENSEE:
@@ -2467,9 +2475,13 @@ By:_________________________
 Name:_________________________
 Title:_________________________
 
-Notice Address:_________________________
+Address:
 
-Notice Email:_________________________
+_________________________
+
+_________________________
+
+Email:_________________________
 
 
 SCHEDULE 1
@@ -2793,6 +2805,87 @@ UPDATES TO THIS COOKIE NOTICE
 We will update this Cookie Notice from time to time. When we make changes to this Cookie Notice, we will change the "Last Updated" date at the beginning of this Notice. If we make material changes to this Notice, we will notify you by email to your registered email address, by prominent posting on this website or our online Services, or through other appropriate communication channels. All changes shall be effective from the date of publication unless otherwise provided in the notification.`
 }
 
+/** Parses the free-text "Name | Address" lines collected for `directorsListText` into rows for the
+ *  Certificate of Dissolution's director list — an unbounded list of people with no dedicated field
+ *  type for that in `TransactionField` yet, so it's collected as one delimited textarea instead
+ *  (see `certificateOfDissolution`'s doc comment for why). */
+function parseDirectorLines(text: string): { name: string; address: string }[] {
+  return (text ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name = "", address = ""] = line.split("|").map((p) => p.trim())
+      return { name, address }
+    })
+}
+
+/** Same idea as `parseDirectorLines`, for `officersListText`'s "Name | Title | Address" lines. */
+function parseOfficerLines(text: string): { name: string; title: string; address: string }[] {
+  return (text ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name = "", title = "", address = ""] = line.split("|").map((p) => p.trim())
+      return { name, title, address }
+    })
+}
+
+/** Unlike every other Transaction Center doc, the director/officer names and addresses here aren't
+ *  collected as fixed fields (there's no bounded max — a company can have anywhere from 1 to 9
+ *  directors, per the formation flow's own director-count picker) and aren't pulled from the
+ *  company's roster (`answers.directors`/`answers.officers` have names but never addresses, which
+ *  this document actually needs). Collected instead as two delimited textareas
+ *  (`directorsListText`/`officersListText`, one person per line) and parsed at render time — the
+ *  user's own explicit choice over auto-pulling roster names or building a "send for info" email
+ *  invite flow (a real feature, out of scope for a single document). `ceoName` is resolved by the
+ *  caller from `answers.officers` (the CEO signs alone; directors/officers are listed, not
+ *  co-signers), same pattern as `boardConsentDissolution`'s `directors` param. */
+function certificateOfDissolution(v: Record<string, string>, ceoName: string): string {
+  const directors = parseDirectorLines(v.directorsListText)
+  const officers = parseOfficerLines(v.officersListText)
+
+  const directorRows =
+    directors.length > 0
+      ? directors.map((d) => `${d.name} — ${d.address}`).join("\n")
+      : "_________________________ — _________________________"
+
+  const officerRows =
+    officers.length > 0
+      ? officers.map((o) => `${o.name} — ${o.title} — ${o.address}`).join("\n")
+      : "_________________________ — _________________________ — _________________________"
+
+  return `CERTIFICATE OF DISSOLUTION
+
+OF
+
+${v.companyName}
+
+The undersigned, ${ceoName} hereby certifies that:
+
+1. He is the Chief Executive Officer of ${v.companyName}, a Delaware corporation (the "Corporation").
+
+2. The name of the Corporation is ${v.companyName}. The Corporation's original Certificate of Incorporation was filed with the Secretary of State of the State of Delaware on ${formatDate(v.incorporationDate)}.
+
+3. The dissolution of the Corporation was authorized by the Board of Directors of the Corporation on ${formatDate(v.boardConsentDate)} and by written consent of the stockholders of the Corporation on ${formatDate(v.stockholderConsentDate)} in accordance with subsections (a) and (b) of Section 275 of the Delaware General Corporation Law.
+
+4. The following is a list of the names and addresses of all of the directors of the Corporation:
+
+Name — Address
+${directorRows}
+
+5. The following is a list of the names and the addresses, either residence or business, of the officers of the Corporation:
+
+Name — Title — Address
+${officerRows}
+
+Executed on ${formatDate(v.executionDate)}
+
+_________________________________
+${ceoName}, Chief Executive Officer`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   "ip-license": ipLicenseAgreement,
   "privacy-policy": privacyPolicy,
@@ -2820,8 +2913,16 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
 
 /** `directors` is only used by "board-consent-dissolution" — every director on file gets their own
  *  signature line (see boardConsentDissolution's doc comment), which needs the company's roster
- *  rather than this document's own collected `values`. Every other renderer ignores it. */
-export function renderTransactionDocument(docId: string, values: Record<string, string>, directors?: string[]): string | null {
+ *  rather than this document's own collected `values`. `ceoName` is only used by
+ *  "certificate-of-dissolution" — see that renderer's doc comment. Every other renderer ignores
+ *  both. */
+export function renderTransactionDocument(
+  docId: string,
+  values: Record<string, string>,
+  directors?: string[],
+  ceoName?: string,
+): string | null {
   if (docId === "board-consent-dissolution") return boardConsentDissolution(values, directors ?? [])
+  if (docId === "certificate-of-dissolution") return certificateOfDissolution(values, ceoName ?? "[Not specified]")
   return RENDERERS[docId]?.(values) ?? null
 }

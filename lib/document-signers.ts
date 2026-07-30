@@ -6,7 +6,13 @@ export type SignerSlot = {
   id: string
   label: string
   kind: "officer" | "named" | "generic"
-  /** for "named": the exact printed name to match against, and to lock the recipient's name to */
+  /** The counterparty's name, already known from how this document was created (either printed on
+   *  the page, for "named", or just collected as this document's own field, for an "officer"-kind
+   *  external slot like a SAFE's Investor). When set, "Send to sign" locks the recipient's name to
+   *  it instead of asking the sender to type one — the name that ends up on the signed document is
+   *  always the one collected during intake, never a value the sender free-typed at send time.
+   *  Left unset only when the identity genuinely isn't known yet (e.g. Option Pool's Optionee,
+   *  resolved later by the Carta grant). */
   matchName?: string
   /** for "generic": the block header to locate (e.g. /^OPTIONEE:$/i) */
   headerPattern?: RegExp
@@ -69,6 +75,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "investor",
           label: `Investor: ${values.investorName}`,
           kind: "officer",
+          matchName: values.investorName,
           headerPattern: /^INVESTOR:$/i,
           external: true,
         })
@@ -141,6 +148,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "counterparty",
           label: `Counterparty: ${values.counterpartyName}`,
           kind: "officer",
+          matchName: values.counterpartyName,
           headerPattern: /^COUNTERPARTY:$/i,
           external: true,
         })
@@ -161,6 +169,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "licensee",
           label: `Licensee: ${values.licenseeName}`,
           kind: "officer",
+          matchName: values.licenseeName,
           headerPattern: /^LICENSEE:$/i,
           external: true,
         })
@@ -183,6 +192,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "agent",
           label: `Agent: ${values.agentName}`,
           kind: "officer",
+          matchName: values.agentName,
           headerPattern: /^AGENT:$/i,
           external: true,
         })
@@ -199,6 +209,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "reseller",
           label: `Reseller: ${values.resellerName}`,
           kind: "officer",
+          matchName: values.resellerName,
           headerPattern: /^RESELLER:$/i,
           external: true,
         })
@@ -215,6 +226,7 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
           id: "distributor",
           label: `Distributor: ${values.distributorName}`,
           kind: "officer",
+          matchName: values.distributorName,
           headerPattern: /^DISTRIBUTOR:$/i,
           external: true,
         })
@@ -301,6 +313,17 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       if (values?.stockholder1Name) slots.push(counterpartySlot("stockholder1", `Stockholder: ${values.stockholder1Name}`, values.stockholder1Name))
       if (values?.stockholder2Name) slots.push(counterpartySlot("stockholder2", `Stockholder: ${values.stockholder2Name}`, values.stockholder2Name))
       return slots
+    }
+
+    case "certificate-of-dissolution": {
+      // Only the CEO signs — the directors/officers listed in the document body (collected as this
+      // doc's own free-text fields, see certificateOfDissolution's doc comment in
+      // lib/transaction-templates.ts) aren't co-signers, so there's no counterparty slot for them.
+      // The CEO is drawn from the company's own roster (like Bylaws' Incorporator/Secretary), not
+      // this document's own `values`, so this is a plain self-signable "named" slot rather than
+      // counterpartySlot()'s external routing.
+      const ceo = answers.officers.find((o) => o.title === "CEO")?.name
+      return ceo ? [{ id: "ceo", label: "CEO", kind: "named", matchName: ceo }] : []
     }
 
     case "stockholders-consent-option-pool":

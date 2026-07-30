@@ -234,14 +234,15 @@ export function TransactionsOnboarding({
   }, [pushBot, pushUser, pushBotTyped, inputMode])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
-    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors) ?? undefined, values }
+    const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
     setActiveFiling(null)
     pushBot(`✓ ${item.title} has been saved. Select another document from the right to continue, or ask me anything.`)
     onDocumentReady?.(doc)
-  }, [pushBot, onDocumentReady, answers.directors])
+  }, [pushBot, onDocumentReady, answers.directors, answers.officers])
 
   const handleFieldSubmit = useCallback((raw: string) => {
     if (!activeFiling) return
