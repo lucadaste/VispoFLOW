@@ -2209,6 +2209,158 @@ Before: ${v.founder2SharesBefore} shares of Common Stock
 After: ${v.founder2SharesAfter} shares of Common Stock`
 }
 
+/* ---- Dissolution ---- */
+
+/** The Plan of Dissolution's operative body (recitals + numbered plan items), shared between the
+ *  standalone Plan of Dissolution document and its embedding as "Exhibit A" inside the Board
+ *  Consent and Majority Stockholders Consent — those two consents attach the actual plan text
+ *  rather than a bare reference, so this stays self-contained without needing to pair it with a
+ *  separately generated file. Only the standalone document appends its own signature page. */
+function planOfDissolutionBody(v: Record<string, string>): string {
+  return `PLAN OF DISSOLUTION
+
+OF
+
+${v.companyName}
+
+WHEREAS, pursuant to the Unanimous Written Consent of the Board of Directors dated as of ${formatDate(v.boardConsentDate)} and the Written Consent of the Stockholders dated as of ${formatDate(v.stockholderConsentDate)}, ${v.companyName}, a Delaware corporation (the "Corporation"), shall be dissolved, and its affairs shall be wound up; and
+
+WHEREAS, the directors of the Corporation desire to provide for the orderly liquidation and dissolution of the Corporation in accordance with the provisions of the Corporation's Bylaws and the provisions of the Delaware General Corporation Laws (the "DGCL"), and desire to set forth a Plan of Dissolution (the "Plan of Dissolution") with respect to the Corporation's assets:
+
+NOW, THEREFORE, the Plan of Dissolution shall be as follows:
+
+1. The Corporation shall file a Certificate of Dissolution (the "Certificate of Dissolution") with the Secretary of State of the State of Delaware as required by the DGCL on or before December 31, ${v.dissolutionDeadlineYear} (the "Date of Dissolution");
+
+2. The Corporation shall ascertain the value of its assets and the amount of its debts and other liabilities (contingent, fixed or otherwise) to others that will exist as of the filing of the Certificate of Dissolution and shall provide for all such obligations as necessary;
+
+3. The Corporation shall make provisions reasonably likely to be sufficient to either pay or settle (i) any claim against the Corporation which is the subject of a pending action, suit or proceeding to which the Corporation is a party and (ii) claims that have not been made known to the Corporation or that have not arisen but that, based on facts known to the Corporation, are likely to arise or to become known to the Corporation within 10 years after the Date of Dissolution;
+
+4. The Corporation shall liquidate its assets for cash to the extent possible and all remaining assets of the Corporation existing on the Date of Dissolution after the provision for debts and liabilities and other obligations (such as SAFEs, rights and preferences) shall be distributed to the Corporation's stockholders;
+
+5. Subsequent to satisfying all of its obligations as provided for in paragraphs 1, 2 and 3 and after filing a Certificate of Dissolution as required by the DGCL, the Board shall cause the Corporation to make a final liquidating distribution of all of its assets to its stockholders as described above;
+
+6. It is the intention of the Board of Directors that, as of the Date of Dissolution, the Corporation shall cease to engage in the business purpose for which it was organized and shall continue in existence solely for the purpose of winding up its affairs, including orderly completion of projects in progress, and distributing its assets;
+
+7. The Corporation can undertake any of the items set forth above simultaneously or in an order different than that set forth herein at the discretion of the Board of Directors and in accordance with applicable law; and
+
+8. The Corporation is authorized to undertake any and all other actions necessary to effect the foregoing Plan of Dissolution.`
+}
+
+function planOfDissolution(v: Record<string, string>): string {
+  return `${planOfDissolutionBody(v)}
+
+
+The foregoing Plan of Dissolution was adopted by Unanimous Written Consent of the Board of Directors of the Corporation dated as of ${formatDate(v.boardConsentDate)} and by Written Consent of the Stockholders dated as of ${formatDate(v.stockholderConsentDate)}.
+
+Dated: ${formatDate(v.date)}
+
+THE COMPANY:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________`
+}
+
+/** Every director on file signs their own line (mirrors the formation-flow board consents in
+ *  lib/document-templates.ts, e.g. orgResolutions) rather than the single blank line the source
+ *  PDF shows — the source's "the undersigned are members" is plural even though it only printed
+ *  one signature block, so this renders one per director instead of matching the literal blank
+ *  count. `directors` comes from the company's own roster (FlowAnswers), not this document's
+ *  collected `values`. */
+function boardConsentDissolution(v: Record<string, string>, directors: string[]): string {
+  const directorSignatures =
+    directors.length > 0
+      ? directors.map((d) => `_________________________________________\n${d}`).join("\n\n\n")
+      : "_________________________________________\n[Director]"
+
+  return `ACTION BY UNANIMOUS WRITTEN CONSENT
+OF THE BOARD OF DIRECTORS
+OF
+${v.companyName}
+a Delaware corporation
+
+The undersigned are members of the Board of Directors (the "Board") of ${v.companyName}, a Delaware corporation (the "Company"), and acting pursuant to the authority set forth in Section 307 of the Delaware General Corporation Law ("DGCL") and the Bylaws of the Company, hereby take the following actions and adopt the following resolutions, effective as of the date written below, by executing this written consent in lieu of holding a special meeting of the Board.
+
+DISSOLUTION OF COMPANY
+
+WHEREAS, the Board Members have determined that it is in the best interests of the Company to liquidate and dissolve;
+
+NOW, THEREFORE, IT IS HEREBY RESOLVED, that the Board members, in good faith and upon consideration of all facts that are relevant, hereby approve the Plan of Dissolution attached as Exhibit A to wind down and dissolve the Company.
+
+RESOLVED FURTHER, that the assets and proceeds of the Company, if any, shall be distributed in accordance with the Plan of Dissolution and the DGCL;
+
+RESOLVED FURTHER, that each officer of the Company is hereby directed to perform any and all acts necessary to wind up and dissolve the Company and to execute any and all documents necessary to dissolve Company, including but not limited to filing any and all certificates, forms, documents, returns necessary to terminate the Company's existence or registration in each and every state where it is qualified or registered to do business.
+
+OMNIBUS RESOLUTION
+
+RESOLVED, that the officers of the Company are hereby authorized and directed, on behalf of and in the name of Company, to make all arrangements, to do and perform all such acts and things, including, without limitation, to execute and deliver all such instruments, certificates and other documents as the officers deem appropriate in order to effectuate fully the purpose of the foregoing written consent and the undersigned hereby ratifies and confirms any and all actions taken heretofore and hereafter by the officers to accomplish such purposes.
+
+This Action by Written Consent may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which, when so executed, shall be deemed an original and all of which taken together shall constitute one and the same action.
+
+This written consent will be filed in the minute book of the Company.
+
+${formatDate(v.boardConsentDate)}
+
+${directorSignatures}
+
+
+EXHIBIT A
+
+${planOfDissolutionBody(v)}`
+}
+
+/** Two stockholder blocks, matching the source's literal two sample rows (each a blank signature
+ *  line followed by the printed name, per counterpartySlot()'s "named" routing) rather than an
+ *  unbounded list — the second is optional since not every company has more than one majority
+ *  stockholder. The WHEREAS clause is corrected from the source's copy-paste of the Board
+ *  Consent's language ("the Board Members have determined...") to attribute the determination to
+ *  the stockholders signing this document instead. */
+function majorityStockholdersConsentDissolution(v: Record<string, string>): string {
+  const stockholderBlocks = [
+    v.stockholder1Name
+      ? `_________________________________________ \n${v.stockholder1Name}\n\nClass and Number of Shares Held: ${v.stockholder1Shares} ${v.stockholder1Class}\n\nPercentage of Class: ${v.stockholder1Percentage}% of Outstanding ${v.stockholder1Class}`
+      : null,
+    v.stockholder2Name
+      ? `_________________________________________ \n${v.stockholder2Name}\n\nClass and Number of Shares Held: ${v.stockholder2Shares} ${v.stockholder2Class}\n\nPercentage of Class: ${v.stockholder2Percentage}% of Outstanding ${v.stockholder2Class}`
+      : null,
+  ]
+    .filter((b): b is string => Boolean(b))
+    .join("\n\n\n")
+
+  return `WRITTEN CONSENT
+OF THE MAJORITY STOCKHOLDERS
+OF
+${v.companyName}
+a Delaware corporation
+
+The undersigned are the majority stockholders of ${v.companyName}, a Delaware corporation (the "Company"), and acting pursuant to the authority set forth in Section 307 of the Delaware General Corporation Law ("DGCL") and the Bylaws of the Company, hereby take the following actions and adopt the following resolutions, effective as of the date written below, by executing this written consent in lieu of holding a special meeting of the Board.
+
+DISSOLUTION OF COMPANY
+
+WHEREAS, the stockholders have determined, based on the Board of Directors' prior determination, that it is in the best interests of the Company to liquidate and dissolve;
+
+NOW, THEREFORE, IT IS HEREBY RESOLVED, that the undersigned stockholders, in good faith and upon consideration of all facts that are relevant, hereby approve the Plan of Dissolution attached as Exhibit A to wind down and dissolve the Company.
+
+RESOLVED FURTHER, that the assets and proceeds of the Company, if any, shall be distributed in accordance with the Plan of Dissolution and the DGCL;
+
+This Action by Written Consent may be executed in writing, or consented to by electronic transmission, in any number of counterparts, each of which, when so executed, shall be deemed an original and all of which taken together shall constitute one and the same action.
+
+This written consent will be filed in the minute book of the Company.
+
+Dated: ${formatDate(v.stockholderConsentDate)}
+
+${stockholderBlocks}
+
+
+EXHIBIT A
+
+${planOfDissolutionBody(v)}`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
   "safe-cap": safeCap,
   "safe-mfn": safeMfn,
@@ -2228,8 +2380,14 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
   "saas-reseller-agreement": saasResellerAgreement,
   "founder-separation-agreement": founderSeparationAgreement,
   "founders-reorganization-agreement": foundersReorganizationAgreement,
+  "plan-of-dissolution": planOfDissolution,
+  "majority-stockholders-consent-dissolution": majorityStockholdersConsentDissolution,
 }
 
-export function renderTransactionDocument(docId: string, values: Record<string, string>): string | null {
+/** `directors` is only used by "board-consent-dissolution" — every director on file gets their own
+ *  signature line (see boardConsentDissolution's doc comment), which needs the company's roster
+ *  rather than this document's own collected `values`. Every other renderer ignores it. */
+export function renderTransactionDocument(docId: string, values: Record<string, string>, directors?: string[]): string | null {
+  if (docId === "board-consent-dissolution") return boardConsentDissolution(values, directors ?? [])
   return RENDERERS[docId]?.(values) ?? null
 }

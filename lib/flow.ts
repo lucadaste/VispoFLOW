@@ -1045,12 +1045,13 @@ const PLAN_OF_DISSOLUTION: TransactionItem = {
   id: "plan-of-dissolution",
   title: "Plan of Dissolution",
   short: "Plan of Dissolution",
-  description: "Plan setting out how the company will wind down its affairs, settle liabilities, and distribute remaining assets.",
+  description: "Plan setting out how the company will wind down its affairs, settle liabilities, and distribute remaining assets, pursuant to the board's and stockholders' approval to dissolve.",
   fields: [
     companyNameField,
-    { name: "effectiveDate", label: "Effective date", type: "date" },
-    { name: "assetDistributionPlan", label: "Asset distribution plan", type: "textarea" },
-    { name: "outstandingLiabilities", label: "Outstanding liabilities to resolve", type: "textarea", optional: true },
+    { name: "boardConsentDate", label: "Board consent date", type: "date", question: "What date did the Board adopt its written consent approving the dissolution?", shared: true },
+    { name: "stockholderConsentDate", label: "Stockholder consent date", type: "date", question: "What date did the stockholders adopt their written consent approving the dissolution?", shared: true },
+    { name: "dissolutionDeadlineYear", label: "Certificate of Dissolution filing deadline year", question: "By what year must the Certificate of Dissolution be filed with Delaware (e.g. the current year)?", placeholder: "e.g. 2026", shared: true },
+    { name: "date", label: "Date on signature page", type: "date", question: "What's the date on the Plan of Dissolution's signature page?" },
   ],
 }
 
@@ -1071,10 +1072,12 @@ const BOARD_CONSENT_DISSOLUTION: TransactionItem = {
   id: "board-consent-dissolution",
   title: "Board Consent re Dissolution",
   short: "Board Consent re Dissolution",
-  description: "Board consent approving the dissolution of the company.",
+  description: "Board consent approving the dissolution of the company and the Plan of Dissolution, attached as Exhibit A. Every director on file signs their own line.",
   fields: [
     companyNameField,
-    { name: "date", label: "Date", type: "date", question: "What's the date of this consent?" },
+    { name: "boardConsentDate", label: "Board consent date", type: "date", question: "What's the date of this Board consent?", shared: true },
+    { name: "stockholderConsentDate", label: "Stockholder consent date", type: "date", question: "What date did (or will) the stockholders adopt their written consent approving the dissolution? Leave blank if not yet known.", shared: true, optional: true },
+    { name: "dissolutionDeadlineYear", label: "Certificate of Dissolution filing deadline year", question: "By what year must the Certificate of Dissolution be filed with Delaware (e.g. the current year)?", placeholder: "e.g. 2026", shared: true },
   ],
 }
 
@@ -1082,10 +1085,20 @@ const MAJORITY_STOCKHOLDERS_CONSENT_DISSOLUTION: TransactionItem = {
   id: "majority-stockholders-consent-dissolution",
   title: "Majority Stockholders Consent re Dissolution",
   short: "Majority Stockholders Consent re Dissolution",
-  description: "Majority stockholder consent approving the dissolution of the company.",
+  description: "Majority stockholder consent approving the dissolution of the company and the Plan of Dissolution, attached as Exhibit A.",
   fields: [
     companyNameField,
-    { name: "date", label: "Date", type: "date", question: "What's the date of this consent?" },
+    { name: "boardConsentDate", label: "Board consent date", type: "date", question: "What date did the Board adopt its written consent approving the dissolution?", shared: true },
+    { name: "stockholderConsentDate", label: "Stockholder consent date", type: "date", question: "What's the date of this stockholders' consent?", shared: true },
+    { name: "dissolutionDeadlineYear", label: "Certificate of Dissolution filing deadline year", question: "By what year must the Certificate of Dissolution be filed with Delaware (e.g. the current year)?", placeholder: "e.g. 2026", shared: true },
+    { name: "stockholder1Name", label: "Majority stockholder 1", question: "Who's the first majority stockholder signing this consent?", placeholder: "e.g. Jane Founder" },
+    { name: "stockholder1Class", label: "Stockholder 1's stock class", question: "What class of stock does this stockholder hold?", placeholder: "e.g. Common" },
+    { name: "stockholder1Shares", label: "Stockholder 1's number of shares held", placeholder: "e.g. 4,000,000" },
+    { name: "stockholder1Percentage", label: "Stockholder 1's percentage of that class", placeholder: "e.g. 60" },
+    { name: "stockholder2Name", label: "Majority stockholder 2", question: "Is there a second majority stockholder signing? If so, who? (leave blank if not)", placeholder: "e.g. Alex Founder", optional: true },
+    { name: "stockholder2Class", label: "Stockholder 2's stock class", placeholder: "e.g. Series Seed Preferred", optional: true },
+    { name: "stockholder2Shares", label: "Stockholder 2's number of shares held", placeholder: "e.g. 1,000,000", optional: true },
+    { name: "stockholder2Percentage", label: "Stockholder 2's percentage of that class", placeholder: "e.g. 100", optional: true },
   ],
 }
 

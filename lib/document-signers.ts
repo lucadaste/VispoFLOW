@@ -259,11 +259,24 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
     case "board-consent-option-pool":
     case "board-consent-founder-stock":
     case "org-resolutions":
+    case "board-consent-dissolution":
       // A board written consent — every director signs their own line; there's no
       // "THE COMPANY:" execution block at all, so there's no officer slot.
       return answers.directors.map(
         (name): SignerSlot => ({ id: `director-${name}`, label: `Director: ${name}`, kind: "named", matchName: name }),
       )
+
+    case "majority-stockholders-consent-dissolution": {
+      // Unlike the option-pool/indemnification stockholder consents, this doc's signers aren't
+      // drawn from the company's own cap-table roster (answers.allocations only reflects the
+      // formation-time cap table, not a later round or share transfers) — they're collected fresh
+      // as this document's own fields, so per the file-level rule this must go through
+      // counterpartySlot() rather than a bare "named" slot literal.
+      const slots: SignerSlot[] = []
+      if (values?.stockholder1Name) slots.push(counterpartySlot("stockholder1", `Stockholder: ${values.stockholder1Name}`, values.stockholder1Name))
+      if (values?.stockholder2Name) slots.push(counterpartySlot("stockholder2", `Stockholder: ${values.stockholder2Name}`, values.stockholder2Name))
+      return slots
+    }
 
     case "stockholders-consent-option-pool":
     case "stockholder-consent-indemnification":
