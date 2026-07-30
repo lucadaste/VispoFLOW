@@ -761,22 +761,13 @@ function SidebarContent({
                               >
                                 <span className={cn(
                                   "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full",
-                                  done ? "bg-primary text-primary-foreground" : "text-muted-foreground/40"
+                                  done ? "bg-success text-success-foreground" : "text-muted-foreground/40"
                                 )}>
                                   {done ? <Check className="h-3 w-3" strokeWidth={3} /> : <Circle className="h-3.5 w-3.5" />}
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
                                   <div className="flex items-center gap-1">
-                                    <p
-                                      className={cn(
-                                        "text-[12px] font-medium",
-                                        viewable
-                                          ? "text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 line-through"
-                                          : done
-                                          ? "text-muted-foreground line-through"
-                                          : "text-foreground"
-                                      )}
-                                    >
+                                    <p className="text-[12px] font-medium text-foreground">
                                       {item.title}
                                     </p>
                                     <button
