@@ -7,6 +7,7 @@ import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/compone
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { FieldChoicesBubble } from "@/components/field-choices-bubble"
 import {
   COMPLIANCE_CATEGORIES,
   type ComplianceCategory,
@@ -486,8 +487,7 @@ export function ComplianceView({
               if (m.role === "fieldChoices") return (
                 <FieldChoicesBubble
                   key={m.id}
-                  item={m.item}
-                  fieldIndex={m.fieldIndex}
+                  field={m.item.fields[m.fieldIndex]}
                   active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
                   onChoose={(val) => submitFieldAnswer(val)}
                 />
@@ -681,58 +681,6 @@ function CategoryPickerBubble({
   )
 }
 
-/* ── Clickable choices for a chat-mode filing field: a fixed option set, or a date picker ── */
-
-function FieldChoicesBubble({
-  item, fieldIndex, active, onChoose,
-}: {
-  item: ComplianceItem
-  fieldIndex: number
-  active: boolean
-  onChoose: (val: string) => void
-}) {
-  const field = item.fields[fieldIndex]
-  const [date, setDate] = useState("")
-
-  if (field.type === "date") {
-    return (
-      <div className="flex items-center gap-2 pl-12">
-        <div className="relative">
-          <CalendarClock className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            disabled={!active}
-            className="rounded-full border border-border bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-card-foreground shadow-sm outline-none transition-colors focus:border-ring disabled:opacity-50"
-          />
-        </div>
-        <button
-          onClick={() => onChoose(date)}
-          disabled={!active || !date}
-          className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm transition-colors enabled:hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          Use this date
-        </button>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-wrap gap-2 pl-12">
-      {field.options?.map((o) => (
-        <button
-          key={o}
-          onClick={() => onChoose(o)}
-          disabled={!active}
-          className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
-        >
-          {o}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 /* ── Sidebar content ── */
 

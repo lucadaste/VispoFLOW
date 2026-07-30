@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { FieldComposer } from "@/components/field-composer"
+import { FieldChoicesBubble } from "@/components/field-choices-bubble"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { formatNumberInput } from "@/lib/number-format"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
@@ -40,6 +41,7 @@ type ChatMsg =
   | { id: number; role: "doc"; item: TransactionItem; groupTitle: string }
   | { id: number; role: "note"; text: string }
   | { id: number; role: "docDrafted"; item: TransactionItem; groupTitle: string }
+  | { id: number; role: "fieldChoices"; item: TransactionItem; groupTitle: string; fieldIndex: number }
 
 type ActiveFiling = {
   item: TransactionItem
@@ -205,18 +207,55 @@ export function TransactionsOnboarding({
     setExpandedCategoryId((id) => (id === cat.id ? null : cat.id))
   }, [])
 
-  const handleSend = useCallback(() => {
-    const text = value.trim()
-    if (!text) return
-    setValue("")
-    pushUser(text)
-    pushBot("Happy to help. Feel free to fill out the form above or click any item in Transaction Documents to get started.")
-  }, [value, pushBot, pushUser])
-
   const fieldPrompt = (f: TransactionField) =>
     `${f.question ?? f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
 
   const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
+
+  // Prefills a field from the company's formation answers first (e.g. company name), then falls
+  // back to whatever value the user already gave for a field of the same name on any other
+  // transaction doc they've completed and not deleted (e.g. the Investor name typed for one SAFE
+  // carries over to the next). This fallback only fires for fields explicitly marked `shared` in
+  // lib/flow.ts — a `name` collision alone isn't enough, since plenty of unrelated fields
+  // (e.g. "date") happen to share a name across documents without meaning the same real-world
+  // value, and blindly reusing e.g. the wrong document's date would be worse than just asking
+  // again. See the `TransactionField.shared` doc comment for why each opt-in was judged safe.
+  const prefill = (field?: TransactionField): string => {
+    if (!field) return ""
+    if (field.prefillKey && field.prefillKey !== "computed") {
+      const v = answers[field.prefillKey]
+      if (typeof v === "string" && v) return v
+    }
+    if (!field.shared) return ""
+    for (const doc of Object.values(docs)) {
+      const v = doc.values?.[field.name]
+      if (v) return v
+    }
+    return ""
+  }
+
+  // Asks for one field in a chat-mode document. A fixed option set (select) always gets a
+  // clickable choice bubble, and a date gets a calendar picker — both rendered inline in the
+  // chat stream rather than swapping the composer bar, so the bar itself stays free text and the
+  // user can still type a question while the field is pending. A prefilled date (already known
+  // from elsewhere) skips the bubble and drops straight into the chat input as text, so accepting
+  // it is just hitting Enter.
+  const promptField = useCallback(async (item: TransactionItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
+    const field = item.fields[fieldIndex]
+    await pushBotTyped(fieldPrompt(field))
+    if (field.type === "select") {
+      if (addChoices) setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+      return
+    }
+    if (field.type === "date") {
+      const prefilled = prefill(field)
+      if (prefilled) {
+        setValue(prefilled)
+      } else if (addChoices) {
+        setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+      }
+    }
+  }, [pushBotTyped, prefill])
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     pushUser(item.title)
@@ -227,13 +266,13 @@ export function TransactionsOnboarding({
       setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
         await pushBotTyped(`Let's prepare the ${item.title} — I'll ask you for each field one at a time.`)
-        await pushBotTyped(fieldPrompt(item.fields[0]))
+        await promptField(item, groupTitle, 0)
       })()
     } else {
       pushBot(`Let's prepare the ${item.title}. Fill out the form below — feel free to ask me any questions as you go.`)
       setMessages((m) => [...m, { id: ++idRef.current, role: "doc", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, inputMode])
+  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
@@ -260,24 +299,24 @@ export function TransactionsOnboarding({
       setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues })
       ;(async () => {
         await delay(250)
-        await pushBotTyped(fieldPrompt(item.fields[nextIndex]))
+        await promptField(item, groupTitle, nextIndex)
       })()
     } else {
       setActiveFiling(null)
       handleDocComplete(item, groupTitle, nextValues)
     }
-  }, [activeFiling, pushUser, pushBotTyped, handleDocComplete])
+  }, [activeFiling, pushUser, promptField, handleDocComplete])
 
-  // Text/textarea/address fields accept free text, so what's typed might be a genuine question
-  // rather than an answer — in which case explain and re-ask instead of recording it as the value.
-  // Select/date fields have no free-text entry to begin with, so there's nothing to disambiguate.
+  // Text/textarea/number/address fields accept free text, so what's typed might be a genuine
+  // question rather than an answer — in which case explain and re-ask instead of recording it as
+  // the value. Select/date fields never reach this handler — they're answered via the inline
+  // choice bubble, or via the free-text bar's own question detection (see handleSend) instead.
   const handleFieldInput = useCallback((raw: string) => {
     if (!activeFiling) return
     const { item, fieldIndex } = activeFiling
     const field = item.fields[fieldIndex]
     const val = raw.trim()
-    const canAskQuestion = field.type !== "select" && field.type !== "date"
-    if (canAskQuestion && val && looksLikeQuestion(val)) {
+    if (val && looksLikeQuestion(val)) {
       pushUser(val)
       ;(async () => {
         await pushBotTyped(field.hint ?? item.description)
@@ -288,27 +327,35 @@ export function TransactionsOnboarding({
     handleFieldSubmit(raw)
   }, [activeFiling, pushUser, pushBotTyped, handleFieldSubmit])
 
-  // Prefills a field from the company's formation answers first (e.g. company name), then falls
-  // back to whatever value the user already gave for a field of the same name on any other
-  // transaction doc they've completed and not deleted (e.g. the Investor name typed for one SAFE
-  // carries over to the next). This fallback only fires for fields explicitly marked `shared` in
-  // lib/flow.ts — a `name` collision alone isn't enough, since plenty of unrelated fields
-  // (e.g. "date") happen to share a name across documents without meaning the same real-world
-  // value, and blindly reusing e.g. the wrong document's date would be worse than just asking
-  // again. See the `TransactionField.shared` doc comment for why each opt-in was judged safe.
-  const prefill = (field?: TransactionField): string => {
-    if (!field) return ""
-    if (field.prefillKey && field.prefillKey !== "computed") {
-      const v = answers[field.prefillKey]
-      if (typeof v === "string" && v) return v
+  const handleSend = useCallback(() => {
+    const text = value.trim()
+    const activeField = activeFiling ? activeFiling.item.fields[activeFiling.fieldIndex] : undefined
+
+    if (!text) {
+      // Nothing typed: the only valid send is skipping an optional field.
+      if (activeFiling && activeField?.optional) handleFieldSubmit("")
+      return
     }
-    if (!field.shared) return ""
-    for (const doc of Object.values(docs)) {
-      const v = doc.values?.[field.name]
-      if (v) return v
+    setValue("")
+
+    if (activeFiling && !looksLikeQuestion(text)) {
+      handleFieldSubmit(text)
+      return
     }
-    return ""
-  }
+
+    pushUser(text)
+    if (activeFiling) {
+      const { item, groupTitle, fieldIndex } = activeFiling
+      const field = item.fields[fieldIndex]
+      ;(async () => {
+        await pushBotTyped(field.hint ?? item.description)
+        // The choice bubble for this field (if any) is still live from before — don't duplicate it.
+        await promptField(item, groupTitle, fieldIndex, false)
+      })()
+    } else {
+      pushBot("Happy to help. Feel free to fill out the form above or click any item in Transaction Documents to get started.")
+    }
+  }, [value, activeFiling, pushUser, pushBot, pushBotTyped, promptField, handleFieldSubmit])
 
   const allItems = TRANSACTION_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
@@ -422,6 +469,14 @@ export function TransactionsOnboarding({
                   />
                 )
               }
+              if (m.role === "fieldChoices") return (
+                <FieldChoicesBubble
+                  key={m.id}
+                  field={m.item.fields[m.fieldIndex]}
+                  active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
+                  onChoose={(val) => handleFieldSubmit(val)}
+                />
+              )
               return null
             })}
             {!hasStartedFlow && (
@@ -443,7 +498,7 @@ export function TransactionsOnboarding({
 
         <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
-            {activeFiling && inputMode === "chat" ? (
+            {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
               <FieldComposer
                 key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
                 field={activeFiling.item.fields[activeFiling.fieldIndex]}
@@ -456,12 +511,18 @@ export function TransactionsOnboarding({
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder="Feel free to ask any questions…"
+                  placeholder={
+                    activeFiling
+                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                        ? "Type an answer, or press Enter to skip…"
+                        : "Type your answer, or ask a question…"
+                      : "Feel free to ask any questions…"
+                  }
                   className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!value.trim()}
+                  disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
                 >
                   Send <Send className="h-3.5 w-3.5" />
