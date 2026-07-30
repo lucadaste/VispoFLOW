@@ -44,8 +44,6 @@ export function ChatInput({
       return <TextInput input={input} answers={answers} onSubmit={onSubmit} />
     case "incorporator":
       return <IncorporatorInput answers={answers} onSubmit={onSubmit} />
-    case "registeredAgent":
-      return <RegisteredAgentInput onSubmit={onSubmit} />
     case "paywall":
       return <PaywallInput onSubmit={onSubmit} />
     case "corpAddress":
@@ -219,42 +217,6 @@ function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubm
         </div>
         <div>
           <label className={labelClass}>Mailing address</label>
-          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
-        </div>
-        <div className="flex justify-end">
-          <SubmitButton onClick={submit} disabled={!name.trim() || !address.trim()} />
-        </div>
-      </div>
-    </Shell>
-  )
-}
-
-/* ---------- registered agent ---------- */
-
-function RegisteredAgentInput({ onSubmit }: { onSubmit: SubmitFn }) {
-  const [name, setName] = useState("")
-  const [address, setAddress] = useState("")
-  const submit = () => {
-    if (!name.trim() || !address.trim()) return
-    onSubmit(`${name}\n${address}`, {
-      registeredAgentName: name.trim(),
-      registeredAgentAddress: address.trim(),
-    })
-  }
-  return (
-    <Shell>
-      <div className="space-y-3">
-        <div>
-          <label className={labelClass}>Registered agent name</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Corporation Service Company"
-            className={fieldClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>Registered agent Delaware address</label>
           <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
         </div>
         <div className="flex justify-end">

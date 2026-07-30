@@ -638,10 +638,13 @@ export function IncorporationApp() {
           setActiveInput(step.input)
         }
       } else if (step.autoAdvance) {
+        if (step.completes?.length) {
+          await animateDocs(step.completes)
+        }
         await playStep(index + 1)
       }
     },
-    [pushBot, inputMode],
+    [pushBot, inputMode, animateDocs],
   )
 
   const applyIncorporationState = useCallback((saved: IncorporationPersisted) => {

@@ -23,14 +23,6 @@ export function getChatFields(
           incorporatorAddress: answers.incorporatorAddress,
         },
       }
-    case "registeredAgent":
-      return {
-        fields: [
-          { name: "registeredAgentName", label: "Who's serving as your registered agent?", placeholder: "e.g. Corporation Service Company" },
-          { name: "registeredAgentAddress", label: "What's the registered agent's Delaware address?", type: "address" },
-        ],
-        defaults: {},
-      }
     case "directorNames":
       return {
         fields: Array.from({ length: answers.directorCount }, (_, i) => ({
@@ -88,13 +80,6 @@ export function assembleChatAnswers(
         patch: {
           incorporatorName: (values.incorporatorName ?? "").trim(),
           incorporatorAddress: (values.incorporatorAddress ?? "").trim(),
-        },
-      }
-    case "registeredAgent":
-      return {
-        patch: {
-          registeredAgentName: (values.registeredAgentName ?? "").trim(),
-          registeredAgentAddress: (values.registeredAgentAddress ?? "").trim(),
         },
       }
     case "directorNames": {
