@@ -230,7 +230,7 @@ export function fillCompanyExecutionBlock(
   const officerTitle = primaryOfficerTitle(roles)
   const lines = content.split("\n")
   for (const byIndex of findByLineIndices(lines, headerPattern)) {
-    const windowEnd = Math.min(byIndex + 12, lines.length - 1)
+    const windowEnd = Math.min(byIndex + 16, lines.length - 1)
     for (let j = byIndex; j <= windowEnd; j++) {
       const trimmed = lines[j].trim()
       if (/^Name:_{3,}$/i.test(trimmed)) lines[j] = `Name: ${signerName}`
@@ -260,7 +260,7 @@ export function findBlankFieldLabels(content: string, headerPattern: RegExp = /^
   const lines = content.split("\n")
   const found = new Set<string>()
   for (const byIndex of findByLineIndices(lines, headerPattern)) {
-    const windowEnd = Math.min(byIndex + 12, lines.length - 1)
+    const windowEnd = Math.min(byIndex + 16, lines.length - 1)
     for (let j = byIndex; j <= windowEnd; j++) {
       const trimmed = lines[j].trim()
       for (const label of EXTRA_BLOCK_FIELD_LABELS) {
