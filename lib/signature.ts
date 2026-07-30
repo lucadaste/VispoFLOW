@@ -87,6 +87,30 @@ function findHeaderSignatureLines(lines: string[], headerPattern: RegExp): numbe
   return results
 }
 
+/** Finds every blank "____ (PRINT NAME)" line under the same kind of header `findHeaderSignatureLines`
+ *  resolves the signature line for — the blank line immediately followed by a "(PRINT NAME)" label. */
+function findPrintedNameLineIndices(lines: string[], headerPattern: RegExp): number[] {
+  const results: number[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (!headerPattern.test(lines[i].trim())) continue
+    for (let j = i + 1; j <= Math.min(i + 10, lines.length - 1); j++) {
+      if (!/^_{5,}$/.test(lines[j].trim())) continue
+      if (/^\(\s*print name\s*\)/i.test(lines[j + 1]?.trim() ?? "")) { results.push(j); break }
+    }
+  }
+  return results
+}
+
+/** Fills the "____ (PRINT NAME)" blank of a "generic"-kind slot (see SignatureRouting) with the
+ *  signer's name — the counterpart, for a block with no pre-printed name, to what the Name:____
+ *  line is for an officer block. No-op if the block has no such line (most generic blocks are
+ *  fine without one; only Option Pool's Optionee currently has this shape). */
+export function fillPrintedNameBlank(content: string, headerPattern: RegExp, signerName: string): string {
+  const lines = content.split("\n")
+  for (const idx of findPrintedNameLineIndices(lines, headerPattern)) lines[idx] = signerName
+  return lines.join("\n")
+}
+
 /** Finds every blank signature line (a run of underscores on its own line) followed within a few
  *  lines by the signer's printed name (skipping blank lines and "(Signature)"/"(Print Name)"
  *  labels) — the pattern used wherever a party's name is already known when the document renders. */
@@ -128,10 +152,14 @@ export function resolveSignatureLines(content: string, slot: SignatureRouting, s
   return companyLines.length > 0 ? companyLines : findDateAdjacentLines(lines)
 }
 
-/** The "other" single-line blanks (beyond Name:/Title:) that can appear in a party's execution
- *  block in a form simple enough to fill unambiguously — a label immediately followed by a run of
- *  underscores on the same line. */
-const EXTRA_BLOCK_FIELD_LABELS = ["Address", "Email"]
+/** The single-line blanks that can appear in a party's execution block in a form simple enough to
+ *  fill unambiguously — a label immediately followed by a run of underscores on the same line.
+ *  "Title" is included so an external counterparty (who has no `roles` for `primaryOfficerTitle`
+ *  to resolve, e.g. a SAFE's Investor) still gets asked for and has their title filled in via
+ *  `extraFields`, same as Address/Email — see the officerTitle guard in
+ *  `fillCompanyExecutionBlock` below, which skips this for the company's own officer block since
+ *  that one already fills Title from `roles`. */
+const EXTRA_BLOCK_FIELD_LABELS = ["Address", "Email", "Title"]
 
 /** Matches a blank line meant to hold one line of a multi-line address — a run of underscores,
  *  optionally split into a couple of groups by whitespace (the "city, state zip" line's shape,
@@ -182,14 +210,15 @@ function fillMultilineAddressBlanks(lines: string[], blanks: number[], address: 
 /**
  * Fills the blank "Name:____"/"Title:____" lines of a party's execution block with the signer's
  * name and officer title, so the printed block matches who actually signed on the By: line. Name
- * fills unconditionally (it's just who signed); Title only fills if the signer holds a
- * recognized officer-type role — an external counterparty (e.g. a SAFE's Investor) usually holds
- * neither, and the block simply keeps its blank Title line in that case. `extraFields` additionally
- * fills any of `EXTRA_BLOCK_FIELD_LABELS` present with a non-empty value — Address either inline
- * ("Address:____") or, if the block instead uses a bare "Address:" label with blank continuation
- * lines, spread across those (see findMultilineAddressBlanks). No-op if the document has no block
- * matching `headerPattern` (default "THE COMPANY:"; a document can use a different party label,
- * e.g. a loan agreement's "BORROWER:").
+ * fills unconditionally (it's just who signed); Title fills from a recognized officer-type role if
+ * the signer holds one (the company's own officer signing on its own behalf), otherwise from
+ * `extraFields.Title` if supplied (an external counterparty, e.g. a SAFE's Investor, has no such
+ * role — they're asked for their title directly, same as Address/Email). `extraFields`
+ * additionally fills any of `EXTRA_BLOCK_FIELD_LABELS` present with a non-empty value — Address
+ * either inline ("Address:____") or, if the block instead uses a bare "Address:" label with blank
+ * continuation lines, spread across those (see findMultilineAddressBlanks). No-op if the document
+ * has no block matching `headerPattern` (default "THE COMPANY:"; a document can use a different
+ * party label, e.g. a loan agreement's "BORROWER:").
  */
 export function fillCompanyExecutionBlock(
   content: string,
@@ -207,6 +236,7 @@ export function fillCompanyExecutionBlock(
       if (/^Name:_{3,}$/i.test(trimmed)) lines[j] = `Name: ${signerName}`
       if (officerTitle && /^Title:_{3,}$/i.test(trimmed)) lines[j] = `Title: ${officerTitle}`
       for (const label of EXTRA_BLOCK_FIELD_LABELS) {
+        if (label === "Title" && officerTitle) continue // already filled from roles above
         const value = extraFields?.[label]
         if (value && new RegExp(`^${label}:_{3,}$`, "i").test(trimmed)) lines[j] = `${label}: ${value}`
       }

@@ -1,10 +1,10 @@
 "use client"
 
 import { Fragment, useLayoutEffect, useRef, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare, Send } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillSignedDateLine, findBlankFieldLabels, formatSignedDate, primaryOfficerTitle } from "@/lib/signature"
+import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import type { FlowAnswers } from "@/lib/flow"
 import { SignaturePad } from "@/components/signature-pad"
@@ -131,6 +131,8 @@ function signedContent(doc: LibraryDoc, answers: FlowAnswers): string {
         slot.headerPattern,
         sig.extraFields,
       )
+    } else if (slot.kind === "generic" && slot.headerPattern) {
+      content = fillPrintedNameBlank(content, slot.headerPattern, sig.signerName)
     }
     for (const lineIndex of resolveSignatureLines(content, slot, sig.signerName)) {
       content = fillSignedDateLine(content, lineIndex, sig.signedAt)
@@ -182,8 +184,28 @@ function classifyDocLine(line: string, isTitle: boolean): { bold: boolean; cente
   return { bold: false, center: false }
 }
 
-const DOWNLOAD_FORMATS = ["pdf", "txt", "jpeg"] as const
+const DOWNLOAD_FORMATS = ["pdf", "docx", "txt", "jpeg", "png"] as const
 type DownloadFormat = (typeof DOWNLOAD_FORMATS)[number]
+
+/** A built file, not yet sent anywhere — the same `BuiltFile` feeds a single-click download, a
+ *  zipped multi-doc download, and an emailed attachment, so the format renderers below only ever
+ *  need to know how to produce bytes, not what happens to them next. */
+type BuiltFile = { blob: Blob; filename: string }
+
+function mimeTypeForFormat(format: DownloadFormat): string {
+  switch (format) {
+    case "pdf":
+      return "application/pdf"
+    case "docx":
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    case "txt":
+      return "text/plain"
+    case "jpeg":
+      return "image/jpeg"
+    case "png":
+      return "image/png"
+  }
+}
 
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -202,11 +224,11 @@ function fullContent(doc: LibraryDoc, answers: FlowAnswers): string {
     .reduce((acc, r) => acc + signatureBlockText({ signerName: r.sig.signerName, signedAt: r.sig.signedAt }), base)
 }
 
-function downloadAsTxt(doc: LibraryDoc, answers: FlowAnswers) {
-  triggerDownload(new Blob([fullContent(doc, answers)], { type: "text/plain" }), `${doc.title}.txt`)
+function buildTxt(doc: LibraryDoc, answers: FlowAnswers): BuiltFile {
+  return { blob: new Blob([fullContent(doc, answers)], { type: "text/plain" }), filename: `${doc.title}.txt` }
 }
 
-async function downloadAsPdf(doc: LibraryDoc, answers: FlowAnswers) {
+async function buildPdf(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFile> {
   const { jsPDF } = await import("jspdf")
   const pdf = new jsPDF({ unit: "pt", format: "letter" })
   const margin = 56
@@ -287,7 +309,64 @@ async function downloadAsPdf(doc: LibraryDoc, answers: FlowAnswers) {
     }
   }
 
-  pdf.save(`${doc.title}.pdf`)
+  return { blob: pdf.output("blob"), filename: `${doc.title}.pdf` }
+}
+
+/** Converts a `data:image/png;base64,....` signature into the raw bytes `docx`'s `ImageRun` wants. */
+function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.slice(dataUrl.indexOf(",") + 1)
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return bytes
+}
+
+async function buildDocx(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFile> {
+  const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType } = await import("docx")
+
+  const content = signedContent(doc, answers)
+  const rawLines = content.split("\n")
+  const titleIndex = docTitleLineIndex(content)
+  const resolved = resolveSignatures(content, doc, answers)
+  const lineToSig = new Map<number, DocSignature>()
+  for (const r of resolved) for (const idx of r.lines) lineToSig.set(idx, r.sig)
+  const unplaced = resolved.filter((r) => r.lines.length === 0).map((r) => r.sig)
+
+  const paragraphs = rawLines.map((raw, i) => {
+    const sig = lineToSig.get(i)
+    if (sig) {
+      return new Paragraph({
+        children: [new ImageRun({ data: dataUrlToUint8Array(sig.signatureDataUrl), transformation: { width: 150, height: 50 }, type: "png" })],
+      })
+    }
+    if (!raw.trim()) return new Paragraph({ text: "" })
+
+    const { bold, center } = classifyDocLine(raw, i === titleIndex)
+    const children = [new TextRun({ text: raw, bold })]
+    const prevSig = lineToSig.get(i - 1)
+    if (prevSig) {
+      children.push(
+        new TextRun({ text: `  Electronically signed on ${formatSignedDate(prevSig.signedAt)}`, italics: true, size: 18 }),
+      )
+    }
+    return new Paragraph({ children, alignment: center ? AlignmentType.CENTER : AlignmentType.LEFT })
+  })
+
+  for (const sig of unplaced) {
+    paragraphs.push(new Paragraph({ text: "" }))
+    paragraphs.push(
+      new Paragraph({
+        children: [new ImageRun({ data: dataUrlToUint8Array(sig.signatureDataUrl), transformation: { width: 160, height: 50 }, type: "png" })],
+      }),
+    )
+    for (const line of signatureBlockText({ signerName: sig.signerName, signedAt: sig.signedAt }).trim().split("\n")) {
+      paragraphs.push(new Paragraph({ text: line }))
+    }
+  }
+
+  const docx = new Document({ sections: [{ children: paragraphs }] })
+  const blob = await Packer.toBlob(docx)
+  return { blob, filename: `${doc.title}.docx` }
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -299,7 +378,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-async function downloadAsJpeg(doc: LibraryDoc, answers: FlowAnswers) {
+async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" | "png"): Promise<BuiltFile | null> {
   const width = 850
   const margin = 48
   const lineHeight = 22
@@ -309,7 +388,7 @@ async function downloadAsJpeg(doc: LibraryDoc, answers: FlowAnswers) {
 
   const canvas = document.createElement("canvas")
   const ctx = canvas.getContext("2d")
-  if (!ctx) return
+  if (!ctx) return null
 
   ctx.font = font
   const maxWidth = width - margin * 2
@@ -404,24 +483,49 @@ async function downloadAsJpeg(doc: LibraryDoc, answers: FlowAnswers) {
     yCursor += sigLines.length * lineHeight
   }
 
-  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92))
-  if (blob) triggerDownload(blob, `${doc.title}.jpg`)
+  const mime = format === "png" ? "image/png" : "image/jpeg"
+  const ext = format === "png" ? "png" : "jpg"
+  const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, mime, format === "jpeg" ? 0.92 : undefined))
+  return blob ? { blob, filename: `${doc.title}.${ext}` } : null
+}
+
+async function buildDoc(doc: LibraryDoc, format: DownloadFormat, answers: FlowAnswers): Promise<BuiltFile | null> {
+  if (!doc.content) return null
+  if (format === "txt") return buildTxt(doc, answers)
+  if (format === "pdf") return buildPdf(doc, answers)
+  if (format === "docx") return buildDocx(doc, answers)
+  return buildImage(doc, answers, format)
 }
 
 async function downloadDoc(doc: LibraryDoc, format: DownloadFormat, answers: FlowAnswers) {
-  if (!doc.content) return
-  if (format === "txt") downloadAsTxt(doc, answers)
-  else if (format === "pdf") await downloadAsPdf(doc, answers)
-  else await downloadAsJpeg(doc, answers)
+  const file = await buildDoc(doc, format, answers)
+  if (file) triggerDownload(file.blob, file.filename)
 }
 
-/** Browsers throttle/block a burst of simultaneous download triggers, so files are downloaded
- *  one at a time with a short pause between each. */
+/** A single browser download naturally handles one file at a time; triggering several in a burst
+ *  gets throttled or silently blocked by the browser's automatic-download protection, which is
+ *  what made "download selected" only ever produce one file. Bundling every selected doc into one
+ *  zip sidesteps that entirely — it's always exactly one download, however many docs are inside. */
 async function downloadDocs(docs: LibraryDoc[], format: DownloadFormat, answers: FlowAnswers) {
-  for (const doc of docs) {
-    await downloadDoc(doc, format, answers)
-    await new Promise((resolve) => setTimeout(resolve, 250))
+  const built = (await Promise.all(docs.map((doc) => buildDoc(doc, format, answers)))).filter((f): f is BuiltFile => !!f)
+  if (built.length === 0) return
+  if (built.length === 1) {
+    triggerDownload(built[0].blob, built[0].filename)
+    return
   }
+
+  const { default: JSZip } = await import("jszip")
+  const zip = new JSZip()
+  const usedNames = new Set<string>()
+  for (const file of built) {
+    let name = file.filename
+    const dot = file.filename.lastIndexOf(".")
+    for (let n = 2; usedNames.has(name); n++) name = `${file.filename.slice(0, dot)} (${n})${file.filename.slice(dot)}`
+    usedNames.add(name)
+    zip.file(name, file.blob)
+  }
+  const zipBlob = await zip.generateAsync({ type: "blob" })
+  triggerDownload(zipBlob, "Documents.zip")
 }
 
 type Phase = "chat" | "compliance" | "transactions"
@@ -466,12 +570,18 @@ export function DocumentLibrary({
 }) {
   const visibleCount = (docs: LibraryDoc[]) => docs.filter((d) => !d.hidden).length
   const total = visibleCount(incorporationDocs) + visibleCount(complianceDocs) + visibleCount(transactionDocs)
-  const [viewing, setViewing] = useState<LibraryDoc | null>(null)
+  // Tracked by id, not by a snapshot of the LibraryDoc object: the incoming doc arrays are already
+  // freshly re-derived from live signature state on every render (see withDocSignatures at the
+  // call site), so looking the doc up here means the open viewer reflects a just-recorded signature
+  // (e.g. its extraFields) immediately, without a separate hand-patched copy that can fall out of
+  // sync with what onSign actually persisted.
+  const [viewingId, setViewingId] = useState<string | null>(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
 
   const allDocs = [...incorporationDocs, ...complianceDocs, ...transactionDocs]
+  const viewing = viewingId ? (allDocs.find((d) => d.id === viewingId) ?? null) : null
 
   const toggleSelect = (doc: LibraryDoc) => {
     setSelected((prev) => {
@@ -496,45 +606,6 @@ export function DocumentLibrary({
   const selectedDownloadableDocs = allDocs.filter((doc) => selected.has(doc.id) && doc.content)
   const handleBulkDownload = (format: DownloadFormat) => {
     downloadDocs(selectedDownloadableDocs, format, answers)
-  }
-
-  const handleSign = (doc: LibraryDoc, signature: SignPayload) => {
-    onSign(doc, signature)
-    setViewing((v) => {
-      if (!v || v.id !== doc.id) return v
-      const slotId = signature.slotId ?? "officer"
-      const slot = getSignerSlots(doc.id, answers, doc.values).find((s) => s.id === slotId)
-      const newSig: DocSignature = {
-        slotId,
-        slotLabel: signature.slotLabel ?? slot?.label ?? "Company officer",
-        signatureDataUrl: signature.signatureDataUrl,
-        signerName: signature.signerName,
-        signedAt: new Date().toISOString(),
-        officerTitle: slot?.kind === "officer" ? primaryOfficerTitle(signature.roles ?? []) ?? undefined : undefined,
-      }
-      const signatures = [...(v.signatures ?? []).filter((s) => s.slotId !== slotId), newSig]
-      const totalSlots = v.content ? getSignerSlots(doc.id, answers, doc.values).length : 0
-      return { ...v, signatures, signed: totalSlots > 0 && signatures.length >= totalSlots }
-    })
-  }
-
-  const handleRemoveSignature = (doc: LibraryDoc, slotId: string) => {
-    onRemoveSignature?.(doc, slotId)
-    setViewing((v) =>
-      v && v.id === doc.id
-        ? { ...v, signatures: (v.signatures ?? []).filter((s) => s.slotId !== slotId), signed: false }
-        : v,
-    )
-  }
-
-  const handleSendToDelaware = (doc: LibraryDoc) => {
-    onSendToDelaware?.(doc)
-    setViewing((v) => (v && v.id === doc.id ? { ...v, pending: true } : v))
-  }
-
-  const handleConfirmFiled = (doc: LibraryDoc) => {
-    onConfirmFiled?.(doc)
-    setViewing((v) => (v && v.id === doc.id ? { ...v, pending: false, filed: true } : v))
   }
 
   return (
@@ -598,10 +669,10 @@ export function DocumentLibrary({
             emptyText="Formation documents will appear here as you complete the Incorporation flow."
             ctaLabel="Go to Incorporation"
             onCta={() => onNavigate("chat")}
-            onView={setViewing}
+            onView={(doc) => setViewingId(doc.id)}
             onDelete={onDelete}
             onRestore={onRestore}
-            onSign={handleSign}
+            onSign={onSign}
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
@@ -617,10 +688,10 @@ export function DocumentLibrary({
             emptyText="Filed compliance items will appear here as you complete them in the Compliance Center."
             ctaLabel="Go to Compliance"
             onCta={() => onNavigate("compliance")}
-            onView={setViewing}
+            onView={(doc) => setViewingId(doc.id)}
             onDelete={onDelete}
             onRestore={onRestore}
-            onSign={handleSign}
+            onSign={onSign}
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
@@ -636,10 +707,10 @@ export function DocumentLibrary({
             emptyText="Grants, issuances, and transfers will appear here as you record them in Transactions."
             ctaLabel="Go to Transactions"
             onCta={() => onNavigate("transactions")}
-            onView={setViewing}
+            onView={(doc) => setViewingId(doc.id)}
             onDelete={onDelete}
             onRestore={onRestore}
-            onSign={handleSign}
+            onSign={onSign}
             onSendToSign={onSendToSign}
             savedSignature={savedSignature}
             pendingSignRequests={pendingSignRequests}
@@ -664,14 +735,14 @@ export function DocumentLibrary({
         <DocumentViewer
           doc={viewing}
           answers={answers}
-          onClose={() => setViewing(null)}
-          onSign={handleSign}
+          onClose={() => setViewingId(null)}
+          onSign={onSign}
           onSendToSign={onSendToSign}
-          onDelete={(doc) => { onDelete(doc); setViewing(null) }}
-          onRemoveSignature={onRemoveSignature ? handleRemoveSignature : undefined}
+          onDelete={(doc) => { onDelete(doc); setViewingId(null) }}
+          onRemoveSignature={onRemoveSignature}
           onCancelSignRequest={onCancelSignRequest}
-          onSendToDelaware={onSendToDelaware ? handleSendToDelaware : undefined}
-          onConfirmFiled={onConfirmFiled ? handleConfirmFiled : undefined}
+          onSendToDelaware={onSendToDelaware}
+          onConfirmFiled={onConfirmFiled}
           savedSignature={savedSignature}
           pendingSignRequests={pendingSignRequests[viewing.id]}
         />
@@ -936,10 +1007,10 @@ function SendToSignPopoverContent({
       selectedSlot.kind === "officer" ? findBlankFieldLabels(doc.content ?? "", selectedSlot.headerPattern) : undefined
     onSendToSign(doc, {
       recipientEmail: email.trim(),
-      recipientName: name.trim() || undefined,
+      recipientName: selectedSlot.matchName ?? (name.trim() || undefined),
       slotId: selectedSlot.id,
       slotLabel: selectedSlot.label,
-      lockedName: selectedSlot.kind === "named" ? selectedSlot.matchName : undefined,
+      lockedName: selectedSlot.matchName,
       requiredFields: requiredFields?.length ? requiredFields : undefined,
     })
     onDone()
@@ -970,7 +1041,7 @@ function SendToSignPopoverContent({
         placeholder="recipient@email.com"
         className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
       />
-      {selectedSlot.kind === "named" ? (
+      {selectedSlot.matchName ? (
         <p className="text-xs text-muted-foreground">Name is fixed by the document: {selectedSlot.matchName}</p>
       ) : (
         <input
@@ -1034,6 +1105,134 @@ function SendToSignButton({
   )
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      resolve(result.slice(result.indexOf(",") + 1))
+    }
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
+}
+
+/** Emails a copy of the document straight to a recipient — distinct from "Send to sign", which
+ *  creates a tracked signing request. This is a one-off, fire-and-forget send, so it doesn't need
+ *  any persisted server-side state and just posts directly to the send API from here. PDF is the
+ *  default format since it's the one every recipient can open without extra software; any other
+ *  download format is still one dropdown selection away. */
+function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc; answers: FlowAnswers; onDone: () => void }) {
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [format, setFormat] = useState<DownloadFormat>("pdf")
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+
+  const send = async () => {
+    if (!email.trim() || status === "sending") return
+    setStatus("sending")
+    try {
+      const file = await buildDoc(doc, format, answers)
+      if (!file) throw new Error("Document has no content")
+      const content = await blobToBase64(file.blob)
+      const res = await fetch("/api/documents/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipientEmail: email.trim(),
+          docTitle: doc.title,
+          senderCompanyName: answers.companyName,
+          message: message.trim() || undefined,
+          filename: file.filename,
+          content,
+          contentType: mimeTypeForFormat(format),
+        }),
+      })
+      if (!res.ok) throw new Error("Send failed")
+      setStatus("sent")
+      setTimeout(onDone, 1000)
+    } catch {
+      setStatus("error")
+    }
+  }
+
+  return (
+    <div className="space-y-2.5 p-3">
+      <p className="text-xs font-medium text-foreground">Email this document</p>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="recipient@email.com"
+        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Add a note (optional)"
+        rows={2}
+        className="w-full resize-none rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+      />
+      <select
+        value={format}
+        onChange={(e) => setFormat(e.target.value as DownloadFormat)}
+        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs uppercase tracking-wide text-foreground outline-none focus:border-primary"
+      >
+        {DOWNLOAD_FORMATS.map((f) => (
+          <option key={f} value={f}>
+            {f.toUpperCase()}
+            {f === "pdf" ? " (default)" : ""}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={send}
+        disabled={!email.trim() || status === "sending"}
+        className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+      >
+        {status === "sending" ? "Sending…" : status === "sent" ? "Sent!" : "Send"}
+      </button>
+      {status === "error" && <p className="text-xs text-destructive">Couldn't send that — try again.</p>}
+    </div>
+  )
+}
+
+function SendDocumentButton({
+  doc,
+  answers,
+  variant = "icon",
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  variant?: "icon" | "full"
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title="Send document"
+        className={
+          variant === "icon"
+            ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+        }
+      >
+        <Send className="h-3.5 w-3.5" />
+        {variant === "full" && "Send"}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            <SendDocumentPopoverContent doc={doc} answers={answers} onDone={() => setOpen(false)} />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   if (!doc.content) {
@@ -1083,7 +1282,7 @@ function DocTileMenu({
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
 }) {
-  type Mode = "menu" | "sign" | "send" | "delete-confirm"
+  type Mode = "menu" | "sign" | "send" | "email" | "delete-confirm"
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const [dropUp, setDropUp] = useState(false)
@@ -1142,6 +1341,14 @@ function DocTileMenu({
                     <Mail className="h-3.5 w-3.5" /> Send to sign
                   </button>
                 )}
+                {viewable && (
+                  <button
+                    onClick={() => setMode("email")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    <Send className="h-3.5 w-3.5" /> Send document
+                  </button>
+                )}
                 {viewable && DOWNLOAD_FORMATS.map((format) => (
                   <button
                     key={format}
@@ -1163,6 +1370,7 @@ function DocTileMenu({
             {mode === "send" && onSendToSign && (
               <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={close} />
             )}
+            {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
             {mode === "delete-confirm" && (
               <div className="space-y-2.5 p-3">
                 <p className="text-xs font-medium text-foreground">Delete this document?</p>
@@ -1617,7 +1825,8 @@ export function DocumentViewer({
             )}
             {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
             {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
-            {doc.content && !onGoToLibrary && <DownloadMenuButton doc={doc} answers={answers} />}
+            {doc.content && <SendDocumentButton doc={doc} answers={answers} variant="full" />}
+            {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
             {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
             <button
               onClick={onClose}
