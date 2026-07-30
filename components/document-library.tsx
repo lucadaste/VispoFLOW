@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useState } from "react"
+import { Fragment, useLayoutEffect, useRef, useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -1086,15 +1086,28 @@ function DocTileMenu({
   type Mode = "menu" | "sign" | "send" | "delete-confirm"
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
+  const [dropUp, setDropUp] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const viewable = !!doc.content
   const canSign = viewable && selfSignableSlotsFor(doc, answers).length > 0
   const canSendToSign = viewable && !!onSendToSign && availableSlotsFor(doc, answers).length > 0
 
   const close = () => { setOpen(false); setMode("menu") }
 
+  useLayoutEffect(() => {
+    if (!open) return
+    const button = buttonRef.current
+    const menu = menuRef.current
+    if (!button || !menu) return
+    const spaceBelow = window.innerHeight - button.getBoundingClientRect().bottom
+    setDropUp(spaceBelow < menu.offsetHeight + 16)
+  }, [open, mode, canSign, canSendToSign])
+
   return (
     <div className="relative" onClick={(e) => e.stopPropagation()}>
       <button
+        ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
         title="More actions"
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -1104,7 +1117,13 @@ function DocTileMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={close} />
-          <div className="absolute right-0 top-7 z-50 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+          <div
+            ref={menuRef}
+            className={cn(
+              "absolute right-0 z-50 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md",
+              dropUp ? "bottom-7" : "top-7",
+            )}
+          >
             {mode === "menu" && (
               <div className="py-1">
                 {canSign && (
