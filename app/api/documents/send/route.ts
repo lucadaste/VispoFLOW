@@ -7,9 +7,18 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
-  const { recipientEmail, recipientName, docTitle, senderCompanyName, message, filename, content, contentType } = body
+  const { recipientEmail, recipientName, senderCompanyName, message, documents } = body as {
+    recipientEmail?: string
+    recipientName?: string
+    senderCompanyName?: string
+    message?: string
+    documents?: { docTitle: string; filename: string; content: string; contentType: string }[]
+  }
 
-  if (!recipientEmail || !docTitle || !filename || !content || !contentType) {
+  if (!recipientEmail || !Array.isArray(documents) || documents.length === 0) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+  }
+  if (documents.some((d) => !d.docTitle || !d.filename || !d.content || !d.contentType)) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
@@ -19,10 +28,10 @@ export async function POST(req: NextRequest) {
   await sendDocumentEmail({
     to: recipientEmail,
     recipientName,
-    docTitle,
+    docTitles: documents.map((d) => d.docTitle),
     senderCompanyName,
     message,
-    attachment: { filename, content, contentType },
+    attachments: documents.map((d) => ({ filename: d.filename, content: d.content, contentType: d.contentType })),
   })
 
   return NextResponse.json({ ok: true })

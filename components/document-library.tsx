@@ -528,6 +528,38 @@ async function downloadDocs(docs: LibraryDoc[], format: DownloadFormat, answers:
   triggerDownload(zipBlob, "Documents.zip")
 }
 
+/** Emails several documents at once as separate attachments on a single message — what backs
+ *  bulk "share" from the multiselect toolbar (e.g. sending a batch to a lawyer for review). */
+async function shareDocs(
+  docs: LibraryDoc[],
+  format: DownloadFormat,
+  answers: FlowAnswers,
+  opts: { recipientEmail: string; message?: string },
+): Promise<boolean> {
+  const documents = (
+    await Promise.all(
+      docs.map(async (doc) => {
+        const file = await buildDoc(doc, format, answers)
+        if (!file) return null
+        return { docTitle: doc.title, filename: file.filename, content: await blobToBase64(file.blob), contentType: mimeTypeForFormat(format) }
+      }),
+    )
+  ).filter((d): d is { docTitle: string; filename: string; content: string; contentType: string } => !!d)
+  if (documents.length === 0) return false
+
+  const res = await fetch("/api/documents/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recipientEmail: opts.recipientEmail,
+      senderCompanyName: answers.companyName,
+      message: opts.message,
+      documents,
+    }),
+  })
+  return res.ok
+}
+
 type Phase = "chat" | "compliance" | "transactions"
 
 export function DocumentLibrary({
@@ -605,6 +637,8 @@ export function DocumentLibrary({
 
   const selectedDownloadableDocs = allDocs.filter((doc) => selected.has(doc.id) && doc.content)
   const handleBulkDownload = (format: DownloadFormat) => downloadDocs(selectedDownloadableDocs, format, answers)
+  const handleBulkShare = (opts: { recipientEmail: string; message?: string; format: DownloadFormat }) =>
+    shareDocs(selectedDownloadableDocs, opts.format, answers, opts)
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
@@ -646,6 +680,7 @@ export function DocumentLibrary({
             </span>
             <div className="flex items-center gap-2">
               <BulkDownloadButton count={selectedDownloadableDocs.length} onDownload={handleBulkDownload} />
+              <BulkShareButton count={selectedDownloadableDocs.length} onShare={handleBulkShare} />
               <button
                 onClick={() => setConfirmingBulkDelete(true)}
                 disabled={selected.size === 0}
@@ -1138,12 +1173,9 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           recipientEmail: email.trim(),
-          docTitle: doc.title,
           senderCompanyName: answers.companyName,
           message: message.trim() || undefined,
-          filename: file.filename,
-          content,
-          contentType: mimeTypeForFormat(format),
+          documents: [{ docTitle: doc.title, filename: file.filename, content, contentType: mimeTypeForFormat(format) }],
         }),
       })
       if (!res.ok) throw new Error("Send failed")
@@ -1640,6 +1672,108 @@ function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: 
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/** Emails every selected (and downloadable) document to one recipient as attachments on a single
+ *  message — e.g. batching a set of documents off to a lawyer or advisor to review. */
+function BulkShareButton({
+  count,
+  onShare,
+}: {
+  count: number
+  onShare: (opts: { recipientEmail: string; message?: string; format: DownloadFormat }) => Promise<boolean>
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        disabled={count === 0}
+        className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        <Send className="h-3.5 w-3.5" />
+        Share{count > 0 ? ` (${count})` : ""}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            <BulkSharePopoverContent count={count} onShare={onShare} onDone={() => setOpen(false)} />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function BulkSharePopoverContent({
+  count,
+  onShare,
+  onDone,
+}: {
+  count: number
+  onShare: (opts: { recipientEmail: string; message?: string; format: DownloadFormat }) => Promise<boolean>
+  onDone: () => void
+}) {
+  const [email, setEmail] = useState("")
+  const [message, setMessage] = useState("")
+  const [format, setFormat] = useState<DownloadFormat>("pdf")
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+
+  const send = async () => {
+    if (!email.trim() || status === "sending") return
+    setStatus("sending")
+    const ok = await onShare({ recipientEmail: email.trim(), message: message.trim() || undefined, format })
+    if (ok) {
+      setStatus("sent")
+      setTimeout(onDone, 1000)
+    } else {
+      setStatus("error")
+    }
+  }
+
+  return (
+    <div className="space-y-2.5 p-3">
+      <p className="text-xs font-medium text-foreground">
+        Share {count} document{count === 1 ? "" : "s"} for review
+      </p>
+      <input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="lawyer@firm.com"
+        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+      />
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        placeholder="Add a note (optional)"
+        rows={2}
+        className="w-full resize-none rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
+      />
+      <select
+        value={format}
+        onChange={(e) => setFormat(e.target.value as DownloadFormat)}
+        className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs uppercase tracking-wide text-foreground outline-none focus:border-primary"
+      >
+        {DOWNLOAD_FORMATS.map((f) => (
+          <option key={f} value={f}>
+            {f.toUpperCase()}
+            {f === "pdf" ? " (default)" : ""}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={send}
+        disabled={!email.trim() || status === "sending"}
+        className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
+      >
+        {status === "sending" ? "Sending…" : status === "sent" ? "Sent!" : "Send"}
+      </button>
+      {status === "error" && <p className="text-xs text-destructive">Couldn't send that — try again.</p>}
     </div>
   )
 }
