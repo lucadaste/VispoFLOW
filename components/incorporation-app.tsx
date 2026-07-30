@@ -41,6 +41,7 @@ import {
   loadFromServer,
   saveToServer,
   clearFromServer,
+  updateServerValue,
 } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { mergeProfileIntoAnswers, isProfileEmpty } from "@/lib/profile"
@@ -63,13 +64,15 @@ function clearItemInPersisted(key: string, id: string) {
   }
 }
 
-async function clearItemOnServer(key: string, id: string) {
-  const saved = await loadFromServer<FlowPersistedShape>(key)
-  if (saved && (saved.completed[id] || saved.docs[id])) {
-    delete saved.completed[id]
-    delete saved.docs[id]
-    saveToServer(key, saved)
-  }
+function clearItemOnServer(key: string, id: string) {
+  return updateServerValue<FlowPersistedShape>(key, (saved) => {
+    if (saved && (saved.completed[id] || saved.docs[id])) {
+      delete saved.completed[id]
+      delete saved.docs[id]
+      return saved
+    }
+    return null
+  })
 }
 
 function restoreItemInPersisted(key: string, doc: LibraryDoc) {
@@ -81,13 +84,13 @@ function restoreItemInPersisted(key: string, doc: LibraryDoc) {
   }
 }
 
-async function restoreItemOnServer(key: string, doc: LibraryDoc) {
-  const saved = await loadFromServer<FlowPersistedShape>(key)
-  if (saved) {
+function restoreItemOnServer(key: string, doc: LibraryDoc) {
+  return updateServerValue<FlowPersistedShape>(key, (saved) => {
+    if (!saved) return null
     saved.completed[doc.id] = true
     saved.docs[doc.id] = doc
-    saveToServer(key, saved)
-  }
+    return saved
+  })
 }
 
 type ChatMessage =
