@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ShieldCheck, CalendarClock, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator, SystemNote } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
@@ -21,6 +21,7 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
+import { formatNumberInput } from "@/lib/number-format"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
@@ -39,6 +40,7 @@ type ChatMsg =
   | { id: number; role: "categories" }
   | { id: number; role: "fieldChoices"; item: ComplianceItem; groupTitle: string; fieldIndex: number }
   | { id: number; role: "note"; text: string }
+  | { id: number; role: "docDrafted"; item: ComplianceItem; groupTitle: string }
 
 type ActiveFiling = {
   item: ComplianceItem
@@ -171,14 +173,40 @@ export function ComplianceView({
     }
   }, [])
 
+  // Arriving straight from incorporation completion (startExpanded) always gets the fresh,
+  // descriptive post-incorporation greeting with no category chips — even if a prior visit
+  // (e.g. via the nav bar's always-enabled Compliance pill) left a stale generic-greeting
+  // session saved. Progress data (completed items, docs, etc.) from that prior session is
+  // still preserved; only the chat transcript is replaced.
+  const restoreCompliance = useCallback((saved: CompliancePersisted) => {
+    if (startExpanded) {
+      const name = user?.firstName
+      const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
+      let nextId = 0
+      const freshMessages: ChatMsg[] = [
+        {
+          id: ++nextId,
+          role: "bot",
+          text: name
+            ? `Hi ${name}, let's get your post-incorporation compliance started.`
+            : "Hi! Let's get your post-incorporation compliance started.",
+        },
+      ]
+      if (initialCategory) freshMessages.push({ id: ++nextId, role: "bot", text: initialCategory.chatResponse })
+      applyState({ ...saved, messages: freshMessages })
+      openPostIncorporation()
+      return
+    }
+    applyState(saved)
+  }, [applyState, startExpanded, user, openPostIncorporation])
+
   useEffect(() => {
     if (startedRef.current) return
     startedRef.current = true
 
     const saved = loadPersisted<CompliancePersisted>(STORAGE_KEYS.compliance)
     if (saved && saved.messages.length > 0) {
-      applyState(saved)
-      if (startExpanded) openPostIncorporation()
+      restoreCompliance(saved)
       return
     }
 
@@ -198,7 +226,7 @@ export function ComplianceView({
 
     pushBot(name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started.")
     setMessages((m) => [...m, { id: ++idRef.current, role: "categories" }])
-  }, [pushBot, user, applyState, startExpanded, openPostIncorporation])
+  }, [pushBot, user, restoreCompliance, startExpanded, openPostIncorporation])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
   const syncedRef = useRef(false)
@@ -208,11 +236,10 @@ export function ComplianceView({
     loadFromServer<CompliancePersisted>(STORAGE_KEYS.compliance).then((saved) => {
       if (saved && saved.messages.length > 0) {
         startedRef.current = true
-        applyState(saved)
-        if (startExpanded) openPostIncorporation()
+        restoreCompliance(saved)
       }
     })
-  }, [isSignedIn, applyState, startExpanded, openPostIncorporation])
+  }, [isSignedIn, restoreCompliance])
 
   useEffect(() => {
     if (!startedRef.current) return
@@ -282,7 +309,8 @@ export function ComplianceView({
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
-    pushBot(`✓ ${item.title} has been saved. Select another filing from the right to continue, or ask me anything.`)
+    setMessages((m) => [...m, { id: ++idRef.current, role: "docDrafted", item, groupTitle }])
+    pushBot("Select another filing from the right to continue, or ask me anything.")
     onItemComplete?.(doc)
   }, [pushBot, onItemComplete])
 
@@ -386,6 +414,10 @@ export function ComplianceView({
     setSwitchConfirm({ mode: "switchInput", target, fromItem })
   }, [inputMode, activeItemId, allItems])
 
+  const openDoc = useCallback((doc: LibraryDoc, item: ComplianceItem, groupTitle: string) => {
+    setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
+  }, [signedDocs, answers])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
@@ -395,7 +427,7 @@ export function ComplianceView({
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })}
+      onViewClick={openDoc}
     />
   )
 
@@ -460,6 +492,17 @@ export function ComplianceView({
               if (m.role === "note") return (
                 <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
               )
+              if (m.role === "docDrafted") {
+                const doc = docs[m.item.id]
+                return (
+                  <SystemNote
+                    key={m.id}
+                    onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
+                  >
+                    Drafted {m.item.title}
+                  </SystemNote>
+                )
+              }
               return null
             })}
             {isTyping && <TypingIndicator />}
@@ -482,8 +525,15 @@ export function ComplianceView({
                 </div>
               ) : (
                 <input
+                  inputMode={activeFiling?.item.fields[activeFiling.fieldIndex].type === "number" ? "decimal" : undefined}
                   value={value}
-                  onChange={(e) => setValue(e.target.value)}
+                  onChange={(e) =>
+                    setValue(
+                      activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
+                        ? formatNumberInput(e.target.value)
+                        : e.target.value,
+                    )
+                  }
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={
                     activeFiling
@@ -888,9 +938,10 @@ function FilingFormCard({
             ) : (
               <input
                 type={f.type === "date" ? "date" : "text"}
+                inputMode={f.type === "number" ? "decimal" : undefined}
                 value={values[f.name] ?? ""}
                 placeholder={f.placeholder}
-                onChange={(e) => set(f.name, e.target.value)}
+                onChange={(e) => set(f.name, f.type === "number" ? formatNumberInput(e.target.value) : e.target.value)}
                 className={inputClass}
               />
             )}
