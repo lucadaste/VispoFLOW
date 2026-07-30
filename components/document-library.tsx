@@ -1158,7 +1158,7 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
 
   return (
     <div className="space-y-2.5 p-3">
-      <p className="text-xs font-medium text-foreground">Email this document</p>
+      <p className="text-xs font-medium text-foreground">Share this document</p>
       <input
         type="email"
         value={email}
