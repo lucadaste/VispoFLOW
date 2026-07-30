@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useLayoutEffect, useRef, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare, Send } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare, Share } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
@@ -40,6 +40,9 @@ export type LibraryDoc = {
   filed?: boolean
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
+  /** when this document instance was first drafted — shown next to it in the deleted list so an
+   *  old restored copy can't be mistaken for a more recently redrafted one */
+  createdAt?: string
   signatures?: DocSignature[]
   /** true once every signer slot the document requires has a signature — set by the caller, which
    *  is where FlowAnswers (and therefore the slot list) is in scope */
@@ -822,6 +825,7 @@ function DocSection({
   onToggleSelect: (doc: LibraryDoc) => void
 }) {
   const [showHidden, setShowHidden] = useState(false)
+  const [restoringDoc, setRestoringDoc] = useState<LibraryDoc | null>(null)
   const visible = docs.filter((d) => !d.hidden)
   const hidden = docs.filter((d) => d.hidden)
 
@@ -879,26 +883,44 @@ function DocSection({
             {hidden.length} deleted document{hidden.length === 1 ? "" : "s"} — {showHidden ? "hide" : "show"}
           </button>
           {showHidden && (
-            <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {hidden.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="flex items-center gap-2.5 rounded-lg border border-dashed border-border bg-card/40 px-3 py-2.5"
-                >
-                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{doc.title}</span>
-                  <button
-                    onClick={() => onRestore(doc)}
-                    title="Restore"
-                    className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+            <div className="mt-2">
+              <p className="mb-2 text-[11px] text-muted-foreground/70">Permanently removed 7 days after deletion.</p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {hidden.map((doc) => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-2.5 rounded-lg border border-dashed border-border bg-card/40 px-3 py-2.5"
                   >
-                    <RotateCcw className="h-3 w-3" />
-                    Restore
-                  </button>
-                </div>
-              ))}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs text-muted-foreground">{doc.title}</p>
+                      {doc.createdAt && (
+                        <p className="truncate text-[10px] text-muted-foreground/70">Drafted {formatSignedDate(doc.createdAt)}</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setRestoringDoc(doc)}
+                      title="Restore"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
+      )}
+
+      {restoringDoc && (
+        <ConfirmModal
+          title={`Restore "${restoringDoc.title}"?`}
+          description="This will move the document back into the active list, exactly as it was when deleted."
+          confirmLabel="Restore"
+          onConfirm={() => { onRestore(restoringDoc); setRestoringDoc(null) }}
+          onCancel={() => setRestoringDoc(null)}
+        />
       )}
     </section>
   )
@@ -1241,15 +1263,15 @@ function SendDocumentButton({
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        title="Send document"
+        title="Share document"
         className={
           variant === "icon"
             ? "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
         }
       >
-        <Send className={variant === "icon" ? "h-4 w-4" : "h-3.5 w-3.5"} />
-        {variant === "full" && "Send"}
+        <Share className={variant === "icon" ? "h-4 w-4" : "h-3.5 w-3.5"} />
+        {variant === "full" && "Share"}
       </button>
       {open && (
         <>
@@ -1376,7 +1398,7 @@ function DocTileMenu({
                     onClick={() => setMode("email")}
                     className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
                   >
-                    <Send className="h-3.5 w-3.5" /> Send document
+                    <Share className="h-3.5 w-3.5" /> Share document
                   </button>
                 )}
                 {viewable && DOWNLOAD_FORMATS.map((format) => (
@@ -1694,7 +1716,7 @@ function BulkShareButton({
         disabled={count === 0}
         className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-40"
       >
-        <Send className="h-3.5 w-3.5" />
+        <Share className="h-3.5 w-3.5" />
         Share{count > 0 ? ` (${count})` : ""}
       </button>
       {open && (
