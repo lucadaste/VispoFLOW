@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, Info } from "lucide-react"
+import { Check, Loader2, FileText, Landmark, Circle, HelpCircle, Info, CalendarClock } from "lucide-react"
 import { DOCUMENTS, type DocStatus, type FlowAnswers, type LegalDoc } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
 import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
@@ -133,9 +133,16 @@ export function DocumentTracker({
                           <Info className="h-3 w-3" />
                         </button>
                       </div>
-                      <p className="truncate font-mono text-[10px] text-muted-foreground">
-                        {doc.short}
-                      </p>
+                      {viewable ? (
+                        <p className="flex items-center gap-1 text-[10px] font-medium text-success">
+                          <CalendarClock className="h-2.5 w-2.5 shrink-0" />
+                          <span className="truncate">View document</span>
+                        </p>
+                      ) : (
+                        <p className="truncate font-mono text-[10px] text-muted-foreground">
+                          {doc.short}
+                        </p>
+                      )}
                     </div>
                     <StatusBadge status={status} docId={doc.id} signed={doc.id === "coi" ? coiSigned : undefined} />
                   </li>

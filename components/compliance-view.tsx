@@ -842,7 +842,10 @@ function SidebarContent({
                                       <Info className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
-                                  <p className="mt-0.5 flex items-center gap-1 text-[10px] text-muted-foreground">
+                                  <p className={cn(
+                                    "mt-0.5 flex items-center gap-1 text-[10px]",
+                                    viewable ? "text-success font-medium" : "text-muted-foreground"
+                                  )}>
                                     <CalendarClock className="h-2.5 w-2.5 shrink-0" />
                                     <span className="truncate">{viewable ? "View document" : item.deadline}</span>
                                   </p>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight, Info } from "lucide-react"
+import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -622,6 +622,7 @@ function SidebarContent({
                         {group.items.map((item) => {
                           const done = !!completed[item.id]
                           const doc = docs[item.id]
+                          const viewable = done && !!doc?.content
                           const isActive = activeItemId === item.id
                           const handleClick = () => {
                             if (done && doc) return onViewClick(doc, item, group.title)
@@ -652,7 +653,16 @@ function SidebarContent({
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
                                   <div className="flex items-center gap-1">
-                                    <p className={cn("text-[12px] font-medium", done ? "text-muted-foreground line-through" : "text-foreground")}>
+                                    <p
+                                      className={cn(
+                                        "text-[12px] font-medium",
+                                        viewable
+                                          ? "text-muted-foreground underline decoration-muted-foreground/30 underline-offset-2 line-through"
+                                          : done
+                                          ? "text-muted-foreground line-through"
+                                          : "text-foreground"
+                                      )}
+                                    >
                                       {item.title}
                                     </p>
                                     <button
@@ -666,7 +676,14 @@ function SidebarContent({
                                       <Info className="h-3 w-3" />
                                     </button>
                                   </div>
-                                  <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{item.description}</p>
+                                  {viewable ? (
+                                    <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-success">
+                                      <CalendarClock className="h-2.5 w-2.5 shrink-0" />
+                                      <span className="truncate">View document</span>
+                                    </p>
+                                  ) : (
+                                    <p className="mt-0.5 line-clamp-1 text-[10px] text-muted-foreground">{item.description}</p>
+                                  )}
                                 </div>
                               </div>
                             </li>
