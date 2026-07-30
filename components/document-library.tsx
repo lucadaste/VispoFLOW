@@ -206,6 +206,20 @@ function classifyDocLine(line: string, isTitle: boolean): { bold: boolean; cente
   return { bold: false, center: false }
 }
 
+/** Template text marks table rows (e.g. an officer name/title list) with tab-separated columns
+ *  instead of hand-padded spaces, since the documents render in a proportional font where space
+ *  padding can't line up columns. Returns the column strings, or null for an ordinary line. */
+function tableRowColumns(line: string): string[] | null {
+  if (!line.includes("\t")) return null
+  return line.split("\t")
+}
+
+/** First-column width for a rendered table row, expressed as a multiple of the surrounding font
+ *  size. On-screen renderers use it as `em` so it scales with whatever text size they're at;
+ *  the PDF/canvas builders multiply it by their fixed point size to get an x-offset. */
+const TABLE_COL_1_WIDTH_EM = 18
+const TABLE_COL_1_WIDTH = `${TABLE_COL_1_WIDTH_EM}em`
+
 const DOWNLOAD_FORMATS = ["pdf", "docx", "txt", "jpeg", "png"] as const
 type DownloadFormat = (typeof DOWNLOAD_FORMATS)[number]
 
@@ -296,11 +310,18 @@ async function buildPdf(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFil
     const { bold, center } = classifyDocLine(raw, i === titleIndex)
     pdf.setFont("times", bold ? "bold" : "normal")
 
-    const wrapped: string[] = pdf.splitTextToSize(raw, maxWidth)
-    for (const w of wrapped) {
-      if (center) pdf.text(w, centerX, y, { align: "center" })
-      else pdf.text(w, margin, y)
+    const cols = tableRowColumns(raw)
+    if (cols) {
+      pdf.text(cols[0], margin, y)
+      pdf.text(cols[1], margin + TABLE_COL_1_WIDTH_EM * 11, y)
       advance()
+    } else {
+      const wrapped: string[] = pdf.splitTextToSize(raw, maxWidth)
+      for (const w of wrapped) {
+        if (center) pdf.text(w, centerX, y, { align: "center" })
+        else pdf.text(w, margin, y)
+        advance()
+      }
     }
 
     const prevSig = lineToSig.get(i - 1)
@@ -344,7 +365,7 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
 }
 
 async function buildDocx(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFile> {
-  const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType } = await import("docx")
+  const { Document, Packer, Paragraph, TextRun, ImageRun, AlignmentType, TabStopType } = await import("docx")
 
   const content = signedContent(doc, answers)
   const rawLines = content.split("\n")
@@ -364,6 +385,13 @@ async function buildDocx(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFi
     if (!raw.trim()) return new Paragraph({ text: "" })
 
     const { bold, center } = classifyDocLine(raw, i === titleIndex)
+    const cols = tableRowColumns(raw)
+    if (cols) {
+      return new Paragraph({
+        tabStops: [{ type: TabStopType.LEFT, position: TABLE_COL_1_WIDTH_EM * 11 * 20 }],
+        children: [new TextRun({ text: cols[0], bold }), new TextRun({ text: `\t${cols[1]}`, bold })],
+      })
+    }
     const children = [new TextRun({ text: raw, bold })]
     const prevSig = lineToSig.get(i - 1)
     if (prevSig) {
@@ -482,7 +510,13 @@ async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" 
       const inlineWidth = spot.img.width * (inlineHeight / spot.img.height)
       ctx.drawImage(spot.img, margin, yCursor - 10, inlineWidth, inlineHeight)
     } else {
-      ctx.fillText(line, margin, yCursor)
+      const cols = tableRowColumns(line)
+      if (cols) {
+        ctx.fillText(cols[0], margin, yCursor)
+        ctx.fillText(cols[1], margin + TABLE_COL_1_WIDTH_EM * fontSize, yCursor)
+      } else {
+        ctx.fillText(line, margin, yCursor)
+      }
     }
     yCursor += lineHeight
     const captionSig = captionByWrappedIdx.get(i)
@@ -1299,6 +1333,17 @@ function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }
       >
         {lines.map((line, i) => {
           const { bold, center } = classifyDocLine(line, i === titleIndex)
+          const cols = tableRowColumns(line)
+          if (cols) {
+            return (
+              <div key={i} className={cn("m-0 flex", bold && "font-bold")}>
+                <span className="shrink-0" style={{ width: TABLE_COL_1_WIDTH }}>
+                  {cols[0]}
+                </span>
+                <span>{cols[1]}</span>
+              </div>
+            )
+          }
           return (
             <p key={i} className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}>
               {line || " "}
@@ -1578,12 +1623,22 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
           )
         }
         const { bold, center } = classifyDocLine(line, i === titleIndex)
+        const cols = tableRowColumns(line)
         const prevSig = lineToSig.get(i - 1)
         return (
           <Fragment key={i}>
-            <p className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}>
-              {line || " "}
-            </p>
+            {cols ? (
+              <div className={cn("m-0 flex", bold && "font-bold")}>
+                <span className="shrink-0" style={{ width: TABLE_COL_1_WIDTH }}>
+                  {cols[0]}
+                </span>
+                <span>{cols[1]}</span>
+              </div>
+            ) : (
+              <p className={cn("m-0 whitespace-pre-wrap", bold && "font-bold", center && "text-center")}>
+                {line || " "}
+              </p>
+            )}
             {prevSig && (
               <p className="m-0 mt-1 text-xs text-neutral-500">
                 Electronically signed on {formatSignedDate(prevSig.signedAt)}
