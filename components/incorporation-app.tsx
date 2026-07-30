@@ -1018,6 +1018,8 @@ export function IncorporationApp() {
   )
 
   const coiSigned = !!incorporationLibraryDocs.find((d) => d.id === "coi")?.signed
+  const docsSigned = incorporationLibraryDocs.filter((d) => d.signed).length
+  const complianceSignedCount = complianceDocs.filter((d) => withSignature(d).signed).length
 
   const visibleDocsCount =
     incorporationLibraryDocs.filter((d) => !d.hidden).length +
@@ -1042,8 +1044,9 @@ export function IncorporationApp() {
           onSelect={handleLandingSelect}
           onOpenProfile={() => setSettingsOpen(true)}
           profileComplete={!isProfileEmpty(profile)}
-          incorporationStatus={{ started: hasDocs, completed: docsCompleted, total: docsTotal }}
+          incorporationStatus={{ started: hasDocs, completed: docsCompleted, total: docsTotal, signed: docsSigned }}
           complianceCount={complianceDocs.length}
+          complianceSignedCount={complianceSignedCount}
           transactionCount={transactionDocs.length}
           docsCount={visibleDocsCount}
         />

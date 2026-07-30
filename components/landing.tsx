@@ -89,14 +89,16 @@ export function Landing({
   profileComplete,
   incorporationStatus,
   complianceCount,
+  complianceSignedCount,
   transactionCount,
   docsCount,
 }: {
   onSelect: (path: Path, message?: string) => void
   onOpenProfile: () => void
   profileComplete: boolean
-  incorporationStatus: { started: boolean; completed: number; total: number }
+  incorporationStatus: { started: boolean; completed: number; total: number; signed: number }
   complianceCount: number
+  complianceSignedCount: number
   transactionCount: number
   docsCount: number
 }) {
@@ -134,7 +136,7 @@ export function Landing({
 
   const incorporationLabel = !incorporationStatus.started
     ? "Not started"
-    : incorporationStatus.completed >= incorporationStatus.total
+    : incorporationStatus.signed >= incorporationStatus.total
     ? `All ${plural(incorporationStatus.total, "document")} complete`
     : `${incorporationStatus.completed} of ${incorporationStatus.total} documents drafted`
 
@@ -181,7 +183,12 @@ export function Landing({
             icon: <ShieldCheck className="h-5 w-5" />,
             title: "Compliance",
             description: "Complete your required post-formation filings — EIN, 83(b), state registrations.",
-            status: complianceCount === 0 ? "Not started" : `${plural(complianceCount, "filing")} completed`,
+            status:
+              complianceCount === 0
+                ? "Not started"
+                : complianceSignedCount >= complianceCount
+                ? `All ${plural(complianceCount, "filing")} complete`
+                : `${plural(complianceCount, "filing")} drafted`,
             done: complianceCount > 0,
           },
           {

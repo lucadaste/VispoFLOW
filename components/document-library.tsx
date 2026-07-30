@@ -699,6 +699,7 @@ export function DocumentLibrary({
         <div className="space-y-8">
           <DocSection
             icon={Building2}
+            accent="violet"
             title="Incorporation Documents"
             docs={incorporationDocs}
             answers={answers}
@@ -718,6 +719,7 @@ export function DocumentLibrary({
           />
           <DocSection
             icon={ShieldCheck}
+            accent="emerald"
             title="Compliance Documents"
             docs={complianceDocs}
             answers={answers}
@@ -737,6 +739,7 @@ export function DocumentLibrary({
           />
           <DocSection
             icon={ArrowLeftRight}
+            accent="amber"
             title="Transaction Documents"
             docs={transactionDocs}
             answers={answers}
@@ -787,8 +790,15 @@ export function DocumentLibrary({
   )
 }
 
+const SECTION_ACCENTS = {
+  violet: "bg-violet-500/10 text-violet-600",
+  emerald: "bg-emerald-500/10 text-emerald-600",
+  amber: "bg-amber-500/10 text-amber-600",
+} as const
+
 function DocSection({
   icon: Icon,
+  accent,
   title,
   docs,
   answers,
@@ -807,6 +817,7 @@ function DocSection({
   onToggleSelect,
 }: {
   icon: LucideIcon
+  accent: keyof typeof SECTION_ACCENTS
   title: string
   docs: LibraryDoc[]
   answers: FlowAnswers
@@ -833,7 +844,7 @@ function DocSection({
     <section>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", SECTION_ACCENTS[accent])}>
             <Icon className="h-4 w-4" />
           </span>
           <h2 className="text-sm font-semibold text-foreground">{title}</h2>
