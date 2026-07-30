@@ -3,7 +3,11 @@
 import { useState } from "react"
 import { CheckCircle2 } from "lucide-react"
 import { SignaturePad } from "@/components/signature-pad"
+import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { formatSignedDate } from "@/lib/signature"
+
+const FIELD_CLASS =
+  "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary"
 
 export function SignRequestClient({
   token,
@@ -97,13 +101,23 @@ export function SignRequestClient({
                 {requiredFields.map((label) => (
                   <div key={label}>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">{label}</label>
-                    <input
-                      type={label === "Email" ? "email" : "text"}
-                      value={fields[label] ?? ""}
-                      onChange={(e) => setFields((f) => ({ ...f, [label]: e.target.value }))}
-                      placeholder={label}
-                      className="w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm text-foreground outline-none focus:border-primary"
-                    />
+                    {label === "Address" ? (
+                      <AddressAutocomplete
+                        value={fields[label] ?? ""}
+                        onChange={(value) => setFields((f) => ({ ...f, [label]: value }))}
+                        placeholder={label}
+                        className={FIELD_CLASS}
+                        rows={2}
+                      />
+                    ) : (
+                      <input
+                        type={label === "Email" ? "email" : "text"}
+                        value={fields[label] ?? ""}
+                        onChange={(e) => setFields((f) => ({ ...f, [label]: e.target.value }))}
+                        placeholder={label}
+                        className={FIELD_CLASS}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
