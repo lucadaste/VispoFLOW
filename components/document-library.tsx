@@ -1214,11 +1214,11 @@ function SendDocumentButton({
         title="Send document"
         className={
           variant === "icon"
-            ? "flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            ? "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
         }
       >
-        <Send className="h-3.5 w-3.5" />
+        <Send className={variant === "icon" ? "h-4 w-4" : "h-3.5 w-3.5"} />
         {variant === "full" && "Send"}
       </button>
       {open && (
@@ -1825,7 +1825,7 @@ export function DocumentViewer({
             )}
             {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
             {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
-            {doc.content && <SendDocumentButton doc={doc} answers={answers} variant="full" />}
+            {doc.content && <SendDocumentButton doc={doc} answers={answers} variant="icon" />}
             {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
             {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
             <button
