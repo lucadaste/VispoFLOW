@@ -8,7 +8,7 @@ import { SidebarPanel } from "@/components/sidebar-panel"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
-import { DocumentLibrary, withDocSignatures, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
+import { DocumentLibrary, DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
 import { getSignerSlots } from "@/lib/document-signers"
 import { primaryOfficerTitle } from "@/lib/signature"
 import { Landing } from "@/components/landing"
@@ -17,6 +17,7 @@ import {
   BotMessage,
   UserMessage,
   SystemNote,
+  DraftedCard,
   TypingIndicator,
 } from "@/components/chat-message"
 import { FormedCard } from "@/components/formed-card"
@@ -30,7 +31,6 @@ import {
   type FlowAnswers,
   type ChatField,
   initialAnswers,
-  docShorts,
   DOCUMENTS,
 } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
@@ -97,6 +97,7 @@ type ChatMessage =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string }
   | { id: number; role: "system"; text: string; variant: "doc" | "filing" }
+  | { id: number; role: "docDrafted"; docId: string }
   | { id: number; role: "widget"; widget: "formed" }
   | { id: number; role: "note"; text: string }
 
@@ -110,6 +111,8 @@ type ActiveChatFields = {
 type IncorporationPersisted = {
   messages: ChatMessage[]
   docStatuses: Record<string, DocStatus>
+  /** when each doc first reached "complete" — shown next to it in the deleted list, see LibraryDoc.createdAt */
+  docCompletedAt?: Record<string, string>
   answers: FlowAnswers
   activeStepIndex: number
   activeInput: StepInput | null
@@ -135,8 +138,23 @@ type SignRequest = {
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
-  hiddenDocIds: Record<string, true>
+  /** doc id -> ISO timestamp of when it was deleted (moved to the deleted list) */
+  hiddenDocIds: Record<string, string>
   signedDocs: Record<string, DocSignature[]>
+}
+
+/** How long a deleted document stays in the "deleted documents" list before it's purged for good. */
+const DELETED_DOC_RETENTION_MS = 7 * 24 * 60 * 60 * 1000
+
+/** Older persisted data marked a deletion with `true` instead of a timestamp — treat those as
+ *  deleted right now so they get a fresh retention window instead of vanishing immediately. */
+function normalizeHiddenDocIds(raw: Record<string, unknown> | undefined): Record<string, string> {
+  const now = new Date().toISOString()
+  const result: Record<string, string> = {}
+  for (const [id, value] of Object.entries(raw ?? {})) {
+    result[id] = typeof value === "string" ? value : now
+  }
+  return result
 }
 
 /** signedDocs used to store one signature stamp per doc directly (not an array) — accounts with
@@ -178,6 +196,7 @@ export function IncorporationApp() {
   const { profile, setProfile } = useProfile()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [docStatuses, setDocStatuses] = useState<Record<string, DocStatus>>({})
+  const [docCompletedAt, setDocCompletedAt] = useState<Record<string, string>>({})
   const [answers, setAnswers] = useState<FlowAnswers>(initialAnswers)
   const effectiveAnswers = profile.autofillEnabled ? mergeProfileIntoAnswers(answers, profile) : answers
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
@@ -198,7 +217,8 @@ export function IncorporationApp() {
   const [transactionsKey, setTransactionsKey] = useState(0)
   const [complianceDocs, setComplianceDocs] = useState<LibraryDoc[]>([])
   const [transactionDocs, setTransactionDocs] = useState<LibraryDoc[]>([])
-  const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, true>>({})
+  const [viewingDoc, setViewingDoc] = useState<LibraryDoc | null>(null)
+  const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, string>>({})
   const [signedDocs, setSignedDocs] = useState<Record<string, DocSignature[]>>({})
   const [signRequests, setSignRequests] = useState<SignRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -226,9 +246,23 @@ export function IncorporationApp() {
   }, [view])
 
   const applyLibraryState = useCallback((saved: LibraryPersisted) => {
-    setComplianceDocs(saved.complianceDocs)
-    setTransactionDocs(saved.transactionDocs)
-    setHiddenDocIds(saved.hiddenDocIds ?? {})
+    // Purge deletions past the retention window right away, so a stale deleted doc never even
+    // flashes in the list before disappearing on the next render. Only compliance/transaction
+    // docs can actually be purged (removed from their array) — an incorporation doc's "complete"
+    // state lives in docStatuses, not a removable list, so its deletion just stays hidden past
+    // the window rather than silently reappearing.
+    const purgeableIds = new Set([...saved.complianceDocs, ...saved.transactionDocs].map((d) => d.id))
+    const hiddenDocIds = normalizeHiddenDocIds(saved.hiddenDocIds)
+    const now = Date.now()
+    const expiredIds = new Set(
+      Object.entries(hiddenDocIds)
+        .filter(([id, deletedAt]) => purgeableIds.has(id) && now - new Date(deletedAt).getTime() > DELETED_DOC_RETENTION_MS)
+        .map(([id]) => id),
+    )
+    for (const id of expiredIds) delete hiddenDocIds[id]
+    setComplianceDocs(saved.complianceDocs.filter((d) => !expiredIds.has(d.id)))
+    setTransactionDocs(saved.transactionDocs.filter((d) => !expiredIds.has(d.id)))
+    setHiddenDocIds(hiddenDocIds)
     setSignedDocs(normalizeSignedDocs(saved.signedDocs))
   }, [])
 
@@ -441,7 +475,7 @@ export function IncorporationApp() {
   }, [complianceDocs, transactionDocs])
 
   const handleDeleteLibraryDoc = useCallback((doc: LibraryDoc) => {
-    setHiddenDocIds((ids) => ({ ...ids, [doc.id]: true }))
+    setHiddenDocIds((ids) => ({ ...ids, [doc.id]: new Date().toISOString() }))
     clearSignaturesForDoc(doc.id)
     const key = flowStorageKeyFor(doc.id)
     if (key) {
@@ -587,9 +621,15 @@ export function IncorporationApp() {
       ids.forEach((id) => (next[id] = "complete"))
       return next
     })
+    setDocCompletedAt((at) => {
+      const next = { ...at }
+      const now = new Date().toISOString()
+      ids.forEach((id) => (next[id] = now))
+      return next
+    })
     setMessages((m) => [
       ...m,
-      { id: nextId(), role: "system", text: `Drafted ${docShorts(ids)}`, variant: "doc" },
+      ...ids.map((id) => ({ id: nextId(), role: "docDrafted" as const, docId: id })),
     ])
     await delay(400)
   }, [])
@@ -651,6 +691,7 @@ export function IncorporationApp() {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
     setMessages(saved.messages)
     setDocStatuses(saved.docStatuses)
+    setDocCompletedAt(saved.docCompletedAt ?? {})
     setAnswers({ ...initialAnswers, ...saved.answers })
     setActiveStepIndex(saved.activeStepIndex)
     setActiveInput(saved.activeInput)
@@ -698,6 +739,7 @@ export function IncorporationApp() {
     const snapshot: IncorporationPersisted = {
       messages,
       docStatuses,
+      docCompletedAt,
       answers,
       activeStepIndex,
       activeInput,
@@ -709,6 +751,7 @@ export function IncorporationApp() {
   }, [
     messages,
     docStatuses,
+    docCompletedAt,
     answers,
     activeStepIndex,
     activeInput,
@@ -867,6 +910,7 @@ export function IncorporationApp() {
     idRef.current = 0
     setMessages([])
     setDocStatuses({})
+    setDocCompletedAt({})
     setAnswers(initialAnswers)
     setActiveInput(null)
     setActiveChatFields(null)
@@ -969,6 +1013,7 @@ export function IncorporationApp() {
       pending: docStatuses[d.id] === "filing",
       filed: docStatuses[d.id] === "filed",
       hidden: !!hiddenDocIds[d.id],
+      createdAt: docCompletedAt[d.id],
     }),
   )
 
@@ -1049,6 +1094,19 @@ export function IncorporationApp() {
                         {m.text}
                       </SystemNote>
                     )
+                  if (m.role === "docDrafted") {
+                    const doc = DOCUMENTS.find((d) => d.id === m.docId)
+                    if (!doc) return null
+                    const libDoc = incorporationLibraryDocs.find((d) => d.id === m.docId)
+                    return (
+                      <DraftedCard
+                        key={m.id}
+                        groupTitle={doc.group}
+                        title={doc.label}
+                        onClick={libDoc ? () => setViewingDoc(libDoc) : undefined}
+                      />
+                    )
+                  }
                   if (m.role === "widget" && m.widget === "formed")
                     return <FormedCard key={m.id} answers={effectiveAnswers} />
                   if (m.role === "note")
@@ -1161,6 +1219,15 @@ export function IncorporationApp() {
               : null
           }
           pendingSignRequests={pendingSignRequestsByDocId}
+        />
+      )}
+
+      {viewingDoc && (
+        <DocumentViewer
+          doc={viewingDoc}
+          answers={effectiveAnswers}
+          onClose={() => setViewingDoc(null)}
+          onGoToLibrary={() => { setViewingDoc(null); handlePhaseClick("documents") }}
         />
       )}
 
