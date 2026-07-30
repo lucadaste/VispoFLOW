@@ -131,7 +131,7 @@ export function SignaturePad({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={typedPreview} alt="Signature preview" className="h-16 object-contain" />
           ) : (
-            <span className="text-xs text-muted-foreground">Type your name above to preview</span>
+            <span className="text-xs text-neutral-400">Type your name above to preview</span>
           )}
         </div>
       ) : (

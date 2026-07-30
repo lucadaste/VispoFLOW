@@ -125,7 +125,7 @@ export function ProfileForm({
             <button
               type="button"
               onClick={() => setForm((f) => ({ ...f, signatureDataUrl: null, signatureMethod: null }))}
-              className="shrink-0 text-xs font-medium text-muted-foreground hover:text-foreground"
+              className="shrink-0 text-xs font-medium text-neutral-500 hover:text-neutral-900"
             >
               Redo
             </button>

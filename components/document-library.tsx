@@ -1283,8 +1283,8 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   if (!doc.content) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <FileText className="h-7 w-7 text-muted-foreground/30" />
+      <div className="flex h-full items-center justify-center bg-white">
+        <FileText className="h-7 w-7 text-neutral-300" />
       </div>
     )
   }
@@ -1292,9 +1292,9 @@ function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }
   const lines = content.split("\n").slice(0, 32)
   const titleIndex = docTitleLineIndex(content)
   return (
-    <div className="relative h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden bg-white">
       <div
-        className="px-2.5 pt-2.5 text-[4.5px] leading-[6px] text-foreground/70"
+        className="px-2.5 pt-2.5 text-[4.5px] leading-[6px] text-neutral-900/70"
         style={{ fontFamily: '"Times New Roman", Times, serif' }}
       >
         {lines.map((line, i) => {
@@ -1306,7 +1306,7 @@ function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }
           )
         })}
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-card to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
     </div>
   )
 }
@@ -1498,7 +1498,7 @@ function DocTile({
         onClick={() => (selectMode ? onToggleSelect(doc) : viewable && onView(doc))}
         disabled={!viewable && !selectMode}
         className={cn(
-          "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-card text-left shadow-sm transition-shadow",
+          "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-white text-left shadow-sm transition-shadow",
           selected
             ? "border-primary ring-2 ring-primary/40"
             : doc.pending ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
@@ -1566,7 +1566,7 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
   const unplaced = resolved.filter((r) => r.lines.length === 0).map((r) => r.sig)
 
   return (
-    <div className="text-sm leading-relaxed text-foreground" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+    <div className="text-sm leading-relaxed text-neutral-900" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
       {lines.map((line, i) => {
         const sig = lineToSig.get(i)
         if (sig) {
@@ -1585,7 +1585,7 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
               {line || " "}
             </p>
             {prevSig && (
-              <p className="m-0 mt-1 text-xs text-muted-foreground">
+              <p className="m-0 mt-1 text-xs text-neutral-500">
                 Electronically signed on {formatSignedDate(prevSig.signedAt)}
               </p>
             )}
@@ -2040,11 +2040,11 @@ export function DocumentViewer({
             </div>
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
+        <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
           {doc.content ? (
             <DocumentBody doc={doc} answers={answers} />
           ) : (
-            <p className="text-sm text-muted-foreground">No document preview is available for this item yet.</p>
+            <p className="text-sm text-neutral-500">No document preview is available for this item yet.</p>
           )}
         </div>
       </div>
