@@ -28,27 +28,35 @@ export function UserMessage({ children }: { children: React.ReactNode }) {
 export function SystemNote({
   children,
   variant = "doc",
+  onClick,
 }: {
   children: React.ReactNode
   variant?: "doc" | "filing"
+  onClick?: () => void
 }) {
+  const pillClass = cn(
+    "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
+    variant === "doc"
+      ? "bg-success/10 text-success ring-success/20"
+      : "bg-primary/10 text-primary ring-primary/20",
+    onClick && (variant === "doc" ? "cursor-pointer transition-colors hover:bg-success/20" : "cursor-pointer transition-colors hover:bg-primary/20"),
+  )
+  const icon =
+    variant === "doc" ? <FileCheck2 className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />
+
   return (
     <div className="flex animate-message-in justify-center px-2">
-      <div
-        className={cn(
-          "inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1",
-          variant === "doc"
-            ? "bg-success/10 text-success ring-success/20"
-            : "bg-primary/10 text-primary ring-primary/20",
-        )}
-      >
-        {variant === "doc" ? (
-          <FileCheck2 className="h-3.5 w-3.5" />
-        ) : (
-          <Send className="h-3.5 w-3.5" />
-        )}
-        <span className="text-foreground/80">{children}</span>
-      </div>
+      {onClick ? (
+        <button onClick={onClick} className={pillClass}>
+          {icon}
+          <span className="text-foreground/80">{children}</span>
+        </button>
+      ) : (
+        <div className={pillClass}>
+          {icon}
+          <span className="text-foreground/80">{children}</span>
+        </div>
+      )}
     </div>
   )
 }

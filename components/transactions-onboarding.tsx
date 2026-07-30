@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ArrowLeftRight, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage, TypingIndicator } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator, SystemNote } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import {
@@ -19,6 +19,7 @@ import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/li
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { FieldComposer } from "@/components/field-composer"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
+import { formatNumberInput } from "@/lib/number-format"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
@@ -38,6 +39,7 @@ type ChatMsg =
   | { id: number; role: "user"; text: string }
   | { id: number; role: "doc"; item: TransactionItem; groupTitle: string }
   | { id: number; role: "note"; text: string }
+  | { id: number; role: "docDrafted"; item: TransactionItem; groupTitle: string }
 
 type ActiveFiling = {
   item: TransactionItem
@@ -240,7 +242,8 @@ export function TransactionsOnboarding({
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
     setActiveFiling(null)
-    pushBot(`✓ ${item.title} has been saved. Select another document from the right to continue, or ask me anything.`)
+    setMessages((m) => [...m, { id: ++idRef.current, role: "docDrafted", item, groupTitle }])
+    pushBot("Select another document from the right to continue, or ask me anything.")
     onDocumentReady?.(doc)
   }, [pushBot, onDocumentReady, answers.directors, answers.officers])
 
@@ -340,6 +343,10 @@ export function TransactionsOnboarding({
     setSwitchConfirm({ mode: "switchInput", target, fromItem })
   }, [inputMode, activeItemId, allItems])
 
+  const openDoc = useCallback((doc: LibraryDoc, item: TransactionItem, groupTitle: string) => {
+    setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
+  }, [signedDocs, answers])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
@@ -349,7 +356,7 @@ export function TransactionsOnboarding({
       onItemClick={requestOpenItem}
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
-      onViewClick={(doc, item, groupTitle) => setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })}
+      onViewClick={openDoc}
     />
   )
 
@@ -402,6 +409,17 @@ export function TransactionsOnboarding({
                   onInfoClick={() => setInfoItem(m.item)}
                 />
               )
+              if (m.role === "docDrafted") {
+                const doc = docs[m.item.id]
+                return (
+                  <SystemNote
+                    key={m.id}
+                    onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
+                  >
+                    Drafted {m.item.title}
+                  </SystemNote>
+                )
+              }
               return null
             })}
             {!hasStartedFlow && (
@@ -754,9 +772,10 @@ function TransactionFormCard({
             ) : (
               <input
                 type={f.type === "date" ? "date" : "text"}
+                inputMode={f.type === "number" ? "decimal" : undefined}
                 value={values[f.name] ?? ""}
                 placeholder={f.placeholder}
-                onChange={(e) => set(f.name, e.target.value)}
+                onChange={(e) => set(f.name, f.type === "number" ? formatNumberInput(e.target.value) : e.target.value)}
                 className={inputClass}
               />
             )}
