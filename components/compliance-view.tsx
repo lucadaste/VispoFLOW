@@ -10,6 +10,7 @@ import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { FieldChoicesBubble } from "@/components/field-choices-bubble"
 import {
   COMPLIANCE_CATEGORIES,
+  findComplianceItem,
   type ComplianceCategory,
   type ComplianceItem,
   type ComplianceField,
@@ -19,7 +20,14 @@ import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
-import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
+import {
+  DocumentViewer,
+  withDocSignatures,
+  redactSensitiveDocValues,
+  SENSITIVE_FIELD_PLACEHOLDER,
+  type LibraryDoc,
+  type DocSignature,
+} from "@/components/document-library"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { formatNumberInput } from "@/lib/number-format"
@@ -82,6 +90,19 @@ function prefillValue(answers: FlowAnswers, docs: Record<string, LibraryDoc>, fi
     if (v) return v
   }
   return ""
+}
+
+// Fields marked `sensitive` in lib/flow.ts (e.g. an SSN/ITIN on the EIN or 83(b) filing) must
+// never reach localStorage or the server — only the live in-memory state used to render/download
+// the doc during this session. Called right at the persistence boundary (see the snapshot effect
+// below and redactSensitiveDocValues in document-library.tsx for the completed-doc counterpart)
+// so the on-screen doc still shows the real value; only the saved copy gets the placeholder.
+function redactSensitiveValues(itemId: string, values: Record<string, string>): Record<string, string> {
+  const sensitiveNames = findComplianceItem(itemId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
+  if (sensitiveNames.length === 0) return values
+  const redacted = { ...values }
+  for (const name of sensitiveNames) if (redacted[name]) redacted[name] = SENSITIVE_FIELD_PLACEHOLDER
+  return redacted
 }
 
 export function ComplianceView({
@@ -158,9 +179,9 @@ export function ComplianceView({
     setCompleted(saved.completed)
     setDocs(saved.docs ?? {})
     setInputMode(saved.inputMode ?? "chat")
-    // activeItemId only ever points at an incomplete item (completion clears it), so
-    // it always refers to a form we just dropped above — nothing should read as "open".
-    setActiveItemId(null)
+    // Restore activeItemId alongside activeFiling below — otherwise the sidebar has no way to
+    // know a filing is still open, and clicking a different one skips the abandon-confirmation.
+    setActiveItemId(saved.activeItemId)
     // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
     // reload — restore them so the flow keeps expecting the next field's answer.
     setActiveFiling(saved.activeFiling ?? null)
@@ -249,9 +270,11 @@ export function ComplianceView({
       activeCategoryId: activeCategory?.id ?? null,
       completed,
       activeItemId,
-      docs,
+      docs: Object.fromEntries(Object.entries(docs).map(([id, doc]) => [id, redactSensitiveDocValues(doc)])),
       inputMode,
-      activeFiling,
+      activeFiling: activeFiling
+        ? { ...activeFiling, values: redactSensitiveValues(activeFiling.item.id, activeFiling.values) }
+        : activeFiling,
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
@@ -338,7 +361,7 @@ export function ComplianceView({
     const field = item.fields[fieldIndex]
     const val = raw.trim()
     if (!field.optional && !val) return
-    pushUser(val || "Skipped")
+    pushUser(val ? (field.sensitive ? "•".repeat(val.length) : val) : "Skipped")
     const nextValues = { ...values, [field.name]: val }
     const nextIndex = fieldIndex + 1
     if (nextIndex < item.fields.length) {

@@ -6,7 +6,8 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
-import type { FlowAnswers } from "@/lib/flow"
+import { findComplianceItem, type FlowAnswers } from "@/lib/flow"
+import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -64,6 +65,24 @@ export function withDocSignatures(doc: LibraryDoc, signatures: DocSignature[], a
   const validSlotIds = new Set(slots.map((s) => s.id))
   const validSignatures = signatures.filter((s) => validSlotIds.has(s.slotId))
   return { ...doc, signatures: validSignatures, signed: slots.length > 0 && validSignatures.length >= slots.length }
+}
+
+export const SENSITIVE_FIELD_PLACEHOLDER = "(not saved — reopen this filing to re-enter)"
+
+/** Strips any field marked `sensitive` in lib/flow.ts (e.g. an SSN/ITIN collected for the EIN or
+ *  83(b) filing) out of a doc before it's written to localStorage or the server — those values
+ *  must only ever live in memory for the session that collected them. No-op for docs whose id
+ *  isn't a compliance item (Transaction Center docs currently have no sensitive fields) or that
+ *  have no sensitive fields. Re-renders `content` from the redacted values so the saved copy's
+ *  text matches its values instead of still showing the real one baked in. */
+export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
+  const sensitiveNames = findComplianceItem(doc.id)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
+  if (sensitiveNames.length === 0 || !doc.values) return doc
+  const hasSensitiveValue = sensitiveNames.some((name) => doc.values![name])
+  if (!hasSensitiveValue) return doc
+  const values = { ...doc.values }
+  for (const name of sensitiveNames) if (values[name]) values[name] = SENSITIVE_FIELD_PLACEHOLDER
+  return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
 }
 
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }

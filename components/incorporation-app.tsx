@@ -8,7 +8,15 @@ import { SidebarPanel } from "@/components/sidebar-panel"
 import { TopBar } from "@/components/top-bar"
 import { ComplianceView } from "@/components/compliance-view"
 import { TransactionsOnboarding } from "@/components/transactions-onboarding"
-import { DocumentLibrary, DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature, type PendingSignRequest } from "@/components/document-library"
+import {
+  DocumentLibrary,
+  DocumentViewer,
+  withDocSignatures,
+  redactSensitiveDocValues,
+  type LibraryDoc,
+  type DocSignature,
+  type PendingSignRequest,
+} from "@/components/document-library"
 import { getSignerSlots } from "@/lib/document-signers"
 import { primaryOfficerTitle } from "@/lib/signature"
 import { Landing } from "@/components/landing"
@@ -291,7 +299,12 @@ export function IncorporationApp() {
     // data with a blank snapshot before the load above has a chance to land.
     if (!libraryLoaded) return
     if (isSignedIn && !libraryServerLoaded) return
-    const snapshot: LibraryPersisted = { complianceDocs, transactionDocs, hiddenDocIds, signedDocs }
+    const snapshot: LibraryPersisted = {
+      complianceDocs: complianceDocs.map(redactSensitiveDocValues),
+      transactionDocs,
+      hiddenDocIds,
+      signedDocs,
+    }
     savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
   }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
