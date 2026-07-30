@@ -107,10 +107,10 @@ RESOLVED: That the Company shall maintain as part of its corporate records a boo
 
 RESOLVED: That the following persons are elected as officers of the Company to the offices set forth opposite their respective names, to serve at the pleasure of the Board:
 
-Name                                Title(s)
-${ceo}                              Chief Executive Officer
-${secretary}                        Secretary
-${cfo}                              Chief Financial Officer
+Name\tTitle(s)
+${ceo}\tChief Executive Officer
+${secretary}\tSecretary
+${cfo}\tChief Financial Officer
 
 4. Officers
 
