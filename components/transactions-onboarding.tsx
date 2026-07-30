@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ArrowLeftRight, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage, TypingIndicator, SystemNote } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import {
@@ -237,7 +237,7 @@ export function TransactionsOnboarding({
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
-    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values }
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values, createdAt: new Date().toISOString() }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
     setActiveItemId(null)
@@ -398,26 +398,28 @@ export function TransactionsOnboarding({
               if (m.role === "note") return (
                 <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
               )
-              if (m.role === "doc") return (
-                <TransactionFormCard
-                  key={m.id}
-                  item={m.item}
-                  groupTitle={m.groupTitle}
-                  done={!!completed[m.item.id]}
-                  prefill={prefill}
-                  onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
-                  onInfoClick={() => setInfoItem(m.item)}
-                />
-              )
+              if (m.role === "doc") {
+                if (completed[m.item.id]) return null
+                return (
+                  <TransactionFormCard
+                    key={m.id}
+                    item={m.item}
+                    groupTitle={m.groupTitle}
+                    prefill={prefill}
+                    onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
+                    onInfoClick={() => setInfoItem(m.item)}
+                  />
+                )
+              }
               if (m.role === "docDrafted") {
                 const doc = docs[m.item.id]
                 return (
-                  <SystemNote
+                  <DraftedCard
                     key={m.id}
+                    groupTitle={m.groupTitle}
+                    title={m.item.title}
                     onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
-                  >
-                    Drafted {m.item.title}
-                  </SystemNote>
+                  />
                 )
               }
               return null
@@ -686,11 +688,10 @@ function SidebarContent({
 /* ── Inline transaction document form card ── */
 
 function TransactionFormCard({
-  item, groupTitle, done, prefill, onComplete, onInfoClick,
+  item, groupTitle, prefill, onComplete, onInfoClick,
 }: {
   item: TransactionItem
   groupTitle: string
-  done: boolean
   prefill: (field?: TransactionField) => string
   onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
@@ -703,20 +704,6 @@ function TransactionFormCard({
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
   const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
-
-  if (done) {
-    return (
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <Check className="h-3.5 w-3.5" strokeWidth={3} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{groupTitle}</p>
-          <p className="text-sm font-medium text-foreground">{item.title} — Saved</p>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">

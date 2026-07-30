@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ShieldCheck, CalendarClock, Info } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
-import { BotMessage, UserMessage, TypingIndicator, SystemNote } from "@/components/chat-message"
+import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
@@ -305,6 +305,7 @@ export function ComplianceView({
       subtitle: groupTitle,
       content: renderComplianceDocument(item.id, values) ?? undefined,
       values,
+      createdAt: new Date().toISOString(),
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -466,17 +467,19 @@ export function ComplianceView({
             {messages.map((m) => {
               if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
               if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
-              if (m.role === "filing") return (
-                <FilingFormCard
-                  key={m.id}
-                  item={m.item}
-                  groupTitle={m.groupTitle}
-                  done={!!completed[m.item.id]}
-                  prefill={prefill}
-                  onComplete={(values) => handleFilingComplete(m.item, m.groupTitle, values)}
-                  onInfoClick={() => setInfoItem(m.item)}
-                />
-              )
+              if (m.role === "filing") {
+                if (completed[m.item.id]) return null
+                return (
+                  <FilingFormCard
+                    key={m.id}
+                    item={m.item}
+                    groupTitle={m.groupTitle}
+                    prefill={prefill}
+                    onComplete={(values) => handleFilingComplete(m.item, m.groupTitle, values)}
+                    onInfoClick={() => setInfoItem(m.item)}
+                  />
+                )
+              }
               if (m.role === "categories") return (
                 <CategoryPickerBubble key={m.id} disabled={!!activeCategory} onSelect={selectCategory} />
               )
@@ -495,12 +498,12 @@ export function ComplianceView({
               if (m.role === "docDrafted") {
                 const doc = docs[m.item.id]
                 return (
-                  <SystemNote
+                  <DraftedCard
                     key={m.id}
+                    groupTitle={m.groupTitle}
+                    title={m.item.title}
                     onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
-                  >
-                    Drafted {m.item.title}
-                  </SystemNote>
+                  />
                 )
               }
               return null
@@ -864,11 +867,10 @@ function SidebarContent({
 /* ── Inline filing form card ── */
 
 function FilingFormCard({
-  item, groupTitle, done, prefill, onComplete, onInfoClick,
+  item, groupTitle, prefill, onComplete, onInfoClick,
 }: {
   item: ComplianceItem
   groupTitle: string
-  done: boolean
   prefill: (field?: ComplianceField) => string
   onComplete: (values: Record<string, string>) => void
   onInfoClick: () => void
@@ -881,8 +883,6 @@ function FilingFormCard({
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
   const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
-
-  if (done) return <FiledSummaryCard groupTitle={groupTitle} item={item} />
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -963,22 +963,6 @@ function FilingFormCard({
           <Check className="h-4 w-4" />
           Save filing
         </button>
-      </div>
-    </div>
-  )
-}
-
-/* ── Filed summary (shared by both formats) ── */
-
-function FiledSummaryCard({ groupTitle, item }: { groupTitle: string; item: ComplianceItem }) {
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-      </span>
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{groupTitle}</p>
-        <p className="text-sm font-medium text-foreground">{item.title} — Filed</p>
       </div>
     </div>
   )

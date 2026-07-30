@@ -1,6 +1,6 @@
 "use client"
 
-import { FileCheck2, Send } from "lucide-react"
+import { Check, FileCheck2, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function BotMessage({ children }: { children: React.ReactNode }) {
@@ -58,6 +58,37 @@ export function SystemNote({
         </div>
       )}
     </div>
+  )
+}
+
+/** The single "a document was drafted" confirmation — used once an item is completed, replacing
+ * both the old small pill and the old plain checkmark card that used to show up together. */
+export function DraftedCard({
+  groupTitle,
+  title,
+  onClick,
+}: {
+  groupTitle: string
+  title: string
+  onClick?: () => void
+}) {
+  const Tag = onClick ? "button" : "div"
+  return (
+    <Tag
+      onClick={onClick}
+      className={cn(
+        "flex w-full animate-message-in items-center gap-3 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-left shadow-sm",
+        onClick && "cursor-pointer transition-colors hover:bg-success/10",
+      )}
+    >
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wider text-success/80">{groupTitle}</p>
+        <p className="text-sm font-medium text-foreground">{title} — Drafted</p>
+      </div>
+    </Tag>
   )
 }
 
