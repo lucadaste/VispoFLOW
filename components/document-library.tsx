@@ -1279,42 +1279,6 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
   )
 }
 
-function SendDocumentButton({
-  doc,
-  answers,
-  variant = "icon",
-}: {
-  doc: LibraryDoc
-  answers: FlowAnswers
-  variant?: "icon" | "full"
-}) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        title="Share document"
-        className={
-          variant === "icon"
-            ? "rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            : "inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-primary hover:text-primary"
-        }
-      >
-        <Share className={variant === "icon" ? "h-4 w-4" : "h-3.5 w-3.5"} />
-        {variant === "full" && "Share"}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-50 w-72 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
-            <SendDocumentPopoverContent doc={doc} answers={answers} onDone={() => setOpen(false)} />
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 /** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   if (!doc.content) {
@@ -1639,49 +1603,6 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
   )
 }
 
-function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
-  const [open, setOpen] = useState(false)
-  const [justDownloaded, setJustDownloaded] = useState(false)
-
-  const handleDownload = async (format: DownloadFormat) => {
-    setOpen(false)
-    await downloadDoc(doc, format, answers)
-    setJustDownloaded(true)
-    setTimeout(() => setJustDownloaded(false), 1500)
-  }
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        title={justDownloaded ? "Downloaded" : "Download"}
-        className={cn(
-          "rounded-md p-1.5 transition-colors hover:bg-secondary",
-          justDownloaded ? "text-success" : "text-muted-foreground hover:text-foreground",
-        )}
-      >
-        {justDownloaded ? <Check className="h-4 w-4" strokeWidth={3} /> : <Download className="h-4 w-4" />}
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-8 z-50 w-28 overflow-hidden rounded-lg border border-border bg-popover py-1 text-popover-foreground shadow-md">
-            {DOWNLOAD_FORMATS.map((format) => (
-              <button
-                key={format}
-                onClick={() => handleDownload(format)}
-                className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
-              >
-                {format}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
 /** Downloads every selected (and downloadable) document at once, in whichever format the user
  *  picks — same format menu as the single-document download button. */
 function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: (format: DownloadFormat) => Promise<void> }) {
@@ -1889,36 +1810,86 @@ function ConfirmFiledButton({ doc, onConfirmFiled }: { doc: LibraryDoc; onConfir
   )
 }
 
-function DeleteButton({ doc, onDelete }: { doc: LibraryDoc; onDelete: (doc: LibraryDoc) => void }) {
-  const [confirming, setConfirming] = useState(false)
+/** Consolidates the document viewer's secondary actions (share, download, delete) behind a
+ *  single "⋮ More" button — mirrors DocTileMenu's mode-switching pattern — so the header reads
+ *  as a compact toolbar (Sign / Send to sign / More) instead of a row of standalone icon buttons. */
+function DocViewerMoreMenu({
+  doc,
+  answers,
+  onDelete,
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  onDelete?: (doc: LibraryDoc) => void
+}) {
+  type Mode = "menu" | "email" | "delete-confirm"
+  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<Mode>("menu")
+  const close = () => { setOpen(false); setMode("menu") }
+  const viewable = !!doc.content
+
   return (
     <div className="relative">
       <button
-        onClick={() => setConfirming((v) => !v)}
-        title="Delete"
-        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        onClick={() => setOpen((v) => !v)}
+        title="More actions"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
       >
-        <Trash2 className="h-4 w-4" />
+        <MoreVertical className="h-4 w-4" />
       </button>
-      {confirming && (
+      {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setConfirming(false)} />
-          <div className="absolute right-0 top-8 z-50 w-56 space-y-2.5 rounded-lg border border-border bg-popover p-3 text-popover-foreground shadow-md">
-            <p className="text-xs font-medium text-foreground">Delete this document?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onDelete(doc)}
-                className="flex-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => setConfirming(false)}
-                className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
-              >
-                Cancel
-              </button>
-            </div>
+          <div className="fixed inset-0 z-40" onClick={close} />
+          <div className="absolute right-0 top-9 z-50 w-64 rounded-lg border border-border bg-popover text-popover-foreground shadow-md">
+            {mode === "menu" && (
+              <div className="py-1">
+                {viewable && (
+                  <button
+                    onClick={() => setMode("email")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    <Share className="h-3.5 w-3.5" /> Share document
+                  </button>
+                )}
+                {viewable && DOWNLOAD_FORMATS.map((format) => (
+                  <button
+                    key={format}
+                    onClick={() => { downloadDoc(doc, format, answers); close() }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+                  >
+                    <Download className="h-3.5 w-3.5" /> Download {format}
+                  </button>
+                ))}
+                {onDelete && (
+                  <button
+                    onClick={() => setMode("delete-confirm")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                )}
+              </div>
+            )}
+            {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
+            {mode === "delete-confirm" && onDelete && (
+              <div className="space-y-2.5 p-3">
+                <p className="text-xs font-medium text-foreground">Delete this document?</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { onDelete(doc); close() }}
+                    className="flex-1 rounded-md bg-destructive/10 px-2.5 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/20"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setMode("menu")}
+                    className="flex-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -2024,7 +1995,7 @@ export function DocumentViewer({
               </div>
             )}
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5">
             {doc.content && canSign && onSign && (
               <SignButton doc={doc} answers={answers} onSign={onSign} savedSignature={savedSignature} variant="full" />
             )}
@@ -2033,9 +2004,8 @@ export function DocumentViewer({
             )}
             {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
             {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
-            {doc.content && <SendDocumentButton doc={doc} answers={answers} variant="icon" />}
-            {doc.content && <DownloadMenuButton doc={doc} answers={answers} />}
-            {onDelete && <DeleteButton doc={doc} onDelete={onDelete} />}
+            {(doc.content || onDelete) && <DocViewerMoreMenu doc={doc} answers={answers} onDelete={onDelete} />}
+            <div className="mx-1 h-5 w-px bg-border" />
             <button
               onClick={onClose}
               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"

@@ -26,7 +26,7 @@ export function FieldChoicesBubble({
             value={date}
             onChange={(e) => setDate(e.target.value)}
             disabled={!active}
-            className="rounded-full border border-border bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-card-foreground shadow-sm outline-none transition-colors focus:border-ring disabled:opacity-50"
+            className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-medium text-card-foreground shadow-sm outline-none transition-colors focus:border-ring disabled:opacity-50"
           />
         </div>
         <button
@@ -47,7 +47,7 @@ export function FieldChoicesBubble({
           key={o}
           onClick={() => onChoose(o)}
           disabled={!active}
-          className="rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
+          className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-card-foreground shadow-sm transition-colors enabled:hover:border-primary/50 enabled:hover:text-primary disabled:cursor-default disabled:opacity-50"
         >
           {o}
         </button>

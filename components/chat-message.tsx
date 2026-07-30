@@ -8,7 +8,7 @@ export function BotMessage({ children }: { children: React.ReactNode }) {
     <div className="flex animate-message-in items-start gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/beaker.png" alt="" className="mt-0.5 h-9 w-9 shrink-0 object-contain" />
-      <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 text-sm leading-relaxed text-card-foreground shadow-sm ring-1 ring-border">
+      <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-sm leading-relaxed text-secondary-foreground shadow-sm ring-1 ring-border">
         {children}
       </div>
     </div>
@@ -18,7 +18,7 @@ export function BotMessage({ children }: { children: React.ReactNode }) {
 export function UserMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex animate-message-in items-start justify-end gap-3">
-      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-900 to-slate-900 px-4 py-3 text-sm leading-relaxed text-white shadow-sm">
+      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm">
         {children}
       </div>
     </div>

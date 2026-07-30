@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono, Fraunces } from "next/font/google"
 import { ClerkProvider } from "@clerk/nextjs"
+import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -40,9 +41,14 @@ export default function RootLayout({
     <ClerkProvider localization={clerkLocalization}>
       <html
         lang="en"
+        suppressHydrationWarning
         className={`bg-background ${geistSans.variable} ${geistMono.variable} ${fraunces.variable}`}
       >
-        <body className="font-sans antialiased">{children}</body>
+        <body className="font-sans antialiased">
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
+            {children}
+          </ThemeProvider>
+        </body>
       </html>
     </ClerkProvider>
   )

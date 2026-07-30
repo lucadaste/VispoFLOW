@@ -94,13 +94,13 @@ export function Hero() {
                 <div className="flex items-start gap-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/brand/beaker.png" alt="" className="mt-0.5 h-7 w-7 shrink-0 object-contain" />
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-card-foreground shadow-sm ring-1 ring-border">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-secondary px-3.5 py-2.5 text-[13px] leading-relaxed text-secondary-foreground shadow-sm ring-1 ring-border">
                     What would you like to name your company?
                   </div>
                 </div>
 
                 <div className="flex justify-end">
-                  <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-gradient-to-br from-indigo-900 to-slate-900 px-3.5 py-2.5 text-[13px] leading-relaxed text-white shadow-sm">
+                  <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-primary px-3.5 py-2.5 text-[13px] leading-relaxed text-primary-foreground shadow-sm">
                     Acme Technologies, Inc.
                   </div>
                 </div>
@@ -115,7 +115,7 @@ export function Hero() {
                 <div className="flex items-start gap-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/brand/beaker.png" alt="" className="mt-0.5 h-7 w-7 shrink-0 object-contain" />
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3.5 py-2.5 text-[13px] leading-relaxed text-card-foreground shadow-sm ring-1 ring-border">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-secondary px-3.5 py-2.5 text-[13px] leading-relaxed text-secondary-foreground shadow-sm ring-1 ring-border">
                     Next, let's set up your founder equity split.
                   </div>
                 </div>

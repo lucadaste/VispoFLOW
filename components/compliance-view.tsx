@@ -31,6 +31,7 @@ import {
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { formatNumberInput } from "@/lib/number-format"
+import { ConversationViewer, type ConversationEntry, type ConversationMessage } from "@/components/conversation-viewer"
 
 type CompliancePersisted = {
   messages: ChatMsg[]
@@ -40,6 +41,7 @@ type CompliancePersisted = {
   docs: Record<string, LibraryDoc>
   inputMode?: "chat" | "form"
   activeFiling?: ActiveFiling | null
+  history?: ConversationEntry[]
 }
 
 type ChatMsg =
@@ -105,6 +107,19 @@ function redactSensitiveValues(itemId: string, values: Record<string, string>): 
   return redacted
 }
 
+// Converts a finished item's live chat transcript into the trimmed, replayable shape stored in
+// History — drops interactive-only messages (category chips, field-choice bubbles, the inline
+// filing form card) since each of those is always immediately followed by a `user` message
+// echoing the answer that was given, so nothing is lost by dropping the interactive widget itself.
+function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
+  const kept: ConversationMessage[] = []
+  for (const m of messages) {
+    if (m.role === "bot" || m.role === "user" || m.role === "note") kept.push(m)
+    else if (m.role === "docDrafted") kept.push({ id: m.id, role: "docDrafted", groupTitle: m.groupTitle, title: m.item.title })
+  }
+  return kept
+}
+
 export function ComplianceView({
   answers,
   signedDocs,
@@ -131,6 +146,9 @@ export function ComplianceView({
   const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
+  const [history, setHistory] = useState<ConversationEntry[]>([])
+  const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
+  const [sidebarTab, setSidebarTab] = useState<"documents" | "history">("documents")
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: ComplianceItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -178,6 +196,7 @@ export function ComplianceView({
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
     setDocs(saved.docs ?? {})
+    setHistory(saved.history ?? [])
     setInputMode(saved.inputMode ?? "chat")
     // Restore activeItemId alongside activeFiling below — otherwise the sidebar has no way to
     // know a filing is still open, and clicking a different one skips the abandon-confirmation.
@@ -271,6 +290,7 @@ export function ComplianceView({
       completed,
       activeItemId,
       docs: Object.fromEntries(Object.entries(docs).map(([id, doc]) => [id, redactSensitiveDocValues(doc)])),
+      history,
       inputMode,
       activeFiling: activeFiling
         ? { ...activeFiling, values: redactSensitiveValues(activeFiling.item.id, activeFiling.values) }
@@ -278,7 +298,7 @@ export function ComplianceView({
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, activeFiling, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, activeFiling, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -535,7 +555,7 @@ export function ComplianceView({
           </div>
         </div>
 
-        <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+        <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
             <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
               {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (

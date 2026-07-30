@@ -99,7 +99,7 @@ export function ComplianceChat() {
                     "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed",
                     m.role === "bot"
                       ? "bg-secondary text-foreground rounded-tl-sm"
-                      : "bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-tr-sm",
+                      : "bg-primary text-primary-foreground rounded-tr-sm",
                   )}
                 >
                   {m.text}

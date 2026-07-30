@@ -1134,7 +1134,7 @@ export function IncorporationApp() {
             </div>
 
             {(activeInput || activeChatFields) && (
-              <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+              <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl">
                   {activeChatFields ? (
                     <FieldComposer

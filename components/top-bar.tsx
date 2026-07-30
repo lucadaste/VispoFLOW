@@ -5,6 +5,7 @@ import { RotateCcw, Menu, X, Settings, Building2 } from "lucide-react"
 import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 import type { UserProfile } from "@/lib/profile"
 import { ProfileForm } from "@/components/profile-form"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 function AuthControls({ profile, onSaveProfile }: { profile: UserProfile; onSaveProfile: (profile: UserProfile) => void }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -141,6 +142,8 @@ export function TopBar({
               <Settings className="h-4 w-4" />
             </button>
           )}
+
+          <ThemeToggle />
 
           <AuthControls profile={profile} onSaveProfile={onSaveProfile} />
         </div>

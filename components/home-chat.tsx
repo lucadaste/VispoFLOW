@@ -195,7 +195,7 @@ export function HomeChat({
         </div>
       </div>
 
-      <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+      <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-2xl">
           <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
             <input

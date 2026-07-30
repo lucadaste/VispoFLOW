@@ -497,7 +497,7 @@ export function TransactionsOnboarding({
           </div>
         </div>
 
-        <div className="border-t border-border bg-white/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+        <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
             {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
               <FieldComposer
