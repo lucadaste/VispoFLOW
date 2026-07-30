@@ -141,9 +141,10 @@ export function TransactionsOnboarding({
     setHasStartedFlow(
       restoredMessages.length > 1 || !!restoredCategory || Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0
     )
-    // activeItemId only ever points at an incomplete item (completion clears it), so
-    // it always refers to a form we just dropped above — nothing should read as "open".
-    setActiveItemId(null)
+    // Keep activeItemId restored (it always points at an incomplete item, since completion
+    // clears it) even though the in-progress form itself wasn't restored above — the sidebar
+    // still needs to know a filing is "open" so switching to a different one asks to confirm.
+    setActiveItemId(saved.activeItemId)
   }, [])
 
   useEffect(() => {
