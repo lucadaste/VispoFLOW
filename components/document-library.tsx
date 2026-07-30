@@ -604,9 +604,7 @@ export function DocumentLibrary({
   }
 
   const selectedDownloadableDocs = allDocs.filter((doc) => selected.has(doc.id) && doc.content)
-  const handleBulkDownload = (format: DownloadFormat) => {
-    downloadDocs(selectedDownloadableDocs, format, answers)
-  }
+  const handleBulkDownload = (format: DownloadFormat) => downloadDocs(selectedDownloadableDocs, format, answers)
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
@@ -1559,14 +1557,26 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
 
 function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   const [open, setOpen] = useState(false)
+  const [justDownloaded, setJustDownloaded] = useState(false)
+
+  const handleDownload = async (format: DownloadFormat) => {
+    setOpen(false)
+    await downloadDoc(doc, format, answers)
+    setJustDownloaded(true)
+    setTimeout(() => setJustDownloaded(false), 1500)
+  }
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        title="Download"
-        className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        title={justDownloaded ? "Downloaded" : "Download"}
+        className={cn(
+          "rounded-md p-1.5 transition-colors hover:bg-secondary",
+          justDownloaded ? "text-success" : "text-muted-foreground hover:text-foreground",
+        )}
       >
-        <Download className="h-4 w-4" />
+        {justDownloaded ? <Check className="h-4 w-4" strokeWidth={3} /> : <Download className="h-4 w-4" />}
       </button>
       {open && (
         <>
@@ -1575,7 +1585,7 @@ function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAn
             {DOWNLOAD_FORMATS.map((format) => (
               <button
                 key={format}
-                onClick={() => { downloadDoc(doc, format, answers); setOpen(false) }}
+                onClick={() => handleDownload(format)}
                 className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
               >
                 {format}
@@ -1590,17 +1600,29 @@ function DownloadMenuButton({ doc, answers }: { doc: LibraryDoc; answers: FlowAn
 
 /** Downloads every selected (and downloadable) document at once, in whichever format the user
  *  picks — same format menu as the single-document download button. */
-function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: (format: DownloadFormat) => void }) {
+function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: (format: DownloadFormat) => Promise<void> }) {
   const [open, setOpen] = useState(false)
+  const [justDownloaded, setJustDownloaded] = useState(false)
+
+  const handleDownload = async (format: DownloadFormat) => {
+    setOpen(false)
+    await onDownload(format)
+    setJustDownloaded(true)
+    setTimeout(() => setJustDownloaded(false), 1500)
+  }
+
   return (
     <div className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
         disabled={count === 0}
-        className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:bg-secondary/70 disabled:cursor-not-allowed disabled:opacity-40"
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40",
+          justDownloaded ? "bg-success/10 text-success" : "bg-secondary text-foreground hover:bg-secondary/70",
+        )}
       >
-        <Download className="h-3.5 w-3.5" />
-        Download{count > 0 ? ` (${count})` : ""}
+        {justDownloaded ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : <Download className="h-3.5 w-3.5" />}
+        {justDownloaded ? "Downloaded" : `Download${count > 0 ? ` (${count})` : ""}`}
       </button>
       {open && (
         <>
@@ -1609,7 +1631,7 @@ function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: 
             {DOWNLOAD_FORMATS.map((format) => (
               <button
                 key={format}
-                onClick={() => { onDownload(format); setOpen(false) }}
+                onClick={() => handleDownload(format)}
                 className="block w-full px-3 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
               >
                 {format}
