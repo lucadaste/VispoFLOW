@@ -926,13 +926,17 @@ const PRIVACY_POLICY: TransactionItem = {
   id: "privacy-policy",
   title: "Privacy Policy",
   short: "Privacy Policy",
-  description: "Policy describing how the company collects and uses personal data.",
+  description: "Consumer-facing privacy notice covering personal data collection, use, and disclosure, plus California (CCPA) and EEA (GDPR) region-specific disclosures and a cookie notice.",
   fields: [
     companyNameField,
-    { name: "productName", label: "Product / website name", placeholder: "e.g. acme.com" },
-    { name: "dataCollected", label: "What personal data is collected", type: "textarea" },
-    { name: "governingState", label: "Governing state", placeholder: "e.g. Delaware" },
-    { name: "contactEmail", label: "Privacy contact email", placeholder: "e.g. privacy@acme.com" },
+    { name: "companyWebsite", label: "Company website domain", question: "What's the company's primary website domain?", placeholder: "e.g. acme.com" },
+    companyEmailField,
+    {
+      name: "companyPhone",
+      label: "Toll-free support phone number",
+      question: "What's the toll-free U.S. phone number for privacy-related requests (California rights requests and opt-outs)?",
+      placeholder: "e.g. (800) 555-0100",
+    },
   ],
 }
 
@@ -940,13 +944,30 @@ const IP_LICENSE: TransactionItem = {
   id: "ip-license",
   title: "IP License",
   short: "IP License",
-  description: "Agreement licensing intellectual property to or from a third party.",
+  description: "Agreement licensing the company's intellectual property to a third-party Licensee, including trademarks and license scope.",
   fields: [
+    { name: "date", label: "Effective date", question: "What's the effective date of this agreement?", type: "date" },
     companyNameField,
-    { name: "licenseeName", label: "Licensee name", placeholder: "e.g. Acme Corp" },
-    { name: "ipDescription", label: "IP being licensed", type: "textarea", placeholder: "e.g. patent, trademark, software" },
-    { name: "exclusivity", label: "Exclusive or non-exclusive?", type: "select", options: ["Exclusive", "Non-exclusive"] },
-    { name: "royaltyTerms", label: "Royalty / fee terms", placeholder: "e.g. 5% of net revenue" },
+    { name: "licenseeName", label: "Licensee's full legal name", question: "Who's the Licensee — the party receiving the license?", placeholder: "e.g. Acme Corp" },
+    {
+      name: "licensedProductsDescription",
+      label: "Description of Licensed Products (Schedule 1)",
+      question: "Describe the intellectual property / Licensed Products being licensed.",
+      type: "textarea",
+      placeholder: "e.g. The Company's proprietary document-review software, including all associated source code and documentation.",
+    },
+    {
+      name: "marksDescription",
+      label: "Trademarks / service marks being licensed (Schedule 2)",
+      question: "List any trademarks or service marks included in the license — leave blank if none.",
+      type: "textarea",
+      optional: true,
+      hint: "Leave blank if no trademarks or service marks are included in the license.",
+    },
+    { name: "licenseTerm", label: "License term (Schedule 3)", question: "What's the term of the license?", placeholder: "e.g. 3 years from the Effective Date" },
+    { name: "licensingFee", label: "Licensing fee (Schedule 3)", question: "What's the licensing fee?", placeholder: "e.g. $10,000 upfront, plus 5% royalty on net revenue" },
+    { name: "geography", label: "Geographic scope (Schedule 3)", question: "What's the geographic scope of the license?", placeholder: "e.g. Worldwide" },
+    { name: "exclusivity", label: "Exclusive or non-exclusive? (Schedule 3)", question: "Is this an exclusive or non-exclusive license?", type: "select", options: ["Exclusive", "Non-exclusive"] },
   ],
 }
 

@@ -148,6 +148,31 @@ export function getSignerSlots(docId: string, answers: FlowAnswers, values?: Rec
       return slots
     }
 
+    case "ip-license": {
+      // Both blocks are full By:/Name:/Title:/Notice Address:/Notice Email: execution blocks —
+      // same shape as the company's own "THE COMPANY:" block elsewhere — so both are "officer"-kind
+      // against their own headers rather than counterpartySlot()'s "named" routing. The source PDF's
+      // headers are just the bracketed party names with no label ("[LICENSOR]"/"[LICENSEE]"); per the
+      // no-header-in-source rule, real "LICENSOR:"/"LICENSEE:" labels were inserted at render time so
+      // headerPattern has something reliable to match.
+      const slots: SignerSlot[] = [{ id: "officer", label: "Company officer", kind: "officer", headerPattern: /^LICENSOR:$/i }]
+      if (values?.licenseeName) {
+        slots.push({
+          id: "licensee",
+          label: `Licensee: ${values.licenseeName}`,
+          kind: "officer",
+          headerPattern: /^LICENSEE:$/i,
+          external: true,
+        })
+      }
+      return slots
+    }
+
+    case "privacy-policy":
+      // A unilateral, posted privacy notice — no signature page in the source template, same as
+      // the User Agreement. Returning no slots hides the Sign/Send-to-sign controls.
+      return []
+
     case "agent-marketing-agreement": {
       // Neither party's block in this template has a Title line (just By:/Name:/Date:), and
       // Agent's block prints no name in advance — so this is "officer"-kind against its own

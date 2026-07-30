@@ -2361,7 +2361,441 @@ EXHIBIT A
 ${planOfDissolutionBody(v)}`
 }
 
+function ipLicenseAgreement(v: Record<string, string>): string {
+  return `INTELLECTUAL PROPERTY LICENSE AGREEMENT
+
+This Intellectual Property License Agreement ("Agreement"), dated as of ${formatDate(v.date)} (the "Effective Date"), is by and between ${v.companyName} ("Licensor") and ${v.licenseeName} ("Licensee") (collectively, the "Parties," or each, individually, a "Party").
+
+WHEREAS, Licensee is engaged in the business of developing and selling certain technology products and services (the "Business");
+
+WHEREAS, Licensor is willing to grant to Licensee a license to certain intellectual property assets (the "Licensed IP") of Licensor facilitate Licensee's conduct of the Business.
+
+NOW, THEREFORE, in consideration of the mutual covenants and agreements hereinafter set forth and for other good and valuable consideration, the receipt and sufficiency of which are hereby acknowledged, the Parties hereby agree as follows:
+
+1. License.
+
+1.1. License Grant. Subject to the terms and conditions of this Agreement, Licensor hereby grants to Licensee during the Term (as defined below) a non-transferable license ("License") (except as provided in Section 10), to: (a) make, use, offer to sell, sell, import, advertise, market, and distribute the Licensed IP listed on Schedule 1 and any other products or services that the Parties may agree upon in writing from time to time (collectively, the "Licensed Products"); and (b) use the "Marks" listed on Schedule 2 as part of Licensee's corporate name, company name, or trade name, as applicable; and (c) reproduce, publicly perform, transmit, publicly display, and distribute, and create derivative works based on the Licensed Products.
+
+1.2. Scope of License. The scope and terms of the License are as set forth in Schedule 3.
+
+1.3. Reservation of Rights. Licensor hereby reserves all rights not expressly granted to Licensee under this Agreement.
+
+2. Use of Licensed Products.
+
+2.1. Notices. Licensee shall ensure that all use of Licensed Products hereunder is accompanied by or marked with the appropriate proprietary rights notices, symbols, and legends as may be reasonably necessary under applicable law to maintain the Licensed Products and Licensor's proprietary rights therein.
+
+2.2. Modifications. As between the Parties, Licensor owns any improvement, enhancement, or other modification of or derivative work based on any of the Licensed Products made by or on behalf of Licensee or Licensor (each, a "Modification"). Licensee shall immediately notify Licensor of any Modification made by or on behalf of Licensee (each, a "Licensee Modification"). Licensee hereby assigns to Licensor all of its right, title, and interest in and to all Licensee Modifications, including all rights to apply for any patents or other intellectual property registrations with respect to such Licensee Modifications and all enforcement rights and remedies for past, present, and future infringement thereof and all rights to collect royalties and damages therefor. All patent applications and applications for registration filed by Licensor with respect to any such Licensee Modification Licensed Products and subject to the license granted to Licensee under Section 1.1. At the request of Licensor, Licensee shall promptly execute and deliver such documents as may be necessary or desirable to effect and perfect the foregoing assignment of rights.
+
+3. Ownership and Protection of the Licensed Products.
+
+(a) Acknowledgment of Ownership. Licensee acknowledges that Licensor owns and will retain all right, title, and interest in and to the Licensed Products subject to the license granted in Section 1.1. All use by Licensee of the Licensed Marks, and all goodwill accruing therefrom, will inure solely to the benefit of Licensor.
+
+(b) Prosecution and Maintenance. Licensor has the sole right, in its discretion and at its expense, to file, prosecute, and maintain all applications, registrations, and patents relating to the Licensed Products. Licensee shall provide, at the request of Licensor and at Licensor's expense, all necessary assistance with such filing, maintenance, and prosecution.
+
+4. Enforcement.
+
+4.1. Licensee shall promptly notify Licensor in writing of any actual, suspected, or threatened infringement, misappropriation, or other violation of any Licensed Products by any third party of which it becomes aware. Licensor has the sole right, in its discretion, to (a) bring any action or proceeding with respect to any such infringement; (b) defend any declaratory judgment action concerning any Licensed Products; and (c) control the conduct of any such action or proceeding (including any settlement thereof). Licensee shall provide Licensor with all assistance that Licensor may reasonably request, at Licensor's expense, in connection with any such action or proceeding. Licensor will be entitled to retain any monetary recovery resulting from any such action or proceeding (including any settlement thereof) for its own account.
+
+4.2. The Party that does not control any action or proceeding brought under Section 4.1 (the "Non-Enforcing Party") shall provide the other Party (the "Enforcing Party") with all assistance that the Enforcing Party may reasonably request, at the Enforcing Party's expense, in connection with any such action or proceeding. The Enforcing Party will be entitled to apply any monetary recovery resulting from any such action or proceeding (including any settlement thereof).
+
+5. Recordation of License. Licensor shall make all necessary filings to record this Agreement in the United States Patent and Trademark Office and, the United States Copyright Office, and in the corresponding offices or agencies in any and all countries where it may be required under applicable law, including as a prerequisite to enforcement of the Licensed Products or enforceability of this Agreement in the courts of such countries, and any recordation fees and related costs and expenses will be at Licensor's expense.
+
+6. Confidentiality. Each Party acknowledges that in connection with this Agreement it will gain access to certain confidential and proprietary information of the other Party (collectively, "Confidential Information"). Without limiting the foregoing, for purposes of this Agreement, all trade secrets and confidential information included in the Licensed Products, including unpublished patent applications and invention disclosures, will be deemed Confidential Information of Licensor. Each Party shall maintain the Confidential Information in strict confidence and not disclose any Confidential Information to any other person, except to its employees who (a) have a need to know such Confidential Information for such Party to exercise its rights or perform its obligations hereunder; and (b) are bound by written nondisclosure agreements. Each Party shall use reasonable care, at least as protective as the efforts it uses with respect to its own confidential information, to safeguard the Confidential Information from use or disclosure other than as permitted hereby.
+
+7. Indemnification.
+
+7.1. Licensor shall indemnify, defend, and hold harmless Licensee, its affiliates, officers, directors, employees, agents and representatives against all losses, liabilities, claims, damages, actions, fines, penalties, expenses or costs (including court costs and reasonable attorneys' fees) arising out of or in connection with any third-party claim, suit, action, or proceeding relating to any infringement of third party's intellectual property rights by the Licensed Products.
+
+8. Disclaimer; Limitation of Liability.
+
+8.1. Disclaimer. EACH PARTY EXPRESSLY DISCLAIMS ALL REPRESENTATIONS AND WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, IN CONNECTION WITH THIS AGREEMENT AND THE LICENSED PRODUCTS, INCLUDING ANY WARRANTIES OF TITLE, NON-INFRINGEMENT, MERCHANTABILITY, OR FITNESS FOR A PARTICULAR PURPOSE. WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, (A) LICENSOR MAKES NO REPRESENTATION OR WARRANTY CONCERNING THE VALIDITY, ENFORCEABILITY, OR SCOPE OF THE LICENSED PRODUCTS; AND (B) LICENSOR SHALL HAVE NO LIABILITY WHATSOEVER TO LICENSEE OR ANY OTHER PERSON FOR OR ON ACCOUNT OF ANY INJURY, LOSS, OR DAMAGE ARISING OUT OF OR IN CONNECTION WITH THE MANUFACTURE, USE, OFFER FOR SALE, SALE, OR IMPORT OF ANY LICENSED PRODUCT OR OTHERWISE IN CONNECTION WITH THE USE OF ANY LICENSED PRODUCTS.
+
+8.2. Limitation of Liability. NEITHER PARTY WILL BE LIABLE TO THE OTHER PARTY OR ANY THIRD PARTY FOR ANY CONSEQUENTIAL, INCIDENTAL, INDIRECT, EXEMPLARY, SPECIAL, OR PUNITIVE DAMAGES RELATING TO THIS AGREEMENT OR USE OF THE LICENSED PRODUCTS HEREUNDER, WHETHER ARISING OUT OF BREACH OF CONTRACT, TORT (INCLUDING NEGLIGENCE) OR OTHERWISE, REGARDLESS OF WHETHER SUCH DAMAGE WAS FORESEEABLE AND WHETHER SUCH PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+9. Term and Termination.
+
+9.1. Term. This Agreement begins on the Effective Date and will remain in force until terminated by pursuant to Section 9.2. or 9.3 ("Term").
+
+9.2. Termination for Breach. Either party may terminate this Agreement immediately upon written notice to the other party if the other party materially breaches this Agreement and fails to cure such breach within thirty (30) days after receiving written notice thereof.
+
+9.3. Termination at Will. Either party may terminate this Agreement at any time without cause, and without incurring any additional obligation, liability, or penalty, by providing at least ninety (90) days' prior written notice to the other party.
+
+10. Assignment. Licensee may not assign or transfer any of its rights or obligations under this Agreement without Licensor's prior written consent except as a result of a merger or sale of substantial assets of Licensee. Any purported assignment or transfer in violation of this Section 10 will be void and of no force and effect.
+
+11. General Provisions.
+
+11.1. Amendments. No amendment to this Agreement will be effective unless it is in writing and signed by both Parties.
+
+11.2. No Third-Party Beneficiaries. Except for the right of Licensor's, officers, directors, employees, agents and representatives to enforce their rights to indemnification under Section 7, this Agreement solely benefits the Parties and their respective permitted successors and assigns and nothing in this Agreement, express or implied, confers on any other person any legal or equitable right, benefit or remedy of any nature whatsoever under or by reason of this Agreement.
+
+11.3. Counterparts. This Agreement may be executed in counterparts, each of which is deemed an original, but all of which together are deemed to be one and the same agreement.
+
+11.4. Severability. If any term or provision of this Agreement is invalid, illegal, or unenforceable in any jurisdiction, such invalidity, illegality, or unenforceability will not affect any other term or provision of this Agreement or invalidate or render unenforceable such term or provision in any other jurisdiction.
+
+11.5. Governing Law. This Agreement, including all exhibits, schedules, attachments, and appendices attached to this Agreement and thereto, and all matters arising out of or relating to this Agreement, are governed by, and construed in accordance with, the laws of Delaware, without regard to the conflict of laws provisions thereof to the extent such principles or rules would require or permit the application of the laws of any jurisdiction other than those of Delaware.
+
+11.6. Waiver. Except as otherwise set forth in this Agreement, no failure to exercise, or delay in exercising, any rights, remedy, power, or privilege arising from this Agreement will operate or be construed as a waiver thereof, nor will any single or partial exercise of any right, remedy, power or privilege hereunder preclude any other or further exercise thereof or the exercise of any other right, remedy, power or privilege.
+
+11.7. Notices. All correspondence or notices required or permitted to be given under this Agreement must be in writing, in English and addressed to the other Party at its address set out below (or to any other address that the receiving Party may designate from time to time). Each Party shall deliver all notices by personal delivery, nationally recognized overnight courier (with all fees prepaid), facsimile or email (with confirmation of transmission) or certified or registered mail (in each case, return receipt requested, postage prepaid). Except as otherwise provided in this Agreement, a notice is effective only (a) upon receipt by the receiving Party; and (b) if the Party giving the notice has complied with the requirements of this Section. Such communications must be sent to the respective Parties at the following addresses (or at such other address for a Party as specified in a notice given in accordance with this Section 11.7):
+
+11.8. Entire Agreement. This Agreement, including and together with any related exhibits, schedules, attachments and appendices, constitutes the sole and entire agreement of Licensor and Licensee with respect to the subject matter contained herein, and supersedes all prior and contemporaneous understandings, agreements, representations and warranties, both written and oral, regarding such subject matter.
+
+IN WITNESS WHEREOF, the Parties have caused this Agreement to be executed as of the Effective Date by their respective officers thereunto duly authorized.
+
+LICENSOR:
+
+${v.companyName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+Notice Address:_________________________
+
+Notice Email:_________________________
+
+
+LICENSEE:
+
+${v.licenseeName}
+
+By:_________________________
+(Signature)
+
+Name:_________________________
+Title:_________________________
+
+Notice Address:_________________________
+
+Notice Email:_________________________
+
+
+SCHEDULE 1
+
+LICENSED PRODUCTS
+
+${v.licensedProductsDescription}
+
+
+SCHEDULE 2
+
+MARKS
+
+${v.marksDescription || "N/A"}
+
+
+SCHEDULE 3
+
+SCOPE OF LICENSE
+
+Term: ${v.licenseTerm}
+
+Licensing Fee: ${v.licensingFee}
+
+Geography: ${v.geography}
+
+Exclusivity: ${v.exclusivity === "Exclusive" ? "YES" : "NO"}`
+}
+
+function privacyPolicy(v: Record<string, string>): string {
+  return `PRIVACY NOTICE
+
+ABOUT THIS PRIVACY NOTICE
+At ${v.companyName} ("Company," "our," "we," and/or "us"), your privacy is important to us and we want you to have an enjoyable shopping experience. This Privacy Notice explains how we collect, use, disclose, and otherwise process Personal Information on websites (including ${v.companyWebsite}), mobile applications, and related online services owned and operated by us and linked to this Privacy Notice (collectively, the "Services").
+
+This Privacy Notice does not apply to other third-party websites to which we may link. By using the Services, you acknowledge that you have read and agree to the terms of this Privacy Notice. If you do not agree with this Privacy Notice, you should not use the Services.
+
+REGION-SPECIFIC DISCLOSURES
+We may choose or be required by law to provide different or additional disclosures relating to the processing of Personal Information about residents of certain countries or regions. Please click below to review additional disclosures applicable to you:
+
+California
+If you are a resident of the State of California in the United States, please see below for additional California-specific privacy disclosures.
+
+Europe
+If you are based in the European Economic Area ("EEA"), please see below for additional EEA-specific privacy disclosures.
+
+OUR COLLECTION OF PERSONAL INFORMATION
+When we use the term "Personal Information" in this Privacy Notice, we mean information that identifies, relates to, describes, is capable of being associated with, or could reasonably be linked, directly or indirectly, to you. When you use or otherwise interact with our Services, we collect Personal Information about you in the following ways: when you provide it to us directly; automatically when you interact with our website or mobile application; and from other sources and third parties.
+
+Personal Information You Provide
+We collect Personal Information that you provide to us when you register for and otherwise use our Services, including:
+
+● Contact Information, such as your name, email address, social media username, phone number, billing and shipping address.
+
+● Account Information, such as your username and password.
+
+● Payment Information, such as credit card information.
+
+● Purchase Information, such as your purchase history and shopping preferences.
+
+● Survey Information, such as your feedback and preferences regarding our Services.
+
+● Contest / Sweepstakes Information, such as your entries or submissions to our promotions and events.
+
+● Inquiry Information, such as the content of your emails or texts with us.
+
+● Demographic Information, such as gender and age.
+
+Personal Information Automatically Collected
+As is true of most digital platforms, we and our third-party providers also collect Personal Information automatically when you visit or interact with our website, mobile application, or otherwise interact with our online Services. We use cookies, web beacons, pixels (or "clear gifs") and other related technologies for analytics and online advertising purposes. For more information about cookies and related technologies, including on how to control your privacy settings, please read our Cookie Notice below.
+
+For example, we automatically gather certain information about your use of the Services, such as your IP address, operating system, browser type and a date/stamp time for your visit. If you use our mobile applications, this may include information such as the GPS data (i.e., geolocation data) and device information for the hand-held mobile device on which the mobile application is installed. We may also access your calendar to enable us to create and modify events on your behalf. We may also collect other information that you have consented to permit your mobile phone or application to share with us from time to time.
+
+We may also gather information about how you interact with our Services, such as how frequently certain areas of our website or mobile application are visited, what products are reviewed and selected, order history, shipping program status, and other site navigation data and patterns. This information helps us to understand your interests and which aspects of our Services you find interesting.
+
+Personal Information from Other Sources and Third Parties
+We may receive the same categories of Personal Information as described above from the following sources and third parties:
+
+● Our Suppliers. If you access our Services through other websites from our suppliers, we will collect and analyze the information described above that is obtained through your interaction with that website. We may add this information to the information we have already collected from you via other aspects of the Services. You are also subject to such supplier's terms of use and privacy policy in connection with these Services.
+
+● Social Media Networks. If you access our Services with your login credentials from a social networking site (e.g., Facebook or Twitter) or if you otherwise agree to associate your Company account with a social networking account (e.g., Instagram or Pinterest), we may receive Personal Information about you from such social networking site, in accordance with the terms of use and privacy policy of the social networking site. For example, Facebook may share with us your friend list, birthday, information about the interests of you or your friends or other Personal Information, in order to help us establish your account, tailor the Services to you and find other current or potential Service users that you know. We may add this information to the information we have already collected from you via other aspects of the Service. You are also subject to the social networking site's terms of use and privacy policy.
+
+● Advertising Providers. We may obtain information from social media networks, advertising service providers and networks that does not identify you personally or, if you have given that service or us permission to do so, information that constitutes Personal Information. This information may be combined with information you have provided to us or that we or others have collected about you, so that we may maximize the benefit you receive from the Services and deliver advertising targeted to your specific interests on our websites and mobile applications and when you use other websites or mobile applications. Information about you also may be aggregated with other subscriber information for the purposes identified below.
+
+● Publicly Available Sources. We often collect some Personal Information that we do not otherwise have, such as contact information, from websites and other publicly available sources.
+
+OUR USE OF PERSONAL INFORMATION
+We may use Personal Information in the following ways:
+
+● to give you a more enjoyable, convenient experience, learn about your habits, personalize your user experience, and help us identify and/or provide information, products or services that may be of interest to you;
+
+● to register and create your account with us;
+
+● to support and enhance your use of the Services and their features, including fulfilling your work order, providing customer service, tracking email invitations you send, and otherwise supporting your use of the Services and its features;
+
+● to communicate with you about our Services and send you updates about upcoming news or events, such as through our newsletter, email, or text message.
+
+● to conduct market research, improve the Services and help us identify others who may be interested in the Services;
+
+● to serve you ads tailored to your interests or to tailor ads that may be served to you when you visit other websites, mobile applications or social media networks;
+
+● to prevent, investigate, or provide notice of fraud, unlawful or criminal activity, or unauthorized access to or use of Personal Information, this website or our data systems;
+
+● enforce and carry out contracts and agreements;
+
+● comply with legal obligations; and
+
+● in other ways for which we provide specific notice at the time of collection.
+
+OUR DISCLOSURE OF PERSONAL INFORMATION
+We may disclose Personal Information in the following ways:
+
+● Within Company. We may share Personal Information with our affiliates and across our various websites, apps and social media pages.
+
+● To Our Service Providers. We may permit certain trusted third parties to access your information in connection with their performance of services to maintain and operate our websites and mobile applications and certain features on the Services. For example, we may use third parties to host the websites and mobile applications; operate various features of the Services; send emails; analyze data; provide search results and links and assist in fulfilling your orders.
+
+● To Our Business Partners. From time to time, we may share Personal Information with business partners in connection with strategic relationships. Some of these strategic relationships may include operating a co-branded website or web pages. You should be aware that these co-branded sites may collect different or additional information. Additionally, we may provide links to websites controlled by third parties. We have no control over these websites and our Privacy Policy does not apply to these third party websites. Please consult the privacy policy of the website you are visiting.
+
+● To Our Marketing Partners. Occasionally, we provide our postal mailing list (consisting of customer names and postal mailing addresses, but not email addresses) to other companies for purposes of marketing the Services or other products or services that may be of interest to you. In order to determine the information that may be of interest to you, the information that you give us and information about your order may be combined with other Personal Information (such as demographic information and past purchase history) available from our records and other sources.
+
+● To Our Online Advertising Providers. We may share Personal Information with social media networks and advertising service providers and networks to serve you ads tailored to your interests or to tailor ads that may be served to you on our website and mobile application, as well as other websites and mobile applications, and on social media networks.
+
+● For Corporate Business Transactions. We may take part or be involved with a corporate business transaction, such as a proposed or actual merger, acquisition, joint venture, or financing or sale of company assets, or other change in control. We may share or transfer Personal Information to a third party during negotiation of, in connect with or as an asset in such a corporate business transaction. Personal Information may also be disclosed in the event of an insolvency, bankruptcy or receivership proceeding.
+
+● In Accordance With Our Legal Obligations and Rights. We may disclose information: in connection with the establishment, exercise or defense of legal claims; to comply with laws or to respond to lawful request and legal process (such as a subpoena, court order, administrative or governmental order); to protect the rights and property of us, our agents, residents and others, including to enforce our agreements and policies; to detect, suppress, or prevent fraud and credit risk reduction; or to protect the health and safety of us, our customers, or any person.
+
+● Otherwise With Your Consent. We may disclose Personal Information to other third parties with your consent or at your direction.
+
+AGGREGATED DATA
+We use non-personally identifiable information in the aggregate, so that we can improve our Services and for business and administrative purposes. We may also use or share with third parties for any purpose aggregated data that contains no personally identifiable information.
+
+COMMUNICATIONS AND OTHER PREFERENCES
+
+Marketing Communications
+You may choose not to receive marketing email communications from us by clicking on the unsubscribe link in the marketing emails.
+
+Accessing and Updating Your Personal Information
+If you are a registered user, you may access and update your registration information and your preferences to receive email or other communications from us by sending an email to ${v.companyEmail}. We will take commercially reasonable steps to implement your opt-out requests promptly, but you may still receive communications from us for up to ten (10) business days as we process your request.
+
+While we make efforts to accommodate requests to restrict our use of your information, we reserve the right to delete all or any portion of customer information if we are not able to reasonably accommodate a requested restriction.
+
+CHILDREN'S PRIVACY AND PARENTAL CONTROLS
+Our online Services are not directed to and we do not intend to, or knowingly, collect or solicit Personal Information from children under the age of 18. If you are under the age of 18, do not use this website or our online Services or provide us with any Personal Information in connection with this website or our online Services either directly or by other means. Parents should be aware that there are parental control tools available online that you can use to prevent your children from submitting information online without parental permission or from accessing material that is harmful to minors. If a child under 18 has provided Personal Information to us in connection with this website, we encourage the child's parent or guardian to contact us to request that we remove the Personal Information from our systems. If we learn that any Personal Information we collect in connection with this website has been provided by a child under the age of 18, we will promptly delete that information.
+
+THIRD-PARTY WEBSITES
+Our website may include links to third-party websites, plug-ins, applications, chat-rooms or bulletin boards. Except where we post or expressly adopt this Privacy Notice, this Privacy Notice does not apply to, and we are not responsible for, any Personal Information practices of third-party websites and online services or the practices of other third parties.
+
+UPDATES TO THIS PRIVACY NOTICE
+If we decide to change this Privacy Notice, we will post the revised Privacy Notice here so that you can stay updated on how we collect, use, disclose, and otherwise process Personal Information. Your continued use of the Services indicates your consent to the Privacy Notice as posted.
+
+CONTACT US
+If you have any questions about this Privacy Notice, please contact us: ${v.companyEmail}
+
+PRIVACY DISCLOSURES FOR CALIFORNIA RESIDENTS
+This section applies to you if you are a resident of the state of California and provides additional information about how we collect, use, disclose and otherwise process Personal Information of individual residents of the state of California within the scope of the California Consumer Privacy Act of 2018 ("CCPA"). In addition to our Personal Information processing activities relating to our Services, this section also addresses Personal Information we may process offline.
+
+For purposes of this section, "Personal Information" means information that identifies, relates to, describes, is reasonably capable of being associated with, or could reasonably be linked, directly or indirectly, with a particular consumer or household. It does not include information that is made publicly available from government records, that is deidentified or aggregated such that it is not capable of being associated with you, or that is otherwise excluded from the CCPA's scope. This section also does not apply to information relating to our employees, contractors, applicants and other personnel.
+
+COLLECTION AND USE OF PERSONAL INFORMATION
+In the last 12 months, we have collected the following categories of Personal Information:
+
+● Identifiers, such as name, Account email address and password, IP address, social media username and other unique personal identifiers;
+
+● California Customer Records (Cal. Civ. Code § 1798.80(e)), such as email address, telephone number, billing address, shipping address, birthday (month/day), currency or notification preferences, responses to interest-based questions, payment information (such as cardholder name, billing address, credit card number, expiration date, authentication code, check routing number, account number or related information);
+
+● Commercial Information, such as products or Services purchased, added to your cart or of interest to you;
+
+● Internet/Network Information, such as log data (including IP address, date and time of access, device information) and clickstream data (such as your actions on our websites);
+
+● Geolocation Data, such as your general geographic location based on your IP address or more precise location when accessing our websites through a mobile device;
+
+● Professional/Employment Information, such as current job and title, or resume information;
+
+● Other Personal Information, such as your entries in surveys, sweepstakes, contests or other promotions, and the feedback or custom message you provide in connection with a request, inquiry or comment directly to us or through a third-party platform (such as social media);
+
+● Inferences, such as deriving products of interest based on your shopping preferences and other Personal Information we have collected about you.
+
+We collect this information directly from you, from your browser or device when you interact with our Sites, from our partner "stores," from advertising providers, from third-party platforms such as social media websites and from other publicly available sources. For more information about the Personal Information we collect and how we collect it, please refer to the Our Collection of Personal Information section of this Privacy Notice.
+
+We collect Personal Information from and about you for a variety of purposes. For example, we use Personal Information to create and maintain your account with us; to communicate with you; to facilitate, process and fulfill orders you place with us or the services you request; to conduct surveys, sweepstakes, contests and other promotions; to analyze and improve the use of our Sites; to deliver marketing communications and personalized and non-personalized advertising, and to improve our products and services. For more information about our use of Personal Information, please refer to the Our Use of Personal Information section of this Privacy Notice.
+
+DISCLOSURE AND "SALE" OF PERSONAL INFORMATION
+We share Personal Information with third parties as set forth in our Privacy Notice.
+
+The categories of third parties to whom we disclose your Personal Information may include our affiliates, our service providers that perform services or functions on our behalf, marketing partners, and certain third parties where you have provided consent or where we are required by law.
+
+As is common practice among companies that operate online, we also allow certain third-party providers to collect information about consumers directly through our websites and other online Services for purposes of analyzing and optimizing our Services, delivering ads, providing content and ads that are more relevant, measuring statistics and the success of ad campaigns, and detecting and reporting fraud. To the extent this practice is interpreted to constitute a "sale" under the CCPA, please refer to the Submitting Requests section below regarding your right to opt-out.
+
+YOUR CALIFORNIA PRIVACY RIGHTS
+As a California resident, you may be able to request to exercise the following rights in relation to the Personal Information about you that we have collected (subject to certain limitations at law):
+
+● Right to Know: You have the right to request any or all of the following information relating to your Personal Information we have collected and disclosed in the last 12 months, upon verification of your identity: the specific pieces of Personal Information we have collected about you; the categories of Personal Information we have collected about you; the categories of sources of the Personal Information; the categories of Personal Information that we have disclosed to third parties for a business purpose, and the categories of recipients to whom this information was disclosed; the categories of Personal Information we have sold about you (if any) and the categories of third parties to whom the information was sold; and the business or commercial purposes for collecting or, if applicable, selling Personal Information about you.
+
+● The Right to Request Deletion: You have the right to request the deletion of Personal Information we have collected from you, subject to certain exceptions.
+
+● The Right to Opt-Out of Personal Information Sales: You have the right to direct us not to sell Personal Information we have collected about you to third parties. If you are under the age of 16, you have the right not to have your information sold, unless you, or your parent or guardian, affirmatively authorize such sales (the "Right to Opt-In").
+
+You also have the right to be free from discrimination for exercising these rights. However, please note that if the exercise of these rights limits our ability to process Personal Information (such as in the case of a deletion request), we may no longer be able to provide you our products and Services or engage with you in the same manner.
+
+In addition, if you have an established customer relationship with us for personal, family or household purposes, you may also have the right under California's "Shine the Light" law to request: a list of the categories of certain Personal Information that we have disclosed to third parties during the immediately preceding calendar year for the third parties' direct marketing purposes; and the names and addresses of all such third parties.
+
+SUBMITTING REQUESTS
+
+To Exercise Your Right to Know, Right to Deletion or "Shine the Light" Right. To exercise your right to know, right to deletion or "Shine the Light" right, please submit a request specifying the right you wish to exercise by: emailing ${v.companyEmail} with the subject line "California Rights Request," or calling our toll-free U.S. phone number: ${v.companyPhone}.
+
+We may need to verify your identity before processing your request, which may require us to request additional Personal Information from you or require you to log into your account (if applicable). We will only use Personal Information provided in connection with your request to review and process your request.
+
+In certain circumstances, we may decline or limit your request, particularly where we are unable to verify your identity or locate your information in our systems, or as permitted by law.
+
+To Exercise Your Right to Opt-Out of Personal Information Sales. To initiate your request to opt out of Personal Information sales, please click the link below to email us at ${v.companyEmail} with the subject line "California Sale Opt-Out" or call our toll-free U.S. phone number at ${v.companyPhone}. To the extent our third-party advertising and analytics providers' collection of information from users of our web sites and other online Services constitutes a "sale" under the CCPA, please refer to our Cookie Notice for more information about the choices and opt-out options you have in relation to those practices. By visiting www.privacyrights.info or www.optout.privacyrights.info, you can also opt out from "sales" of this type of Personal Information by businesses that participate in the DAA's CCPA Opt-Out Tool. To make opt-out requests related to mobile apps on your device for businesses participating in the DAA's CCPA App-based Opt-Out Tool, you can download the appropriate app at www.youradchoices.com/appchoices.
+
+Do Not Sell My Personal Information
+
+PRIVACY DISCLOSURES FOR THE EUROPEAN ECONOMIC AREA
+
+SCOPE OF DISCLOSURES
+These Additional European Economic Area (EEA) Privacy Disclosures supplement the information contained in our Privacy Notice, but unlike the Privacy Notice, these Disclosures apply only to our processing of your Personal Data where you are based in the EEA.
+
+${v.companyName} is the data controller responsible for the collection and use of such Personal Data.
+
+PERSONAL DATA DISCLOSURES
+When we use the term "Personal Data" in these Disclosures, we mean any information relating to an identified or identifiable natural person.
+
+Legal Bases for Processing
+We rely on the following legal grounds to process Personal Data about you, whether it is obtained from you or a third party:
+
+● For the performance of a contract (Art. 6 para. 1 lit. b GDPR);
+
+● For the purpose of legitimate interests (Art. 6 para. 1 lit. f GDPR), as described in more detail in the Our Collection of Personal Information section of the Privacy Notice;
+
+● For compliance with legal obligations and legal claims (Art. 6 para. 1 lit. c GDPR); and
+
+● Consent to the extent you have provided consent (Art. 6 para. 1 lit. a GDPR).
+
+You are not required to provide Personal Data to us, but we do rely on your Personal Data to provide certain of our Services and products. For example, we need your Personal Data to facilitate and deliver an order that you request. If you choose not to provide us with your Personal Data, we may not be able to provide you with a service or product you request.
+
+Data Retention
+We retain Personal Data about you for as long as is necessary for the purposes set out in these Disclosures, unless a longer period is required under applicable law or is needed to resolve disputes or protect our legal rights.
+
+The criteria used to determine the period for which Personal Data about you will be retained varies depending on the legal basis under which we process the Personal Data:
+
+Legitimate Interests: Where we are processing Personal Data based on our legitimate interests, we generally will retain such information for a reasonable period of time based on the particular interest, taking into account the fundamental interests and the rights and freedoms of data subjects.
+
+Consent: Where we are processing Personal Data based on your consent, we generally will retain the information for the period of time necessary to fulfill the underlying agreement with you, subject to your right, under certain circumstances, to have certain of your data erased (please see the Your Privacy Rights section below).
+
+Contract: Where we are processing Personal Data based on contract, we generally will retain the information for the duration of the contract plus some additional limited period of time that is necessary to comply with law or that represents the statute of limitations for legal claims that could arise from the contractual relationship.
+
+Legal Obligation: Where we are processing Personal Data based on a legal obligation, we generally will retain the information for the period of time necessary to fulfil the legal obligation.
+
+Legal Claim: We may need to apply a "legal hold" that retains information beyond our typical retention period where we face threat of legal claim. In that case, we will retain the information until the hold is removed, which typically means the claim or threat of claim has been resolved.
+
+In all cases, in addition to the purposes and legal bases, we consider the amount, nature and sensitivity of the Personal Data, as well as the potential risk of harm from unauthorized use or disclosure of your Personal Data.
+
+INTERNATIONAL DATA TRANSFERS
+We may transfer Personal Data about you among us and to our subsidiaries or affiliates, as well as to the categories of third parties identified in the Our Disclosure of Personal Information section of the Notice. Personal Data may be transferred to, stored and processed in a country other than the one in which it was collected, including, but not limited to, the United States. The country to which Personal Data is transferred may not provide the same level of protection for Personal Data as the country from which it was transferred.
+
+We may transfer Personal Data about you outside the EEA and when we do so, we rely on appropriate or suitable safeguards recognized under the GDPR including adequacy decisions and standard contractual clauses.
+
+YOUR PRIVACY RIGHTS
+You have the following rights in relation to your Personal Data (subject to certain limitations at law):
+
+Access: The right to access and obtain a copy of Personal Data about you, as well as information relating to its processing.
+
+Rectification: The right to correct or update any Personal Data about you that is inaccurate or incomplete.
+
+Restriction of Processing: The right to require us to limit the purposes for which we process your Personal Data if the continued processing of the Personal Data in this way is not justified, such as where the accuracy of the Personal Data is contested by you.
+
+Erasure: The right to request the deletion or erasure of Personal Data about you without undue delay if the continued processing of that Personal Information is not justified.
+
+Portability: The right to obtain a copy of Personal Data about you in an easily accessible format and the right to transmit that Personal Data to another controller.
+
+Objection to Processing: You also have the right to object to any processing based on our legitimate interests where there are grounds relating to your particular situation. There may be compelling reasons for continuing to process your Personal Data, and we will assess and inform you if that is the case. You can object to marketing activities for any reason.
+
+Please note that if the exercise of these rights limits our ability to process Personal Data, we may not be able to provide our products or Services to you, or otherwise engage with you going forward.
+
+Right to Withdraw Consent
+Where we rely on your consent for processing of your Personal Data, you also have the right to withdraw your consent to such processing, subject to certain limitations at law. Please contact us to withdraw any consent you may have provided to us.
+
+Submitting Requests
+To submit a request, please contact us as set forth in the Contact Us section below. We may need to verify your identity before processing your request, which may require us to obtain additional Personal Data from you. In certain circumstances, we may decline a request to exercise the rights described above.
+
+Right to Lodge a Complaint
+If you have any complaints regarding our privacy practices, you have the right to lodge a complaint with your national data protection authority (i.e., supervisory authority).
+
+CONTACT US
+If you have any questions or requests in connection with this Notice or other privacy-related matters, please send an email to ${v.companyEmail}
+
+COOKIE NOTICE
+
+SCOPE OF NOTICE
+This Cookie Notice supplements the information contained in the Privacy Notice by explaining how we and our business partners and service providers use cookies and related technologies in the course of managing and providing our online Services and our communications to you. It explains what these technologies are and why we use them, as well as your rights to control our use of them.
+
+In some cases, we may use cookies and related technologies described in this Cookie Notice to collect Personal Information, or to collect information that becomes Personal Information if we combine it with other information. For more details about how we process your Personal Information, please review the Privacy Notice.
+
+WHAT ARE COOKIES AND RELATED TECHNOLOGIES
+Cookies are small data files that are stored on your computer that allow us and our third-party partners and providers to collect certain information about your interactions with our email communications, websites and other online Services. We and our third-party partners and providers may also use other, related technologies to collect this information, such as web beacons, pixels, embedded scripts, location-identifying technologies and logging technologies (collectively, "cookies").
+
+WHAT WE COLLECT WHEN USING COOKIES
+We and our third-party partners and providers may use cookies to automatically collect certain types of usage information when you visit or interact with our email communications, websites and other online Services. For example, we may collect log data about your device and its software, such as your IP address, operating system, browser type, date/time of your visit, and other similar information. We may collect analytics data or use third-party analytics tools such as Google Analytics to help us measure usage and activity trends for our online Services and better understand our customer base.
+
+Third-party partners and providers may also collect Personal Information about your online activities over time and across different websites when you use our websites and online Services.
+
+HOW WE USE THAT INFORMATION
+We use or may use the data collected through cookies to: (a) remember information so that you will not have to re-enter it during your visit or the next time you visit our websites and online Services; (b) provide and monitor the effectiveness of our websites and online Services; (c) monitor online usage and activities of our websites and online Services; (d) diagnose errors and problems with our websites and online Services; (e) otherwise plan for and enhance our online Services; and (f) facilitate the purposes identified in the Our Use of Personal Information section of our Privacy Notice. We and our advertising partners also use the information we collect through cookies to understand your browsing activities, including across unaffiliated third-party sites, so that we can deliver ads and information about products and Services that may be of interest to you.
+
+Please note that we link some of the Personal Information we collect through cookies with the other Personal Information that we collect about you and for the purposes described in our Privacy Notice.
+
+YOUR CHOICES ABOUT COOKIES
+If you would prefer not to accept cookies, most browsers will allow you to: (i) change your browser settings to notify you when you receive a cookie, which lets you choose whether or not to accept it; (ii) disable existing cookies; or (iii) set your browser to automatically reject cookies. Please note that doing so may negatively impact your experience using our online Services, as some features and Services on our online Services may not work properly. Depending on your device and operating system, you may not be able to delete or block all cookies. In addition, if you want to reject cookies across all your browsers and devices, you will need to do so on each browser on each device you actively use. You may also set your email options to prevent the automatic downloading of images that may contain technologies that would allow us to know whether you have accessed our email and performed certain functions with it.
+
+You can learn more about Google's practices with Google Analytics by visiting Google's privacy policy. You can also view Google's currently available opt-out options.
+
+YOUR CHOICES ABOUT ONLINE ADS
+We support the self-regulatory principles for online behavioral advertising (Principles) published by the Digital Advertising Alliance (DAA). This means that we allow you to exercise choice regarding the collection of information about your online activities over time and across third-party websites for online interest-based advertising purposes. More information about these Principles can be found at www.aboutads.info. If you want to opt out of receiving online interest-based advertisements on your internet browser from advertisers and third parties that participate in the DAA program and perform advertising-related services for us and our partners, please follow the instructions at www.aboutads.info/choices, or http://www.networkadvertising.org/choices/ to place an opt-out cookie on your device indicating that you do not want to receive interest-based advertisements. Opt-out cookies only work on the internet browser and device they are downloaded onto. If you want to opt out of interest-based advertisements across all your browsers and devices, you will need to opt out on each browser on each device you actively use. If you delete cookies on your device generally, you will need to opt out again.
+
+If you want to opt out of receiving online interest-based advertisements on mobile apps, please follow the instructions at http://www.aboutads.info/appchoices.
+
+Please note that when you opt out of receiving interest-based advertisements, this does not mean you will no longer see advertisements from us or on our online Services. It means that the online ads that you do see from DAA program participants should not be based on your interests. We are not responsible for the effectiveness of, or compliance with, any third-parties' opt-out options or programs or the accuracy of their statements regarding their programs. In addition, third parties may still use cookies to collect information about your use of our online Services, including for analytics and fraud prevention as well as any other purpose permitted under the DAA's Principles.
+
+UPDATES TO THIS COOKIE NOTICE
+We will update this Cookie Notice from time to time. When we make changes to this Cookie Notice, we will change the "Last Updated" date at the beginning of this Notice. If we make material changes to this Notice, we will notify you by email to your registered email address, by prominent posting on this website or our online Services, or through other appropriate communication channels. All changes shall be effective from the date of publication unless otherwise provided in the notification.`
+}
+
 const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> = {
+  "ip-license": ipLicenseAgreement,
+  "privacy-policy": privacyPolicy,
   "safe-cap": safeCap,
   "safe-mfn": safeMfn,
   "safe-discount": safeDiscount,
