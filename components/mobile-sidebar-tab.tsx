@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 export function MobileSidebarTab({
   icon: Icon,
   label,
+  title,
   open,
   onOpenChange,
   side = "right",
@@ -14,6 +15,10 @@ export function MobileSidebarTab({
 }: {
   icon: LucideIcon
   label: string
+  /** Heading shown in the open drawer's own title bar — the page name (e.g. "Compliance
+   *  Center"), distinct from `label`. `children` already renders its own section heading
+   *  (e.g. "Compliance Documents"/"History"), so reusing `label` here would show it twice. */
+  title: string
   open: boolean
   onOpenChange: (open: boolean) => void
   side?: "left" | "right"
@@ -45,7 +50,7 @@ export function MobileSidebarTab({
        *  partial one that would just show backdrop blur beside it. */}
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-foreground">{label}</h2>
+          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
           <button
             onClick={() => onOpenChange(false)}
             aria-label={`Close ${label}`}

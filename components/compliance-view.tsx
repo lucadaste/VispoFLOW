@@ -732,6 +732,7 @@ export function ComplianceView({
           <MobileSidebarTab
             icon={HistoryIcon}
             label="History"
+            title="Compliance Center"
             side="left"
             open={historyOpen}
             onOpenChange={setHistoryOpen}
@@ -797,6 +798,7 @@ export function ComplianceView({
       <MobileSidebarTab
         icon={ShieldCheck}
         label="Compliance Documents"
+        title="Compliance Center"
         open={mobileOpen}
         onOpenChange={setMobileOpen}
       >

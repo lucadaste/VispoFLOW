@@ -614,6 +614,7 @@ export function TransactionsOnboarding({
           <MobileSidebarTab
             icon={HistoryIcon}
             label="History"
+            title="Transaction Center"
             side="left"
             open={historyOpen}
             onOpenChange={setHistoryOpen}
@@ -669,6 +670,7 @@ export function TransactionsOnboarding({
       <MobileSidebarTab
         icon={ArrowLeftRight}
         label="Transaction Documents"
+        title="Transaction Center"
         open={mobileOpen}
         onOpenChange={setMobileOpen}
       >
