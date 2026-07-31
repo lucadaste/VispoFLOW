@@ -838,7 +838,7 @@ function HistoryPanelContent({
 }) {
   return (
     <>
-      <div className="border-b border-border px-4 py-4">
+      <div className="px-4 py-4">
         <h2 className="text-sm font-semibold text-foreground">History</h2>
         <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed documents.</p>
       </div>

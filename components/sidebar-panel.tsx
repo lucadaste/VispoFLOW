@@ -31,7 +31,8 @@ export function SidebarPanel({
         <button
           onClick={() => setCollapsed(false)}
           className={cn(
-            "flex w-10 flex-col items-center gap-2 border-border bg-card/40 py-4 text-muted-foreground transition-colors hover:bg-secondary/60 hover:text-foreground",
+            "flex w-10 flex-col items-center gap-2 border-border py-4 text-muted-foreground transition-colors hover:text-foreground",
+            bordered ? "bg-card/40 hover:bg-secondary/60" : "bg-transparent",
             bordered && (isLeft ? "border-r" : "border-l")
           )}
           aria-label={`Expand ${label}`}
@@ -45,7 +46,14 @@ export function SidebarPanel({
   }
 
   return (
-    <aside className={cn("relative hidden shrink-0 flex-col bg-card/40 sm:flex", widthClass, bordered && (isLeft ? "border-r border-border" : "border-l border-border"))}>
+    <aside
+      className={cn(
+        "relative hidden shrink-0 flex-col sm:flex",
+        widthClass,
+        bordered ? "bg-card/40" : "bg-transparent",
+        bordered && (isLeft ? "border-r border-border" : "border-l border-border")
+      )}
+    >
       <button
         onClick={() => setCollapsed(true)}
         className={cn(
