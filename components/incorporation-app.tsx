@@ -310,13 +310,18 @@ export function IncorporationApp() {
   }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
 
   // Refresh outstanding "sent to sign" requests whenever the Doc Library is open, so a
-  // document signed elsewhere (by the recipient) shows up without a manual reload.
+  // document signed elsewhere (by the recipient) shows up without a manual reload. Polls
+  // while the tab is open on this view since there's no push channel for signing events.
   useEffect(() => {
     if (!isSignedIn || view !== "documents") return
-    fetch("/api/sign-requests")
-      .then((r) => r.json())
-      .then((data) => setSignRequests(data.requests ?? []))
-      .catch(() => {})
+    const refresh = () =>
+      fetch("/api/sign-requests")
+        .then((r) => r.json())
+        .then((data) => setSignRequests(data.requests ?? []))
+        .catch(() => {})
+    refresh()
+    const interval = setInterval(refresh, 5000)
+    return () => clearInterval(interval)
   }, [isSignedIn, view])
 
   // Once a sent-out request comes back signed, fold it into signedDocs exactly like a
