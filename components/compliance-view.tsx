@@ -160,7 +160,7 @@ export function ComplianceView({
   const [infoItem, setInfoItem] = useState<ComplianceItem | null>(null)
   const [history, setHistory] = useState<ConversationEntry[]>([])
   const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
-  const [historyMobileOpen, setHistoryMobileOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: ComplianceItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -590,51 +590,36 @@ export function ComplianceView({
   const historyContent = <HistoryPanelContent history={history} docs={docs} onEntryClick={setViewingConversation} />
 
   return (
-    <div className="flex w-full flex-1 flex-col overflow-hidden">
-      {/* ── Header — full width, spans above History / Chat / Compliance Documents ── */}
-      <div className="shrink-0 border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
-        <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-          <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
-          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
-            <button
-              onClick={() => requestSetInputMode("chat")}
-              className={cn(
-                "rounded-full px-3 py-1 font-medium transition-colors",
-                inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Chat
-            </button>
-            <button
-              onClick={() => requestSetInputMode("form")}
-              className={cn(
-                "rounded-full px-3 py-1 font-medium transition-colors",
-                inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Questionnaire
-            </button>
+    <div className="flex w-full flex-1 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* ── Header ── */}
+        <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+            <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
+            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+              <button
+                onClick={() => requestSetInputMode("chat")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => requestSetInputMode("form")}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                Questionnaire
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex min-w-0 flex-1 overflow-hidden">
-      {/* ── History — dedicated left sidebar, collapsed by default ── */}
-      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed>
-        {historyContent}
-      </SidebarPanel>
-      <MobileSidebarTab
-        icon={HistoryIcon}
-        label="History"
-        side="left"
-        open={historyMobileOpen}
-        onOpenChange={setHistoryMobileOpen}
-      >
-        {historyContent}
-      </MobileSidebarTab>
-
-      {/* ── Chat ── */}
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* ── Chat ── */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.map((m) => {
@@ -685,6 +670,53 @@ export function ComplianceView({
             {isTyping && <TypingIndicator />}
           </div>
         </div>
+
+        {/* ── Input bar ── */}
+        <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
+                <div className="flex-1">
+                  <AddressAutocomplete
+                    value={value}
+                    onChange={setValue}
+                    onEnter={handleSend}
+                    placeholder="Type your answer, or ask a question…"
+                    className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                    rows={1}
+                  />
+                </div>
+              ) : (
+                <input
+                  value={value}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
+                    setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder={
+                    activeFiling
+                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                        ? "Type an answer, or press Enter to skip…"
+                        : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
+                          ? "Type the amount, or ask a question…"
+                          : "Type your answer, or ask a question…"
+                      : "Feel free to ask any questions…"
+                  }
+                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                />
+              )}
+              <button
+                onClick={handleSend}
+                disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+              >
+                Send <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Compliance Documents sidebar — always visible ≥ sm, collapsible ── */}
@@ -702,54 +734,18 @@ export function ComplianceView({
       >
         {sidebarContent}
       </MobileSidebarTab>
-      </div>
 
-      {/* ── Input bar — full width, spans below History / Chat / Compliance Documents ── */}
-      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-2xl">
-          <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-            {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
-              <div className="flex-1">
-                <AddressAutocomplete
-                  value={value}
-                  onChange={setValue}
-                  onEnter={handleSend}
-                  placeholder="Type your answer, or ask a question…"
-                  className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                  rows={1}
-                />
-              </div>
-            ) : (
-              <input
-                value={value}
-                onChange={(e) => {
-                  const raw = e.target.value
-                  const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
-                  setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={
-                  activeFiling
-                    ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                      ? "Type an answer, or press Enter to skip…"
-                      : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
-                        ? "Type the amount, or ask a question…"
-                        : "Type your answer, or ask a question…"
-                    : "Feel free to ask any questions…"
-                }
-                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-              />
-            )}
-            <button
-              onClick={handleSend}
-              disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-            >
-              Send <Send className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* ── History — floating popup at every breakpoint, never shifts the layout ── */}
+      <MobileSidebarTab
+        icon={HistoryIcon}
+        label="History"
+        side="left"
+        alwaysVisible
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+      >
+        {historyContent}
+      </MobileSidebarTab>
 
       {infoItem && (
         <InfoModal
