@@ -39,8 +39,8 @@ export function SidebarPanel({
           )}
           aria-label={`Expand ${label}`}
         >
-          {isLeft ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
-          <Icon className="h-4 w-4" />
+          {bordered && (isLeft ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />)}
+          <Icon className={bordered ? "h-4 w-4" : "h-5 w-5"} />
           {bordered && (
             <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide">{label}</span>
           )}
@@ -61,16 +61,20 @@ export function SidebarPanel({
       <button
         onClick={() => setCollapsed(true)}
         className={cn(
-          "group absolute z-10 flex items-stretch justify-center transition-colors",
+          "group absolute top-1/2 z-10 flex -translate-y-1/2 items-center justify-center transition-colors",
           bordered
-            ? "top-3 h-6 w-6 rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:border-primary hover:text-primary"
-            : "top-6 h-10 w-4 gap-0.5",
-          isLeft ? "-right-3" : "-left-3"
+            ? "h-9 w-3 rounded-full border border-border/60 bg-card/80 text-muted-foreground/60 hover:border-primary/50 hover:bg-card hover:text-primary"
+            : "top-6 h-10 w-4 translate-y-0 gap-0.5",
+          isLeft ? (bordered ? "-right-1.5" : "-right-3") : bordered ? "-left-1.5" : "-left-3"
         )}
         aria-label={`Minimize ${label}`}
       >
         {bordered ? (
-          isLeft ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />
+          isLeft ? (
+            <ChevronLeft className="h-3 w-3 transition-transform group-hover:-translate-x-0.5" />
+          ) : (
+            <ChevronRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+          )
         ) : (
           <>
             <span className="w-0.5 rounded-full bg-border transition-colors group-hover:bg-primary/60" />

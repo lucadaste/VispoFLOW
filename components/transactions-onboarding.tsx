@@ -876,7 +876,7 @@ function HistoryPanelContent({
                     </p>
                     <p className={cn(
                       "mt-0.5 flex items-center gap-1 text-[10px]",
-                      inLibrary ? "text-success" : "text-muted-foreground/70"
+                      inLibrary ? "text-success" : "text-destructive"
                     )}>
                       {inLibrary ? <FileCheck2 className="h-2.5 w-2.5 shrink-0" /> : <Trash2 className="h-2.5 w-2.5 shrink-0" />}
                       <span>{inLibrary ? "In Document Library" : "Document deleted"}</span>
