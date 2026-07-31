@@ -24,7 +24,7 @@ export function SignaturePad({
   disabled?: boolean
   onCapture: (dataUrl: string, method: Mode, name: string) => void
 }) {
-  const [mode, setMode] = useState<Mode>("typed")
+  const [mode, setMode] = useState<Mode>("drawn")
   const [name, setName] = useState(lockedName ?? defaultName)
   const [typedPreview, setTypedPreview] = useState("")
   const canvasRef = useRef<HTMLCanvasElement>(null)
