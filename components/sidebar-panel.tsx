@@ -57,8 +57,8 @@ export function SidebarPanel({
           onClick={() => setCollapsed(false)}
           aria-label={`Expand ${label}`}
           className={cn(
-            "absolute inset-y-0 z-10 hidden w-9 flex-col items-center justify-center text-muted-foreground transition-colors hover:text-foreground sm:flex",
-            isLeft ? "left-0" : "right-0"
+            "absolute top-2 z-10 hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:flex",
+            isLeft ? "left-2" : "right-2"
           )}
         >
           <Icon className="h-5 w-5" />
@@ -98,9 +98,9 @@ export function SidebarPanel({
         <aside
           ref={panelRef}
           className={cn(
-            "absolute inset-y-0 z-20 hidden shrink-0 flex-col bg-background shadow-lg sm:flex",
+            "absolute top-0 z-20 hidden max-h-full shrink-0 flex-col overflow-hidden rounded-lg bg-background shadow-xl sm:flex",
             widthClass,
-            isLeft ? "left-0 border-r border-border" : "right-0 border-l border-border"
+            isLeft ? "left-0" : "right-0"
           )}
         >
           <button
