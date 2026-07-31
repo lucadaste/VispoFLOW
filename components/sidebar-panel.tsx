@@ -57,13 +57,15 @@ export function SidebarPanel({
       <button
         onClick={() => setCollapsed(true)}
         className={cn(
-          "absolute z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary",
-          bordered ? "top-3" : "top-16",
+          "absolute z-10 transition-colors",
+          bordered
+            ? "top-3 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:border-primary hover:text-primary"
+            : "top-4 h-14 w-1.5 rounded-full bg-border hover:bg-primary/60",
           isLeft ? "-right-3" : "-left-3"
         )}
         aria-label={`Minimize ${label}`}
       >
-        {isLeft ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        {bordered && (isLeft ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />)}
       </button>
       {children}
     </aside>
