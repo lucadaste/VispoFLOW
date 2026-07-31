@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 export function MobileSidebarTab({
   icon: Icon,
   label,
-  count,
   open,
   onOpenChange,
   side = "right",
@@ -15,7 +14,6 @@ export function MobileSidebarTab({
 }: {
   icon: LucideIcon
   label: string
-  count?: { done: number; total: number }
   open: boolean
   onOpenChange: (open: boolean) => void
   side?: "left" | "right"
@@ -35,9 +33,6 @@ export function MobileSidebarTab({
       >
         <Icon className="h-4 w-4" />
         <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-medium tracking-wide">{label}</span>
-        {count && count.total > 0 && (
-          <span className="text-[10px] text-muted-foreground">{count.done}/{count.total}</span>
-        )}
       </button>
     )
   }
@@ -45,7 +40,10 @@ export function MobileSidebarTab({
   return (
     <div className={cn("sm:hidden fixed inset-0 z-50 flex", isLeft ? "justify-start" : "justify-end")}>
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-      <div className="relative flex h-full w-[85%] max-w-sm flex-col overflow-hidden bg-card shadow-xl">
+      {/* Below `sm` the chat column has no room left to shrink — the sidebar always fully
+       *  occupies the screen when open, so the drawer takes the whole width rather than a
+       *  partial one that would just show backdrop blur beside it. */}
+      <div className="relative flex h-full w-full flex-col overflow-hidden bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
           <h2 className="text-sm font-semibold text-foreground">{label}</h2>
           <button
