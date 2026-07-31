@@ -1090,7 +1090,7 @@ export function IncorporationApp() {
             <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
               <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
                 <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                     <button
                       onClick={() => requestSetInputMode("chat")}
@@ -1111,6 +1111,7 @@ export function IncorporationApp() {
                       Questionnaire
                     </button>
                   </div>
+                  <div className="h-5 w-px bg-border" />
                   <button
                     onClick={() => setIncorporationRestartConfirm(true)}
                     className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
