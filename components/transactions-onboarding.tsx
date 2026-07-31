@@ -451,7 +451,7 @@ export function TransactionsOnboarding({
   return (
     <div className="flex w-full flex-1 overflow-hidden">
       {/* ── History — dedicated left sidebar, collapsed by default ── */}
-      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80" side="left" defaultCollapsed>
+      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false}>
         {historyContent}
       </SidebarPanel>
       <MobileSidebarTab
@@ -842,16 +842,16 @@ function HistoryPanelContent({
         <h2 className="text-sm font-semibold text-foreground">History</h2>
         <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed documents.</p>
       </div>
-      <div className="flex-1 overflow-y-auto px-2 py-3">
+      <div className="flex-1 overflow-y-auto">
         {history.length === 0 ? (
-          <p className="px-2 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
+          <p className="px-4 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
         ) : (
-          <ul className="space-y-0.5">
+          <ul>
             {history.map((entry) => (
-              <li key={entry.itemId}>
+              <li key={entry.itemId} className="border-b border-border last:border-b-0">
                 <button
                   onClick={() => onEntryClick(entry)}
-                  className="flex w-full flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                  className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left transition-colors hover:bg-secondary/60"
                 >
                   <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
                   <p className="text-[10px] text-muted-foreground">
