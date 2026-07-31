@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import type { LucideIcon } from "lucide-react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function SidebarPanel({
@@ -12,6 +12,12 @@ export function SidebarPanel({
   side = "right",
   defaultCollapsed = false,
   bordered = true,
+  /** Render the expanded panel as a floating overlay — absolutely positioned over the content,
+   *  with a click-away backdrop and an X to close — instead of a flex sibling that pushes the
+   *  rest of the layout over when it opens. The collapsed icon tab is unaffected either way.
+   *  Used by History, which must never resize the chat column (see compliance-view.tsx /
+   *  transactions-onboarding.tsx). Requires a `relative` ancestor to position against. */
+  overlay = false,
   children,
 }: {
   icon: LucideIcon
@@ -20,12 +26,31 @@ export function SidebarPanel({
   side?: "left" | "right"
   defaultCollapsed?: boolean
   bordered?: boolean
+  overlay?: boolean
   children: React.ReactNode
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const isLeft = side === "left"
 
   if (collapsed) {
+    // In overlay mode the icon tab floats over the content (absolute) instead of taking real
+    // space in the flex row — so its mere presence never shifts the chat column, matching
+    // Incorporation's layout exactly even before it's ever opened.
+    if (overlay) {
+      return (
+        <button
+          onClick={() => setCollapsed(false)}
+          aria-label={`Expand ${label}`}
+          className={cn(
+            "absolute inset-y-0 z-10 hidden w-9 flex-col items-center gap-1.5 pl-1 pt-5 pb-3 text-muted-foreground transition-colors hover:text-foreground sm:flex",
+            isLeft ? "left-0" : "right-0"
+          )}
+        >
+          <Icon className="h-6 w-6" />
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide">{label}</span>
+        </button>
+      )
+    }
     return (
       <div className="hidden shrink-0 sm:flex">
         <button
@@ -46,6 +71,33 @@ export function SidebarPanel({
           )}
         </button>
       </div>
+    )
+  }
+
+  if (overlay) {
+    return (
+      <>
+        <div
+          className="absolute inset-0 z-10 hidden sm:block"
+          onClick={() => setCollapsed(true)}
+        />
+        <aside
+          className={cn(
+            "absolute inset-y-0 z-20 hidden shrink-0 flex-col bg-card shadow-lg sm:flex",
+            widthClass,
+            isLeft ? "left-0 border-r border-border" : "right-0 border-l border-border"
+          )}
+        >
+          <button
+            onClick={() => setCollapsed(true)}
+            aria-label={`Close ${label}`}
+            className="absolute right-2 top-2 z-10 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          {children}
+        </aside>
+      </>
     )
   }
 

@@ -459,7 +459,7 @@ export function TransactionsOnboarding({
   const historyContent = <HistoryPanelContent history={history} docs={docs} onEntryClick={setViewingConversation} />
 
   return (
-    <div className="flex w-full flex-1 overflow-hidden">
+    <div className="relative flex w-full flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ── Header ── */}
         <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
@@ -602,12 +602,14 @@ export function TransactionsOnboarding({
         {sidebarContent}
       </MobileSidebarTab>
 
-      {/* ── History — floating popup at every breakpoint, never shifts the layout ── */}
+      {/* ── History — icon tab that opens as a floating overlay, never shifts the layout ── */}
+      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed overlay>
+        {historyContent}
+      </SidebarPanel>
       <MobileSidebarTab
         icon={HistoryIcon}
         label="History"
         side="left"
-        alwaysVisible
         open={historyOpen}
         onOpenChange={setHistoryOpen}
       >
