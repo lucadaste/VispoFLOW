@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { FileText } from "lucide-react"
+import { FileText, RotateCcw } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
 import { SidebarPanel } from "@/components/sidebar-panel"
@@ -1011,62 +1011,11 @@ export function IncorporationApp() {
     })
   }
 
-  // Server clears must resolve before the view remounts — otherwise the remounted view's
-  // own load-from-server effect can race the DELETE and re-hydrate the state we just reset.
-  const handleRestart = async () => {
-    if (view === "chat") { restartFormation(); return }
-    if (view === "home-chat") {
-      clearPersisted(STORAGE_KEYS.homeChat)
-      if (isSignedIn) await clearFromServer(STORAGE_KEYS.homeChat)
-      setHomeChatSeed(undefined)
-      setHomeChatKey((k) => k + 1)
-      return
-    }
-    if (view === "landing") { setLandingKey((k) => k + 1); return }
-    if (view === "compliance") {
-      setHiddenDocIds((ids) => {
-        const next = { ...ids }
-        complianceDocs.forEach((d) => delete next[d.id])
-        return next
-      })
-      complianceDocs.forEach((d) => clearSignaturesForDoc(d.id))
-      setComplianceDocs([])
-      clearPersisted(STORAGE_KEYS.compliance)
-      if (isSignedIn) await clearFromServer(STORAGE_KEYS.compliance)
-      setComplianceKey((k) => k + 1)
-      return
-    }
-    if (view === "transactions") {
-      setHiddenDocIds((ids) => {
-        const next = { ...ids }
-        transactionDocs.forEach((d) => delete next[d.id])
-        return next
-      })
-      transactionDocs.forEach((d) => clearSignaturesForDoc(d.id))
-      setTransactionDocs([])
-      clearPersisted(STORAGE_KEYS.transactions)
-      if (isSignedIn) await clearFromServer(STORAGE_KEYS.transactions)
-      setTransactionsKey((k) => k + 1)
-      return
-    }
-  }
-
   const hasDocs = Object.keys(docStatuses).length > 0
   const docsTotal = DOCUMENTS.length
   const docsCompleted = DOCUMENTS.filter(
     (d) => docStatuses[d.id] === "complete" || docStatuses[d.id] === "filing" || docStatuses[d.id] === "filed",
   ).length
-
-  const restartWarning: string | null =
-    view === "chat"
-      ? "You'll be sent back to the start of the guided incorporation flow, and any incorporation documents you've generated so far will be removed from My Docs."
-      : view === "compliance"
-      ? "You'll be sent back to the start of the Compliance Center, and any compliance filings you've completed will be removed from My Docs."
-      : view === "transactions"
-      ? "You'll be sent back to the start of the Transaction Center, and any transaction documents you've prepared will be removed from My Docs."
-      : view === "home-chat"
-      ? "Your conversation history in this chat will be cleared."
-      : null
 
   const phase =
     view === "loading" || view === "landing" || view === "home-chat"
@@ -1110,9 +1059,7 @@ export function IncorporationApp() {
     <div className="flex h-dvh flex-col bg-background">
       <TopBar
         phase={phase}
-        onReset={handleRestart}
         onPhaseClick={handlePhaseClick}
-        restartWarning={restartWarning}
         onOpenSettings={() => setSettingsOpen(true)}
         profile={profile}
         onSaveProfile={setProfile}
@@ -1143,24 +1090,33 @@ export function IncorporationApp() {
             <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
               <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
                 <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
-                <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+                    <button
+                      onClick={() => requestSetInputMode("chat")}
+                      className={cn(
+                        "rounded-full px-3 py-1 font-medium transition-colors",
+                        inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Chat
+                    </button>
+                    <button
+                      onClick={() => requestSetInputMode("form")}
+                      className={cn(
+                        "rounded-full px-3 py-1 font-medium transition-colors",
+                        inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Questionnaire
+                    </button>
+                  </div>
                   <button
-                    onClick={() => requestSetInputMode("chat")}
-                    className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
-                      inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
+                    onClick={() => setIncorporationRestartConfirm(true)}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   >
-                    Chat
-                  </button>
-                  <button
-                    onClick={() => requestSetInputMode("form")}
-                    className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
-                      inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Questionnaire
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Restart</span>
                   </button>
                 </div>
               </div>
@@ -1238,7 +1194,6 @@ export function IncorporationApp() {
           <MobileSidebarTab
             icon={FileText}
             label="Incorporation Documents"
-            count={hasDocs ? { done: docsCompleted, total: docsTotal } : undefined}
             open={mobileDocsOpen}
             onOpenChange={setMobileDocsOpen}
           >
