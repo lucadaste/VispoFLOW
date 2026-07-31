@@ -846,12 +846,12 @@ function HistoryPanelContent({
         {history.length === 0 ? (
           <p className="px-4 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
         ) : (
-          <ul>
+          <ul className="flex flex-col gap-1 px-2 py-2">
             {history.map((entry) => (
-              <li key={entry.itemId} className="border-b border-border last:border-b-0">
+              <li key={entry.itemId}>
                 <button
                   onClick={() => onEntryClick(entry)}
-                  className="flex w-full flex-col items-start gap-0.5 px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+                  className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
                 >
                   <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
                   <p className="text-[10px] text-muted-foreground">
