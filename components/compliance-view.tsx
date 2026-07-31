@@ -605,15 +605,12 @@ export function ComplianceView({
                 </div>
               ) : (
                 <input
-                  inputMode={activeFiling?.item.fields[activeFiling.fieldIndex].type === "number" ? "decimal" : undefined}
                   value={value}
-                  onChange={(e) =>
-                    setValue(
-                      activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
-                        ? formatNumberInput(e.target.value)
-                        : e.target.value,
-                    )
-                  }
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
+                    setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
+                  }}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={
                     activeFiling

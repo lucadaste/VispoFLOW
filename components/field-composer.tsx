@@ -59,10 +59,12 @@ export function FieldComposer({
         ) : (
           <input
             type={field.type === "date" ? "date" : "text"}
-            inputMode={field.type === "number" ? "decimal" : undefined}
             value={value}
             placeholder={placeholder}
-            onChange={(e) => setValue(field.type === "number" ? formatNumberInput(e.target.value) : e.target.value)}
+            onChange={(e) => {
+              const raw = e.target.value
+              setValue(field.type === "number" && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
+            }}
             onKeyDown={(e) => e.key === "Enter" && canSubmit && submit(value)}
             className="w-full bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
