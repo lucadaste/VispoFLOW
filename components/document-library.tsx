@@ -1313,6 +1313,26 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
   )
 }
 
+/** The download half of the "Share document" / "Download document" pair — a flat list of
+ *  formats with none singled out as a default, opened from a "Download document" entry point
+ *  the same way "Share document" opens SendDocumentPopoverContent. */
+function DownloadDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc; answers: FlowAnswers; onDone: () => void }) {
+  return (
+    <div className="py-1">
+      <p className="px-3 pb-1 pt-2 text-xs font-medium text-foreground">Download as</p>
+      {DOWNLOAD_FORMATS.map((format) => (
+        <button
+          key={format}
+          onClick={() => { downloadDoc(doc, format, answers); onDone() }}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+        >
+          <Download className="h-3.5 w-3.5" /> {format}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 /** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   if (!doc.content) {
@@ -1373,7 +1393,7 @@ function DocTileMenu({
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
   savedSignature: SavedSignature | null
 }) {
-  type Mode = "menu" | "sign" | "send" | "email" | "delete-confirm"
+  type Mode = "menu" | "sign" | "send" | "email" | "download" | "delete-confirm"
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const [dropUp, setDropUp] = useState(false)
@@ -1440,15 +1460,14 @@ function DocTileMenu({
                     <Share className="h-3.5 w-3.5" /> Share document
                   </button>
                 )}
-                {viewable && DOWNLOAD_FORMATS.map((format) => (
+                {viewable && (
                   <button
-                    key={format}
-                    onClick={() => { downloadDoc(doc, format, answers); close() }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+                    onClick={() => setMode("download")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
                   >
-                    <Download className="h-3.5 w-3.5" /> {format}
+                    <Download className="h-3.5 w-3.5" /> Download document
                   </button>
-                ))}
+                )}
                 <button
                   onClick={() => setMode("delete-confirm")}
                   className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-destructive hover:bg-destructive/10"
@@ -1462,6 +1481,7 @@ function DocTileMenu({
               <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={close} />
             )}
             {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
+            {mode === "download" && <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
             {mode === "delete-confirm" && (
               <div className="space-y-2.5 p-3">
                 <p className="text-xs font-medium text-foreground">Delete this document?</p>
@@ -1877,7 +1897,7 @@ function DocViewerMoreMenu({
   answers: FlowAnswers
   onDelete?: (doc: LibraryDoc) => void
 }) {
-  type Mode = "menu" | "email" | "delete-confirm"
+  type Mode = "menu" | "email" | "download" | "delete-confirm"
   const [open, setOpen] = useState(false)
   const [mode, setMode] = useState<Mode>("menu")
   const close = () => { setOpen(false); setMode("menu") }
@@ -1906,15 +1926,14 @@ function DocViewerMoreMenu({
                     <Share className="h-3.5 w-3.5" /> Share document
                   </button>
                 )}
-                {viewable && DOWNLOAD_FORMATS.map((format) => (
+                {viewable && (
                   <button
-                    key={format}
-                    onClick={() => { downloadDoc(doc, format, answers); close() }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-foreground hover:bg-secondary"
+                    onClick={() => setMode("download")}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-medium text-foreground hover:bg-secondary"
                   >
-                    <Download className="h-3.5 w-3.5" /> Download {format}
+                    <Download className="h-3.5 w-3.5" /> Download document
                   </button>
-                ))}
+                )}
                 {onDelete && (
                   <button
                     onClick={() => setMode("delete-confirm")}
@@ -1926,6 +1945,7 @@ function DocViewerMoreMenu({
               </div>
             )}
             {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
+            {mode === "download" && <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
             {mode === "delete-confirm" && onDelete && (
               <div className="space-y-2.5 p-3">
                 <p className="text-xs font-medium text-foreground">Delete this document?</p>
