@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock } from "lucide-react"
+import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -102,7 +102,7 @@ export function TransactionsOnboarding({
   const [infoItem, setInfoItem] = useState<TransactionItem | null>(null)
   const [history, setHistory] = useState<ConversationEntry[]>([])
   const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
-  const [sidebarTab, setSidebarTab] = useState<"documents" | "history">("documents")
+  const [historyMobileOpen, setHistoryMobileOpen] = useState(false)
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: TransactionItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -443,15 +443,27 @@ export function TransactionsOnboarding({
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onViewClick={openDoc}
-      sidebarTab={sidebarTab}
-      onSidebarTabChange={setSidebarTab}
-      history={history}
-      onHistoryClick={setViewingConversation}
     />
   )
 
+  const historyContent = <HistoryPanelContent history={history} onEntryClick={setViewingConversation} />
+
   return (
     <div className="flex w-full flex-1 overflow-hidden">
+      {/* ── History — dedicated left sidebar, collapsed by default ── */}
+      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80" side="left" defaultCollapsed>
+        {historyContent}
+      </SidebarPanel>
+      <MobileSidebarTab
+        icon={HistoryIcon}
+        label="History"
+        side="left"
+        open={historyMobileOpen}
+        onOpenChange={setHistoryMobileOpen}
+      >
+        {historyContent}
+      </MobileSidebarTab>
+
       {/* ── Chat ── */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
@@ -696,7 +708,6 @@ export function TransactionsOnboarding({
 
 function SidebarContent({
   expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
-  sidebarTab, onSidebarTabChange, history, onHistoryClick,
 }: {
   expandedCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
@@ -706,65 +717,14 @@ function SidebarContent({
   onCategoryClick: (cat: TransactionCategory) => void
   onInfoClick: (item: TransactionItem) => void
   onViewClick: (doc: LibraryDoc, item: TransactionItem, groupTitle: string) => void
-  sidebarTab: "documents" | "history"
-  onSidebarTabChange: (tab: "documents" | "history") => void
-  history: ConversationEntry[]
-  onHistoryClick: (entry: ConversationEntry) => void
 }) {
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold text-foreground">Transaction Documents</h2>
-          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[11px] shadow-sm">
-            <button
-              onClick={() => onSidebarTabChange("documents")}
-              className={cn(
-                "rounded-full px-2.5 py-1 font-medium transition-colors",
-                sidebarTab === "documents" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Documents
-            </button>
-            <button
-              onClick={() => onSidebarTabChange("history")}
-              className={cn(
-                "rounded-full px-2.5 py-1 font-medium transition-colors",
-                sidebarTab === "history" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              History
-            </button>
-          </div>
-        </div>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {sidebarTab === "documents" ? "Pick a category below to see what's available." : "Past conversations from completed documents."}
-        </p>
+        <h2 className="text-sm font-semibold text-foreground">Transaction Documents</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Pick a category below to see what's available.</p>
       </div>
 
-      {sidebarTab === "history" ? (
-        <div className="flex-1 overflow-y-auto px-2 py-3">
-          {history.length === 0 ? (
-            <p className="px-2 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
-          ) : (
-            <ul className="space-y-0.5">
-              {history.map((entry) => (
-                <li key={entry.itemId}>
-                  <button
-                    onClick={() => onHistoryClick(entry)}
-                    className="flex w-full flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
-                  >
-                    <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                    </p>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : (
       <div className="flex-1 overflow-y-auto">
         {TRANSACTION_CATEGORIES.map((cat) => {
           const items = cat.groups.flatMap((g) => g.items)
@@ -864,7 +824,45 @@ function SidebarContent({
           )
         })}
       </div>
-      )}
+    </>
+  )
+}
+
+/* ── History panel content (dedicated left sidebar) ── */
+
+function HistoryPanelContent({
+  history, onEntryClick,
+}: {
+  history: ConversationEntry[]
+  onEntryClick: (entry: ConversationEntry) => void
+}) {
+  return (
+    <>
+      <div className="border-b border-border px-4 py-4">
+        <h2 className="text-sm font-semibold text-foreground">History</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed documents.</p>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 py-3">
+        {history.length === 0 ? (
+          <p className="px-2 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {history.map((entry) => (
+              <li key={entry.itemId}>
+                <button
+                  onClick={() => onEntryClick(entry)}
+                  className="flex w-full flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                >
+                  <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </>
   )
 }

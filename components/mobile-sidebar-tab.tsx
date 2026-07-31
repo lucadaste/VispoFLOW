@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from "lucide-react"
 import { X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function MobileSidebarTab({
   icon: Icon,
@@ -9,6 +10,7 @@ export function MobileSidebarTab({
   count,
   open,
   onOpenChange,
+  side = "right",
   children,
 }: {
   icon: LucideIcon
@@ -16,13 +18,19 @@ export function MobileSidebarTab({
   count?: { done: number; total: number }
   open: boolean
   onOpenChange: (open: boolean) => void
+  side?: "left" | "right"
   children: React.ReactNode
 }) {
+  const isLeft = side === "left"
+
   if (!open) {
     return (
       <button
         onClick={() => onOpenChange(true)}
-        className="sm:hidden fixed right-0 top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-2 rounded-l-xl border border-r-0 border-border bg-card px-2 py-3 text-foreground shadow-md transition-colors hover:border-primary hover:text-primary"
+        className={cn(
+          "sm:hidden fixed top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-2 border border-border bg-card px-2 py-3 text-foreground shadow-md transition-colors hover:border-primary hover:text-primary",
+          isLeft ? "left-0 rounded-r-xl border-l-0" : "right-0 rounded-l-xl border-r-0"
+        )}
       >
         <Icon className="h-4 w-4" />
         <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-medium tracking-wide">{label}</span>
@@ -34,7 +42,7 @@ export function MobileSidebarTab({
   }
 
   return (
-    <div className="sm:hidden fixed inset-0 z-50 flex justify-end">
+    <div className={cn("sm:hidden fixed inset-0 z-50 flex", isLeft ? "justify-start" : "justify-end")}>
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
       <div className="relative flex h-full w-[85%] max-w-sm flex-col overflow-hidden bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
