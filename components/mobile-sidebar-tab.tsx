@@ -50,7 +50,7 @@ export function MobileSidebarTab({
        *  partial one that would just show backdrop blur beside it. */}
       <div className="relative flex h-full w-full flex-col overflow-hidden bg-card shadow-xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
           <button
             onClick={() => onOpenChange(false)}
             aria-label={`Close ${label}`}
