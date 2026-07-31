@@ -194,17 +194,32 @@ function findMultilineAddressBlanks(lines: string[], from: number, to: number): 
 
 /** Fills the blank line(s) found by `findMultilineAddressBlanks`, splitting `address` on its
  *  first comma so the street goes on the first blank line and city/state/zip on the second — a
- *  single blank line gets the whole address. Leftover blank lines beyond what `address` has parts
- *  for are left as-is (there's nothing more specific to put there). */
-function fillMultilineAddressBlanks(lines: string[], blanks: number[], address: string): void {
+ *  single blank line gets the whole address. Returns the indices of any blank lines left over
+ *  (e.g. a one-line address under a two-line blank) so the caller can remove them instead of
+ *  leaving a stray underscore line in the rendered document. */
+function fillMultilineAddressBlanks(lines: string[], blanks: number[], address: string): number[] {
   const commaIndex = address.indexOf(",")
   const parts =
     blanks.length > 1 && commaIndex !== -1
       ? [address.slice(0, commaIndex).trim(), address.slice(commaIndex + 1).trim()]
       : [address]
+  const unfilled: number[] = []
   blanks.forEach((lineIndex, i) => {
     if (parts[i]) lines[lineIndex] = parts[i]
+    else unfilled.push(lineIndex)
   })
+  return unfilled
+}
+
+/** Removes a blank line left over from `fillMultilineAddressBlanks` (an unused address
+ *  continuation blank) along with one adjoining empty line, so the gap it leaves behind collapses
+ *  back to a single blank line instead of stacking up an extra one. Indices must be removed
+ *  highest-first so earlier removals don't shift the ones still to come. */
+function removeUnfilledAddressLines(lines: string[], unfilled: number[]): void {
+  for (const idx of [...unfilled].sort((a, b) => b - a)) {
+    const start = lines[idx - 1]?.trim() === "" ? idx - 1 : idx
+    lines.splice(start, idx - start + 1)
+  }
 }
 
 /**
@@ -229,7 +244,9 @@ export function fillCompanyExecutionBlock(
 ): string {
   const officerTitle = primaryOfficerTitle(roles)
   const lines = content.split("\n")
-  for (const byIndex of findByLineIndices(lines, headerPattern)) {
+  // Processed highest-index-first so that splicing out a leftover address blank in one block
+  // never shifts the line numbers an earlier block still needs to process.
+  for (const byIndex of [...findByLineIndices(lines, headerPattern)].reverse()) {
     const windowEnd = Math.min(byIndex + 16, lines.length - 1)
     for (let j = byIndex; j <= windowEnd; j++) {
       const trimmed = lines[j].trim()
@@ -244,7 +261,7 @@ export function fillCompanyExecutionBlock(
     const address = extraFields?.Address
     if (address) {
       const blanks = findMultilineAddressBlanks(lines, byIndex, windowEnd)
-      if (blanks.length > 0) fillMultilineAddressBlanks(lines, blanks, address)
+      if (blanks.length > 0) removeUnfilledAddressLines(lines, fillMultilineAddressBlanks(lines, blanks, address))
     }
   }
   return lines.join("\n")
