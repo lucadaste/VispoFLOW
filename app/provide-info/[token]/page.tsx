@@ -16,6 +16,10 @@ export default async function ProvideInfoPage({ params }: { params: Promise<{ to
     )
   }
 
+  if (row.status === "sent") {
+    await db.update(infoRequests).set({ status: "viewed" }).where(eq(infoRequests.token, token))
+  }
+
   return (
     <ProvideInfoClient
       token={token}

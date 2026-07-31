@@ -4,26 +4,9 @@ import { db } from "@/lib/db"
 import { infoRequests } from "@/lib/db-schema"
 import { encryptSensitive } from "@/lib/crypto"
 
-/** Public, token-authenticated — the recipient has no VispoFLOW account. Never returns
- *  `encryptedValue`; there's nothing for this route to reveal, only to collect. */
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
-  const { token } = await params
-
-  const [row] = await db.select().from(infoRequests).where(eq(infoRequests.token, token)).limit(1)
-  if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 })
-
-  if (row.status === "sent") {
-    await db.update(infoRequests).set({ status: "viewed" }).where(eq(infoRequests.token, token))
-  }
-
-  return NextResponse.json({
-    docTitle: row.docTitle,
-    fieldLabel: row.fieldLabel,
-    recipientName: row.recipientName,
-    status: row.status,
-  })
-}
-
+/** Public, token-authenticated — the recipient has no VispoFLOW account. Submits the one value
+ *  this request is asking for (see app/provide-info/[token], which reads the request's own
+ *  metadata directly from the DB server-side rather than through an API route). */
 const MAX_VALUE_LENGTH = 32
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {

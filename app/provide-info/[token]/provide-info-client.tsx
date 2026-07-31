@@ -32,7 +32,7 @@ export function ProvideInfoClient({
     setSubmitting(true)
     setError(null)
     try {
-      const res = await fetch(`/api/info-requests/${token}`, {
+      const res = await fetch(`/api/info-requests/fulfill/${token}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ value }),
