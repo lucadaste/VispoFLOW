@@ -20,7 +20,9 @@ export function FieldComposer({
     field.placeholder ??
     (field.optional
       ? "Type an answer, ask a question, or press Enter to skip…"
-      : "Type your answer, or feel free to ask a question…")
+      : field.type === "number"
+        ? "Type the amount…"
+        : "Type your answer, or feel free to ask a question…")
   // A question doesn't always advance the field (the parent may re-prompt instead), so this
   // component can't rely on remounting (via the parent's `key`) to clear itself after submit.
   const submit = (v: string) => {
