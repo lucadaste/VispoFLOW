@@ -42,6 +42,7 @@ import {
   DOCUMENTS,
 } from "@/lib/flow"
 import { renderDocumentContent } from "@/lib/document-templates"
+import { renderComplianceDocument } from "@/lib/compliance-templates"
 import {
   loadPersisted,
   savePersisted,
@@ -143,6 +144,16 @@ type SignRequest = {
   fields: Record<string, string> | null
 }
 
+/** A pending emailed invite for a single sensitive field delegated to someone other than the
+ *  account holder (see lib/flow.ts's `ComplianceField.delegatable`). Never carries the value
+ *  itself — that's only ever fetched, decrypted, through app/api/info-requests/[id]/reveal. */
+type InfoRequest = {
+  id: string
+  docId: string
+  fieldName: string
+  status: "sent" | "viewed" | "fulfilled"
+}
+
 type LibraryPersisted = {
   complianceDocs: LibraryDoc[]
   transactionDocs: LibraryDoc[]
@@ -229,6 +240,7 @@ export function IncorporationApp() {
   const [hiddenDocIds, setHiddenDocIds] = useState<Record<string, string>>({})
   const [signedDocs, setSignedDocs] = useState<Record<string, DocSignature[]>>({})
   const [signRequests, setSignRequests] = useState<SignRequest[]>([])
+  const [infoRequests, setInfoRequests] = useState<InfoRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [incorporationRestartConfirm, setIncorporationRestartConfirm] = useState(false)
   const [modeSwitchConfirm, setModeSwitchConfirm] = useState<"chat" | "form" | null>(null)
@@ -309,11 +321,12 @@ export function IncorporationApp() {
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
   }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
 
-  // Refresh outstanding "sent to sign" requests whenever the Doc Library is open, so a
-  // document signed elsewhere (by the recipient) shows up without a manual reload. Polls
-  // while the tab is open on this view since there's no push channel for signing events.
+  // Refresh outstanding "sent to sign" requests while signed in, so a document signed
+  // elsewhere (by the recipient) shows up without a manual reload. Not scoped to the
+  // Doc Library view — Transaction Center documents (e.g. SAFEs) are reviewed from the
+  // "transactions" view too, and there's no push channel for signing events.
   useEffect(() => {
-    if (!isSignedIn || view !== "documents") return
+    if (!isSignedIn) return
     const refresh = () =>
       fetch("/api/sign-requests")
         .then((r) => r.json())
@@ -322,7 +335,7 @@ export function IncorporationApp() {
     refresh()
     const interval = setInterval(refresh, 5000)
     return () => clearInterval(interval)
-  }, [isSignedIn, view])
+  }, [isSignedIn])
 
   // Once a sent-out request comes back signed, fold it into signedDocs exactly like a
   // self-signed doc so downloads/rendering treat it the same way. Requests created before
@@ -348,6 +361,51 @@ export function IncorporationApp() {
       }))
     }
   }, [signRequests, signedDocs])
+
+  // Same polling pattern as sign-requests above, for compliance fields delegated to a third
+  // party (see lib/flow.ts's ComplianceField.delegatable and components/compliance-view.tsx).
+  useEffect(() => {
+    if (!isSignedIn) return
+    const refresh = () =>
+      fetch("/api/info-requests")
+        .then((r) => r.json())
+        .then((data) => setInfoRequests(data.requests ?? []))
+        .catch(() => {})
+    refresh()
+    const interval = setInterval(refresh, 5000)
+    return () => clearInterval(interval)
+  }, [isSignedIn])
+
+  // Once a delegated field is fulfilled, pull the real value in (owner-authenticated reveal —
+  // see app/api/info-requests/[id]/reveal/route.ts) and bake it into the doc it belongs to,
+  // replacing the placeholder left in its `values`/`content`. Matching on the doc's own
+  // `awaitingThirdParty.fieldName` means a request only gets merged once — it's cleared here,
+  // so the next poll no longer finds a match for it.
+  useEffect(() => {
+    for (const req of infoRequests) {
+      if (req.status !== "fulfilled") continue
+      const doc = complianceDocs.find((d) => d.id === req.docId)
+      if (!doc || doc.awaitingThirdParty?.fieldName !== req.fieldName) continue
+      fetch(`/api/info-requests/${req.id}/reveal`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { value?: string } | null) => {
+          if (!data?.value) return
+          setComplianceDocs((docs) =>
+            docs.map((d) => {
+              if (d.id !== req.docId || d.awaitingThirdParty?.fieldName !== req.fieldName) return d
+              const values = { ...d.values, [req.fieldName]: data.value! }
+              return {
+                ...d,
+                values,
+                content: renderComplianceDocument(d.id, values) ?? d.content,
+                awaitingThirdParty: undefined,
+              }
+            }),
+          )
+        })
+        .catch(() => {})
+    }
+  }, [infoRequests, complianceDocs])
 
   const pendingSignRequestsByDocId = useMemo(() => {
     const map: Record<string, PendingSignRequest[]> = {}
@@ -376,13 +434,17 @@ export function IncorporationApp() {
         requiredFields?: string[]
       },
     ) => {
+      // A doc with a `sensitive` field (e.g. an EIN/83(b) SSN) only ever holds the real value in
+      // this live, in-memory session — redact it here too, exactly like the snapshot effect above
+      // does before persisting, so it can't reach the signature_requests table (and from there,
+      // the public /sign/[token] page) unredacted.
       const res = await fetch("/api/sign-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           docId: doc.id,
           docTitle: doc.title,
-          docContent: doc.content ?? "",
+          docContent: redactSensitiveDocValues(doc).content ?? "",
           recipientEmail: payload.recipientEmail,
           recipientName: payload.recipientName,
           senderCompanyName: effectiveAnswers.companyName,

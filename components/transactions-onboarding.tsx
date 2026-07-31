@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon } from "lucide-react"
+import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2 } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -296,18 +296,24 @@ export function TransactionsOnboarding({
     }
   }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
 
-  const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
+  const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>, lastUserText?: string) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
     const completedAt = new Date().toISOString()
     const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values, createdAt: completedAt }
+    // The last field's answer arrives as `lastUserText` instead of already being in `messages` —
+    // the caller reaches this synchronously right after calling pushUser for it, so that
+    // setMessages update hasn't landed in this callback's `messages` closure yet. Appending it
+    // here, atomically with the drafted-card message, keeps it from being dropped from history.
+    const lastUserMsg: ChatMsg | null = lastUserText != null ? { id: ++idRef.current, role: "user", text: lastUserText } : null
     const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
     const entry: ConversationEntry = {
       id: item.id,
       itemId: item.id,
       title: item.title,
       groupTitle,
       completedAt,
-      messages: archiveMessages([...messages, docDraftedMsg]),
+      messages: archiveMessages([...messages, ...trailingMessages]),
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -319,7 +325,7 @@ export function TransactionsOnboarding({
     // It's already archived into `history` above regardless.
     setMessages((m) => [
       ...m,
-      docDraftedMsg,
+      ...trailingMessages,
       { id: ++idRef.current, role: "bot", text: "Select another document from the right to continue, or ask me anything." },
     ])
     onDocumentReady?.(doc)
@@ -331,18 +337,22 @@ export function TransactionsOnboarding({
     const field = item.fields[fieldIndex]
     const val = raw.trim()
     if (!field.optional && !val) return
-    pushUser(val || "Skipped")
+    const answerText = val || "Skipped"
     const nextValues = { ...values, [field.name]: val }
     const nextIndex = fieldIndex + 1
     if (nextIndex < item.fields.length) {
+      // Safe to push right away — the next prompt doesn't depend on the `messages` closure.
+      pushUser(answerText)
       setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues })
       ;(async () => {
         await delay(250)
         await promptField(item, groupTitle, nextIndex)
       })()
     } else {
+      // Don't pushUser here — handleDocComplete appends+archives this answer itself in one
+      // atomic update instead (see its comment on `lastUserText`).
       setActiveFiling(null)
-      handleDocComplete(item, groupTitle, nextValues)
+      handleDocComplete(item, groupTitle, nextValues, answerText)
     }
   }, [activeFiling, pushUser, promptField, handleDocComplete])
 
@@ -446,7 +456,7 @@ export function TransactionsOnboarding({
     />
   )
 
-  const historyContent = <HistoryPanelContent history={history} onEntryClick={setViewingConversation} />
+  const historyContent = <HistoryPanelContent history={history} docs={docs} onEntryClick={setViewingConversation} />
 
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
@@ -479,7 +489,7 @@ export function TransactionsOnboarding({
 
       <div className="flex min-w-0 flex-1 overflow-hidden">
       {/* ── History — dedicated left sidebar, collapsed by default ── */}
-      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false}>
+      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed>
         {historyContent}
       </SidebarPanel>
       <MobileSidebarTab
@@ -493,7 +503,7 @@ export function TransactionsOnboarding({
       </MobileSidebarTab>
 
       {/* ── Chat ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.map((m) => {
@@ -552,42 +562,6 @@ export function TransactionsOnboarding({
             {isTyping && <TypingIndicator />}
           </div>
         </div>
-
-        <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
-            {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
-              <FieldComposer
-                key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
-                field={activeFiling.item.fields[activeFiling.fieldIndex]}
-                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex])}
-                onSubmit={handleFieldInput}
-              />
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-                <input
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={
-                    activeFiling
-                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                        ? "Type an answer, or press Enter to skip…"
-                        : "Type your answer, or ask a question…"
-                      : "Feel free to ask any questions…"
-                  }
-                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-                >
-                  Send <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* ── Transaction Documents sidebar — always visible ≥ sm, collapsible ── */}
@@ -605,6 +579,43 @@ export function TransactionsOnboarding({
       >
         {sidebarContent}
       </MobileSidebarTab>
+      </div>
+
+      {/* ── Input bar — full width, spans below History / Chat / Transaction Documents ── */}
+      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-2xl">
+          {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
+            <FieldComposer
+              key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
+              field={activeFiling.item.fields[activeFiling.fieldIndex]}
+              initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex])}
+              onSubmit={handleFieldInput}
+            />
+          ) : (
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={
+                  activeFiling
+                    ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                      ? "Type an answer, or press Enter to skip…"
+                      : "Type your answer, or ask a question…"
+                    : "Feel free to ask any questions…"
+                }
+                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+              >
+                Send <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {infoItem && (
@@ -834,9 +845,10 @@ function SidebarContent({
 /* ── History panel content (dedicated left sidebar) ── */
 
 function HistoryPanelContent({
-  history, onEntryClick,
+  history, docs, onEntryClick,
 }: {
   history: ConversationEntry[]
+  docs: Record<string, LibraryDoc>
   onEntryClick: (entry: ConversationEntry) => void
 }) {
   return (
@@ -850,19 +862,29 @@ function HistoryPanelContent({
           <p className="px-4 py-4 text-xs text-muted-foreground/70">No completed documents yet.</p>
         ) : (
           <ul className="flex flex-col gap-1 px-2 py-2">
-            {history.map((entry) => (
-              <li key={entry.itemId}>
-                <button
-                  onClick={() => onEntryClick(entry)}
-                  className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
-                >
-                  <p className="font-mono text-[12px] font-medium text-foreground/60">{entry.title}</p>
-                  <p className="text-[10px] text-muted-foreground/70">
-                    {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
-                </button>
-              </li>
-            ))}
+            {history.map((entry) => {
+              const inLibrary = Boolean(docs[entry.itemId])
+              return (
+                <li key={entry.itemId}>
+                  <button
+                    onClick={() => onEntryClick(entry)}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
+                  >
+                    <p className="font-mono text-[12px] font-medium text-foreground/60">{entry.title}</p>
+                    <p className="text-[10px] text-muted-foreground/70">
+                      {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                    <p className={cn(
+                      "mt-0.5 flex items-center gap-1 text-[10px]",
+                      inLibrary ? "text-success" : "text-muted-foreground/70"
+                    )}>
+                      {inLibrary ? <FileCheck2 className="h-2.5 w-2.5 shrink-0" /> : <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                      <span>{inLibrary ? "In Document Library" : "Document deleted"}</span>
+                    </p>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

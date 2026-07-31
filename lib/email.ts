@@ -42,6 +42,41 @@ export async function sendSignatureRequestEmail({
   })
 }
 
+/** Invites a third party (not the document owner) to submit one sensitive value directly —
+ *  e.g. a co-founder's own SSN/ITIN for a filing the account holder started. The value is never
+ *  included in this email; it's only ever entered on the linked page. See app/provide-info/[token]. */
+export async function sendInfoRequestEmail({
+  to,
+  recipientName,
+  fieldLabel,
+  docTitle,
+  senderCompanyName,
+  infoUrl,
+}: {
+  to: string
+  recipientName?: string
+  fieldLabel: string
+  docTitle: string
+  senderCompanyName?: string
+  infoUrl: string
+}) {
+  const greeting = recipientName ? `Hi ${recipientName},` : "Hi,"
+  const from = senderCompanyName ? senderCompanyName : "Someone"
+  const sentAt = new Date().toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  })
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${from} needs your ${fieldLabel} for "${docTitle}"`,
+    text: `${greeting}\n\n${from} is completing "${docTitle}" and needs your ${fieldLabel}. For your privacy, please enter it directly here — it's never shared with ${from} or stored in their chat:\n\n${infoUrl}\n\nThis link is unique to you — please don't forward it.\n\nSent ${sentAt}`,
+    html: `<p>${greeting}</p><p>${from} is completing <strong>${docTitle}</strong> and needs your ${escapeHtml(fieldLabel)}. For your privacy, please enter it directly here — it's never shared with ${escapeHtml(from)} or stored in their chat.</p><p><a href="${infoUrl}">Enter your ${escapeHtml(fieldLabel)}</a></p><p style="color:#666;font-size:13px">This link is unique to you — please don't forward it.</p><p style="color:#999;font-size:12px">Sent ${sentAt}</p>`,
+  })
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }

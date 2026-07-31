@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, History as HistoryIcon } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, History as HistoryIcon, FileCheck2, Trash2 } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -53,11 +53,18 @@ type ChatMsg =
   | { id: number; role: "note"; text: string }
   | { id: number; role: "docDrafted"; item: ComplianceItem; groupTitle: string }
 
+type PendingDelegation = { fieldName: string; fieldLabel: string; recipientName: string }
+
 type ActiveFiling = {
   item: ComplianceItem
   groupTitle: string
   fieldIndex: number
   values: Record<string, string>
+  /** any `delegatable` fields in this filing that were routed to an emailed invite instead of
+   *  being asked here — carried onto the finished LibraryDoc as `awaitingThirdParty` so the
+   *  Document Library can show it's still waiting on someone. See the `delegatable` doc comment
+   *  on lib/flow.ts's ComplianceField. */
+  pendingDelegations?: PendingDelegation[]
 }
 
 const inputClass =
@@ -65,6 +72,11 @@ const inputClass =
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const typingTime = (text: string) => Math.min(1100, Math.max(450, text.length * 14))
+const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+/** The in-document placeholder for a `delegatable` field whose real value hasn't arrived yet —
+ *  distinct from SENSITIVE_FIELD_PLACEHOLDER (used only at the localStorage/server persistence
+ *  boundary): this one is meant to be read, since it renders directly into the draft document. */
+const delegatedFieldPlaceholder = (recipientName: string) => `(to be entered directly by ${recipientName})`
 
 /** Heuristic for whether a chat message sent mid-filing is a question rather than an answer. */
 const looksLikeQuestion = (text: string) =>
@@ -320,6 +332,22 @@ export function ComplianceView({
     return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}`
   }
 
+  // Whether `name` is (loosely) the account holder themself, vs. e.g. a co-founder named on a
+  // `delegatable` field — compared against the same value that field already defaults to via its
+  // own `prefillKey`, so this matches the app's existing notion of "you" rather than introducing
+  // a new, stricter one.
+  const isAccountHolder = (name: string) => name.trim().toLowerCase() === (answers.incorporatorName ?? "").trim().toLowerCase()
+
+  // Which name, if any, a `delegatable` field's real value should be collected from instead of
+  // asking here — null both when the field isn't delegatable and when the named person *is* the
+  // account holder (the normal in-chat question still applies in that case).
+  const delegateRecipient = (field: ComplianceField, values: Record<string, string>): string | null => {
+    if (!field.delegatable) return null
+    const name = values[field.delegatable.nameField]?.trim()
+    if (!name || isAccountHolder(name)) return null
+    return name
+  }
+
   const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
 
   const prefill = (field?: ComplianceField): string => prefillValue(answers, docs, field)
@@ -329,8 +357,14 @@ export function ComplianceView({
   // answer from elsewhere (e.g. the vesting start date set earlier in onboarding), in which
   // case it's treated like any other prefillable value: dropped straight into the chat input
   // as text so accepting it is just hitting Enter, same as text/textarea fields.
-  const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
+  const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, values: Record<string, string>, addChoices = true) => {
     const field = item.fields[fieldIndex]
+    const delegateTo = delegateRecipient(field, values)
+    if (delegateTo) {
+      await pushBotTyped(`That's not you, so I'll ask ${delegateTo} to enter it directly instead — what's their email address?`)
+      setValue("")
+      return
+    }
     await pushBotTyped(fieldPrompt(field))
     const prefilled = prefillValue(answers, docs, field)
     if (field.type === "select" || (field.type === "date" && !prefilled)) {
@@ -342,7 +376,7 @@ export function ComplianceView({
     }
   }, [pushBotTyped, answers, docs])
 
-  const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
+  const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>, pendingDelegations?: PendingDelegation[], lastUserText?: string) => {
     const completedAt = new Date().toISOString()
     const doc: LibraryDoc = {
       id: item.id,
@@ -351,15 +385,22 @@ export function ComplianceView({
       content: renderComplianceDocument(item.id, values) ?? undefined,
       values,
       createdAt: completedAt,
+      awaitingThirdParty: pendingDelegations?.[0],
     }
+    // The last field's answer arrives as `lastUserText` instead of already being in `messages` —
+    // the caller reaches this synchronously right after calling pushUser for it, so that
+    // setMessages update hasn't landed in this callback's `messages` closure yet. Appending it
+    // here, atomically with the drafted-card message, keeps it from being dropped from history.
+    const lastUserMsg: ChatMsg | null = lastUserText != null ? { id: ++idRef.current, role: "user", text: lastUserText } : null
     const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
     const entry: ConversationEntry = {
       id: item.id,
       itemId: item.id,
       title: item.title,
       groupTitle,
       completedAt,
-      messages: archiveMessages([...messages, docDraftedMsg]),
+      messages: archiveMessages([...messages, ...trailingMessages]),
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -370,7 +411,7 @@ export function ComplianceView({
     // It's already archived into `history` above regardless.
     setMessages((m) => [
       ...m,
-      docDraftedMsg,
+      ...trailingMessages,
       { id: ++idRef.current, role: "bot", text: "Select another filing from the right to continue, or ask me anything." },
     ])
     onItemComplete?.(doc)
@@ -385,7 +426,7 @@ export function ComplianceView({
       setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
         await pushBotTyped(`Let's complete the ${item.title} filing — I'll ask you for each field one at a time. Feel free to ask me anything along the way.`)
-        await promptField(item, groupTitle, 0)
+        await promptField(item, groupTitle, 0, {})
       })()
     } else {
       pushBot(`Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`)
@@ -393,26 +434,78 @@ export function ComplianceView({
     }
   }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
 
-  const submitFieldAnswer = useCallback((raw: string) => {
-    if (!activeFiling) return
-    const { item, groupTitle, fieldIndex, values } = activeFiling
-    const field = item.fields[fieldIndex]
-    const val = raw.trim()
-    if (!field.optional && !val) return
-    pushUser(val ? (field.sensitive ? "•".repeat(val.length) : val) : "Skipped")
-    const nextValues = { ...values, [field.name]: val }
-    const nextIndex = fieldIndex + 1
+  // Advances an in-progress filing to `nextIndex`, prompting for it (or finishing the filing) —
+  // shared by the normal per-field path and the delegated-field-invite path below, which reach
+  // the same next step but arrive with different `nextValues`/`pendingDelegations`.
+  const advanceFiling = useCallback((item: ComplianceItem, groupTitle: string, nextIndex: number, nextValues: Record<string, string>, pendingDelegations?: PendingDelegation[], lastUserText?: string) => {
     if (nextIndex < item.fields.length) {
-      setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues })
+      // Safe to push right away — the next prompt is driven off `nextValues`/`nextIndex`, not
+      // the `messages` closure, so there's no race to worry about here (unlike the completion
+      // branch below, see handleFilingComplete).
+      if (lastUserText != null) pushUser(lastUserText)
+      setActiveFiling({ item, groupTitle, fieldIndex: nextIndex, values: nextValues, pendingDelegations })
       ;(async () => {
         await delay(250)
-        await promptField(item, groupTitle, nextIndex)
+        await promptField(item, groupTitle, nextIndex, nextValues)
       })()
     } else {
       setActiveFiling(null)
-      handleFilingComplete(item, groupTitle, nextValues)
+      handleFilingComplete(item, groupTitle, nextValues, pendingDelegations, lastUserText)
     }
-  }, [activeFiling, pushUser, promptField, handleFilingComplete])
+  }, [promptField, handleFilingComplete, pushUser])
+
+  // Creates the emailed invite for a delegated field's real value, then moves the filing on with
+  // a human-readable placeholder standing in for it in the drafted document until it's fulfilled.
+  const submitDelegateEmail = useCallback((item: ComplianceItem, groupTitle: string, fieldIndex: number, values: Record<string, string>, pendingDelegations: PendingDelegation[] | undefined, recipientName: string, email: string) => {
+    const field = item.fields[fieldIndex]
+    ;(async () => {
+      const res = await fetch("/api/info-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          docId: item.id,
+          docTitle: item.title,
+          fieldName: field.name,
+          fieldLabel: field.label,
+          recipientEmail: email,
+          recipientName,
+          senderCompanyName: answers.companyName,
+        }),
+      }).catch(() => null)
+      if (!res || !res.ok) {
+        await pushBotTyped(`I couldn't send that invite — mind trying ${recipientName}'s email again?`)
+        return
+      }
+      await pushBotTyped(`Sent — ${recipientName} will get a private link to enter it directly, without going through you.`)
+      const nextValues = { ...values, [field.name]: delegatedFieldPlaceholder(recipientName) }
+      const nextPending = [...(pendingDelegations ?? []), { fieldName: field.name, fieldLabel: field.label, recipientName }]
+      advanceFiling(item, groupTitle, fieldIndex + 1, nextValues, nextPending)
+    })()
+  }, [answers, pushBotTyped, advanceFiling])
+
+  const submitFieldAnswer = useCallback((raw: string) => {
+    if (!activeFiling) return
+    const { item, groupTitle, fieldIndex, values, pendingDelegations } = activeFiling
+    const field = item.fields[fieldIndex]
+    const val = raw.trim()
+    const delegateTo = delegateRecipient(field, values)
+
+    if (delegateTo) {
+      if (!val) return
+      pushUser(val)
+      if (!isValidEmail(val)) {
+        void pushBotTyped(`That doesn't look like a valid email — what's ${delegateTo}'s email address?`)
+        return
+      }
+      submitDelegateEmail(item, groupTitle, fieldIndex, values, pendingDelegations, delegateTo, val)
+      return
+    }
+
+    if (!field.optional && !val) return
+    const answerText = val ? (field.sensitive ? "•".repeat(val.length) : val) : "Skipped"
+    const nextValues = { ...values, [field.name]: val }
+    advanceFiling(item, groupTitle, fieldIndex + 1, nextValues, pendingDelegations, answerText)
+  }, [activeFiling, pushUser, pushBotTyped, submitDelegateEmail, advanceFiling])
 
   const handleSend = useCallback(() => {
     const text = value.trim()
@@ -432,12 +525,12 @@ export function ComplianceView({
 
     pushUser(text)
     if (activeFiling) {
-      const { item, groupTitle, fieldIndex } = activeFiling
+      const { item, groupTitle, fieldIndex, values } = activeFiling
       const field = item.fields[fieldIndex]
       ;(async () => {
         await pushBotTyped(field.hint ?? item.explainer ?? item.description)
         // The choice bubble for this field (if any) is still live from before — don't duplicate it.
-        await promptField(item, groupTitle, fieldIndex, false)
+        await promptField(item, groupTitle, fieldIndex, values, false)
       })()
     } else {
       pushBot("Happy to help. Feel free to fill out the form above or click any item in Compliance Documents to get started.")
@@ -494,7 +587,7 @@ export function ComplianceView({
     />
   )
 
-  const historyContent = <HistoryPanelContent history={history} onEntryClick={setViewingConversation} />
+  const historyContent = <HistoryPanelContent history={history} docs={docs} onEntryClick={setViewingConversation} />
 
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
@@ -527,7 +620,7 @@ export function ComplianceView({
 
       <div className="flex min-w-0 flex-1 overflow-hidden">
       {/* ── History — dedicated left sidebar, collapsed by default ── */}
-      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false}>
+      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed>
         {historyContent}
       </SidebarPanel>
       <MobileSidebarTab
@@ -541,7 +634,7 @@ export function ComplianceView({
       </MobileSidebarTab>
 
       {/* ── Chat ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-4">
             {messages.map((m) => {
@@ -554,8 +647,10 @@ export function ComplianceView({
                     key={m.id}
                     item={m.item}
                     groupTitle={m.groupTitle}
+                    answers={answers}
                     prefill={prefill}
-                    onComplete={(values) => handleFilingComplete(m.item, m.groupTitle, values)}
+                    delegateRecipient={delegateRecipient}
+                    onComplete={(values, pendingDelegations) => handleFilingComplete(m.item, m.groupTitle, values, pendingDelegations)}
                     onInfoClick={() => setInfoItem(m.item)}
                   />
                 )
@@ -590,52 +685,6 @@ export function ComplianceView({
             {isTyping && <TypingIndicator />}
           </div>
         </div>
-
-        <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
-                <div className="flex-1">
-                  <AddressAutocomplete
-                    value={value}
-                    onChange={setValue}
-                    onEnter={handleSend}
-                    placeholder="Type your answer, or ask a question…"
-                    className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                    rows={1}
-                  />
-                </div>
-              ) : (
-                <input
-                  value={value}
-                  onChange={(e) => {
-                    const raw = e.target.value
-                    const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
-                    setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
-                  }}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={
-                    activeFiling
-                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                        ? "Type an answer, or press Enter to skip…"
-                        : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
-                          ? "Type the amount, or ask a question…"
-                          : "Type your answer, or ask a question…"
-                      : "Feel free to ask any questions…"
-                  }
-                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
-                />
-              )}
-              <button
-                onClick={handleSend}
-                disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-              >
-                Send <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── Compliance Documents sidebar — always visible ≥ sm, collapsible ── */}
@@ -653,6 +702,53 @@ export function ComplianceView({
       >
         {sidebarContent}
       </MobileSidebarTab>
+      </div>
+
+      {/* ── Input bar — full width, spans below History / Chat / Compliance Documents ── */}
+      <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
+        <div className="mx-auto max-w-2xl">
+          <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+            {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
+              <div className="flex-1">
+                <AddressAutocomplete
+                  value={value}
+                  onChange={setValue}
+                  onEnter={handleSend}
+                  placeholder="Type your answer, or ask a question…"
+                  className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                  rows={1}
+                />
+              </div>
+            ) : (
+              <input
+                value={value}
+                onChange={(e) => {
+                  const raw = e.target.value
+                  const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
+                  setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder={
+                  activeFiling
+                    ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                      ? "Type an answer, or press Enter to skip…"
+                      : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
+                        ? "Type the amount, or ask a question…"
+                        : "Type your answer, or ask a question…"
+                    : "Feel free to ask any questions…"
+                }
+                className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+              />
+            )}
+            <button
+              onClick={handleSend}
+              disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+            >
+              Send <Send className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
       </div>
 
       {infoItem && (
@@ -907,9 +1003,10 @@ function SidebarContent({
 /* ── History panel content (dedicated left sidebar) ── */
 
 function HistoryPanelContent({
-  history, onEntryClick,
+  history, docs, onEntryClick,
 }: {
   history: ConversationEntry[]
+  docs: Record<string, LibraryDoc>
   onEntryClick: (entry: ConversationEntry) => void
 }) {
   return (
@@ -923,19 +1020,29 @@ function HistoryPanelContent({
           <p className="px-4 py-4 text-xs text-muted-foreground/70">No completed filings yet.</p>
         ) : (
           <ul className="flex flex-col gap-1 px-2 py-2">
-            {history.map((entry) => (
-              <li key={entry.itemId}>
-                <button
-                  onClick={() => onEntryClick(entry)}
-                  className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
-                >
-                  <p className="font-mono text-[12px] font-medium text-foreground/60">{entry.title}</p>
-                  <p className="text-[10px] text-muted-foreground/70">
-                    {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
-                </button>
-              </li>
-            ))}
+            {history.map((entry) => {
+              const inLibrary = Boolean(docs[entry.itemId])
+              return (
+                <li key={entry.itemId}>
+                  <button
+                    onClick={() => onEntryClick(entry)}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
+                  >
+                    <p className="font-mono text-[12px] font-medium text-foreground/60">{entry.title}</p>
+                    <p className="text-[10px] text-muted-foreground/70">
+                      {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                    <p className={cn(
+                      "mt-0.5 flex items-center gap-1 text-[10px]",
+                      inLibrary ? "text-success" : "text-muted-foreground/70"
+                    )}>
+                      {inLibrary ? <FileCheck2 className="h-2.5 w-2.5 shrink-0" /> : <Trash2 className="h-2.5 w-2.5 shrink-0" />}
+                      <span>{inLibrary ? "In Document Library" : "Document deleted"}</span>
+                    </p>
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>
@@ -946,22 +1053,57 @@ function HistoryPanelContent({
 /* ── Inline filing form card ── */
 
 function FilingFormCard({
-  item, groupTitle, prefill, onComplete, onInfoClick,
+  item, groupTitle, answers, prefill, delegateRecipient, onComplete, onInfoClick,
 }: {
   item: ComplianceItem
   groupTitle: string
+  answers: FlowAnswers
   prefill: (field?: ComplianceField) => string
-  onComplete: (values: Record<string, string>) => void
+  delegateRecipient: (field: ComplianceField, values: Record<string, string>) => string | null
+  onComplete: (values: Record<string, string>, pendingDelegations?: PendingDelegation[]) => void
   onInfoClick: () => void
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
   )
+  const [delegateEmails, setDelegateEmails] = useState<Record<string, string>>({})
+  const [delegateStatus, setDelegateStatus] = useState<Record<string, "sending" | "sent" | "error">>({})
+  const [pendingDelegations, setPendingDelegations] = useState<PendingDelegation[]>([])
 
   const isEmpty = (f: ComplianceField) => !f.optional && !values[f.name]?.trim()
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
   const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
+
+  const sendDelegateInvite = async (f: ComplianceField, recipientName: string) => {
+    const email = delegateEmails[f.name]?.trim() ?? ""
+    if (!isValidEmail(email)) {
+      setDelegateStatus((s) => ({ ...s, [f.name]: "error" }))
+      return
+    }
+    setDelegateStatus((s) => ({ ...s, [f.name]: "sending" }))
+    try {
+      const res = await fetch("/api/info-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          docId: item.id,
+          docTitle: item.title,
+          fieldName: f.name,
+          fieldLabel: f.label,
+          recipientEmail: email,
+          recipientName,
+          senderCompanyName: answers.companyName,
+        }),
+      })
+      if (!res.ok) throw new Error("failed")
+      set(f.name, delegatedFieldPlaceholder(recipientName))
+      setPendingDelegations((p) => [...p, { fieldName: f.name, fieldLabel: f.label, recipientName }])
+      setDelegateStatus((s) => ({ ...s, [f.name]: "sent" }))
+    } catch {
+      setDelegateStatus((s) => ({ ...s, [f.name]: "error" }))
+    }
+  }
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -983,13 +1125,53 @@ function FilingFormCard({
 
       {/* Fields */}
       <div className="space-y-4 px-5 py-5">
-        {item.fields.map((f) => (
+        {item.fields.map((f) => {
+          const delegateTo = delegateRecipient(f, values)
+          const status = delegateStatus[f.name]
+          if (delegateTo && status !== "sent") {
+            return (
+              <div key={f.name}>
+                <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
+                  {f.label}
+                  {!f.optional && <span className="text-destructive">*</span>}
+                </label>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                  That's not you, so we'll ask {delegateTo} to enter it directly — it's never shared with you.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    value={delegateEmails[f.name] ?? ""}
+                    onChange={(e) => setDelegateEmails((d) => ({ ...d, [f.name]: e.target.value }))}
+                    placeholder={`${delegateTo}'s email address`}
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => sendDelegateInvite(f, delegateTo)}
+                    disabled={status === "sending"}
+                    className="shrink-0 rounded-lg bg-secondary px-3 py-2.5 text-sm font-medium text-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                  >
+                    {status === "sending" ? "Sending…" : "Send invite"}
+                  </button>
+                </div>
+                {status === "error" && (
+                  <p className="mt-1.5 text-xs text-destructive">That didn't go through — check the email and try again.</p>
+                )}
+              </div>
+            )
+          }
+          return (
           <div key={f.name}>
             <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
               {f.label}
               {!f.optional && <span className="text-destructive">*</span>}
             </label>
-            {f.type === "select" ? (
+            {delegateTo && status === "sent" ? (
+              <p className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-sm text-muted-foreground">
+                Sent — {delegateTo} will enter this directly.
+              </p>
+            ) : f.type === "select" ? (
               <select
                 value={values[f.name] ?? ""}
                 onChange={(e) => set(f.name, e.target.value)}
@@ -1026,7 +1208,8 @@ function FilingFormCard({
             )}
             {f.hint && <p className="mt-1.5 text-xs text-muted-foreground">{f.hint}</p>}
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Card footer */}
@@ -1035,7 +1218,7 @@ function FilingFormCard({
           {valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
         </p>
         <button
-          onClick={() => onComplete(values)}
+          onClick={() => onComplete(values, pendingDelegations)}
           disabled={!valid}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >

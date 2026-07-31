@@ -31,15 +31,19 @@ export function SidebarPanel({
         <button
           onClick={() => setCollapsed(false)}
           className={cn(
-            "flex w-10 flex-col items-center gap-2 border-border py-4 text-muted-foreground transition-colors hover:text-foreground",
-            bordered ? "bg-card/40 hover:bg-secondary/60" : "bg-transparent",
+            "flex flex-col items-center text-muted-foreground transition-colors hover:text-foreground",
+            bordered
+              ? "w-10 gap-2 border-border bg-card/40 py-4 hover:bg-secondary/60"
+              : "w-8 gap-1.5 py-3",
             bordered && (isLeft ? "border-r" : "border-l")
           )}
           aria-label={`Expand ${label}`}
         >
           {isLeft ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
           <Icon className="h-4 w-4" />
-          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide">{label}</span>
+          {bordered && (
+            <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide">{label}</span>
+          )}
         </button>
       </div>
     )

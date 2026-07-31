@@ -35,9 +35,9 @@ export function ConversationViewer({
   onOpenDoc?: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-2xl flex-col bg-card shadow-xl">
+      <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl border border-border bg-card shadow-xl">
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div className="pr-4">
             <h3 className="text-base font-semibold text-foreground text-balance">{entry.title}</h3>

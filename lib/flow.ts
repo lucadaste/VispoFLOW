@@ -142,6 +142,13 @@ export type ComplianceField = {
    *  the value only lives in memory for the current session, long enough to render the doc, and
    *  must be re-entered next time (see components/compliance-view.tsx's redaction at save time). */
   sensitive?: boolean
+  /** For a `sensitive` field whose value may belong to someone other than the account holder
+   *  (e.g. a co-founder's SSN, not the person filling out the flow): `nameField` names the field
+   *  — always the one immediately before this one — holding that person's name. When its value
+   *  doesn't match the account holder's own name, the question for *this* field is skipped
+   *  entirely and routed to an emailed invite instead, so the account holder never types someone
+   *  else's SSN. See components/compliance-view.tsx's delegation handling and app/provide-info/[token]. */
+  delegatable?: { nameField: string }
 }
 
 export type ComplianceItem = {
@@ -184,7 +191,7 @@ const EIN: ComplianceItem = {
     { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", placeholder: "e.g. New Castle County, Delaware" },
     { name: "responsible", label: "Responsible party — full legal name (Line 7a)", question: "Who's the responsible party — what's their full legal name?", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
-    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX", sensitive: true },
+    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX", sensitive: true, delegatable: { nameField: "responsible" } },
     { name: "reason", label: "Reason for applying (Line 10)", question: "Why are you applying for an EIN?", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
     { name: "incorporationDate", label: "Date business started or acquired (Line 11)", question: "When did the business start or get acquired?", type: "date" },
     {
@@ -211,7 +218,7 @@ const EIGHTY_THREE_B: ComplianceItem = {
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "taxpayer", label: "Taxpayer's full legal name (Box 1)", question: "Whose stock grant is this election for — what's their full legal name?", prefillKey: "incorporatorName" },
-    { name: "taxpayerTin", label: "Taxpayer's SSN or ITIN (Box 1)", question: "What's the taxpayer's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX", sensitive: true },
+    { name: "taxpayerTin", label: "Taxpayer's SSN or ITIN (Box 1)", question: "What's the taxpayer's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX", sensitive: true, delegatable: { nameField: "taxpayer" } },
     { name: "taxpayerAddress", label: "Taxpayer's address (Box 1)", question: "What's the taxpayer's mailing address?", type: "address", prefillKey: "incorporatorAddress", placeholder: "Street, City, State, ZIP" },
     { name: "grantDate", label: "Date property was transferred (Box 3)", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The election must be filed within 30 days of this date." },
     { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", type: "number", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },

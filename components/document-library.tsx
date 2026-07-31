@@ -39,6 +39,12 @@ export type LibraryDoc = {
   pending?: boolean
   /** true once the filing tracked by `pending` has been manually confirmed complete */
   filed?: boolean
+  /** set while one of this doc's `sensitive` fields was delegated to someone other than the
+   *  account holder (see lib/flow.ts's `ComplianceField.delegatable`) and their emailed invite
+   *  hasn't been fulfilled yet — cleared once components/incorporation-app.tsx's info-request
+   *  polling merges the real value in. `fieldName` lets that polling match this doc back to the
+   *  right pending request. */
+  awaitingThirdParty?: { fieldName: string; fieldLabel: string; recipientName: string }
   /** true if the user deleted this from My Docs — kept around (not the underlying doc) so it can be restored */
   hidden?: boolean
   /** when this document instance was first drafted — shown next to it in the deleted list so an
@@ -447,6 +453,12 @@ async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" 
   const fontSize = 15
   const font = `${fontSize}px Georgia, serif`
   const sigImageHeight = 75
+  const inlineImgHeight = 40
+  const inlineImgGap = 6
+  // An inline signature is taller than a normal text line — reserve the extra room its row needs
+  // (image height + a little breathing room before the next line) so it doesn't run into the
+  // "(Signature)" caption below it.
+  const inlineImgExtraHeight = inlineImgHeight + inlineImgGap - lineHeight
 
   const canvas = document.createElement("canvas")
   const ctx = canvas.getContext("2d")
@@ -506,7 +518,12 @@ async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" 
   )
 
   canvas.width = width
-  canvas.height = margin * 2 + lines.length * lineHeight + sigBlockHeight + captionByWrappedIdx.size * lineHeight
+  canvas.height =
+    margin * 2 +
+    lines.length * lineHeight +
+    sigBlockHeight +
+    captionByWrappedIdx.size * lineHeight +
+    byWrappedIdx.size * inlineImgExtraHeight
   // canvas dimension changes reset the 2D context, so font/fill must be reapplied
   ctx.font = font
   ctx.fillStyle = "#ffffff"
@@ -518,9 +535,8 @@ async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" 
   lines.forEach((line, i) => {
     const spot = byWrappedIdx.get(i)
     if (spot) {
-      const inlineHeight = 40
-      const inlineWidth = spot.img.width * (inlineHeight / spot.img.height)
-      ctx.drawImage(spot.img, margin, yCursor - 10, inlineWidth, inlineHeight)
+      const inlineWidth = spot.img.width * (inlineImgHeight / spot.img.height)
+      ctx.drawImage(spot.img, margin, yCursor, inlineWidth, inlineImgHeight)
     } else {
       const cols = tableRowColumns(line)
       if (cols) {
@@ -530,7 +546,7 @@ async function buildImage(doc: LibraryDoc, answers: FlowAnswers, format: "jpeg" 
         ctx.fillText(line, margin, yCursor)
       }
     }
-    yCursor += lineHeight
+    yCursor += lineHeight + (spot ? inlineImgExtraHeight : 0)
     const captionSig = captionByWrappedIdx.get(i)
     if (captionSig) {
       ctx.font = `italic ${fontSize - 2}px Georgia, serif`
@@ -1572,6 +1588,7 @@ function readyToSendToDelaware(doc: LibraryDoc): boolean {
 function docStatusText(doc: LibraryDoc, answers: FlowAnswers, pendingSignRequests?: PendingSignRequest[]): string | null {
   if (doc.filed) return "Filed with Delaware"
   if (doc.pending) return "Awaiting Delaware approval"
+  if (doc.awaitingThirdParty) return `Awaiting ${doc.awaitingThirdParty.recipientName}'s ${doc.awaitingThirdParty.fieldLabel}`
   if (readyToSendToDelaware(doc)) return "Ready to send to Delaware"
   if (doc.signed) return "Signed"
   const signatures = doc.signatures ?? []
@@ -1620,7 +1637,7 @@ function DocTile({
           "relative aspect-[3/4] w-full overflow-hidden rounded-md border bg-white text-left shadow-sm transition-shadow",
           selected
             ? "border-primary ring-2 ring-primary/40"
-            : doc.pending ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
+            : (doc.pending || doc.awaitingThirdParty) ? "border-primary/30 bg-primary/5" : readyToSend ? "border-primary/40 bg-primary/5" : "border-border",
           (viewable || selectMode) ? "cursor-pointer hover:shadow-md hover:border-primary/40" : "cursor-default",
         )}
       >
@@ -1650,6 +1667,11 @@ function DocTile({
             {doc.pending && (
               <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
                 <Landmark className="h-2.5 w-2.5" />
+              </span>
+            )}
+            {doc.awaitingThirdParty && (
+              <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                <Mail className="h-2.5 w-2.5" />
               </span>
             )}
             {readyToSend && (
@@ -2102,6 +2124,12 @@ export function DocumentViewer({
             {doc.pending && (
               <p className="mt-1 text-[11px] font-medium text-primary">
                 Awaiting Delaware approval — confirm below once they accept the filing.
+              </p>
+            )}
+            {doc.awaitingThirdParty && (
+              <p className="mt-1 text-[11px] font-medium text-primary">
+                Waiting on {doc.awaitingThirdParty.recipientName} to enter their {doc.awaitingThirdParty.fieldLabel.toLowerCase()} —
+                they were emailed a private link and this updates automatically once they submit it.
               </p>
             )}
             {doc.filed && <p className="mt-1 text-[11px] font-medium text-success">Filed with Delaware.</p>}

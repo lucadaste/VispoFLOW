@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, FileCheck2, Send } from "lucide-react"
+import { Check, FileCheck2, Send, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function BotMessage({ children }: { children: React.ReactNode }) {
@@ -62,7 +62,10 @@ export function SystemNote({
 }
 
 /** The single "a document was drafted" confirmation — used once an item is completed, replacing
- * both the old small pill and the old plain checkmark card that used to show up together. */
+ * both the old small pill and the old plain checkmark card that used to show up together.
+ * `onClick` being omitted always means the underlying doc no longer exists in the Document
+ * Library (deleted via the redo/restart flow) — every caller conditions it on the doc's presence
+ * — so that state doubles as the "deleted" indicator rather than needing a separate prop. */
 export function DraftedCard({
   groupTitle,
   title,
@@ -73,20 +76,26 @@ export function DraftedCard({
   onClick?: () => void
 }) {
   const Tag = onClick ? "button" : "div"
+  const deleted = !onClick
   return (
     <Tag
       onClick={onClick}
       className={cn(
-        "flex w-full animate-message-in items-center gap-3 rounded-xl border border-success/30 bg-success/5 px-4 py-3 text-left shadow-sm",
-        onClick && "cursor-pointer transition-colors hover:bg-success/10",
+        "flex w-full animate-message-in items-center gap-3 rounded-xl border px-4 py-3 text-left shadow-sm",
+        deleted ? "border-border bg-secondary/30" : "border-success/30 bg-success/5 cursor-pointer transition-colors hover:bg-success/10",
       )}
     >
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-success text-success-foreground">
-        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      <span
+        className={cn(
+          "flex h-6 w-6 shrink-0 items-center justify-center rounded-full",
+          deleted ? "bg-muted-foreground/20 text-muted-foreground" : "bg-success text-success-foreground",
+        )}
+      >
+        {deleted ? <Trash2 className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" strokeWidth={3} />}
       </span>
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-success/80">{groupTitle}</p>
-        <p className="text-sm font-medium text-foreground">{title} — Drafted</p>
+        <p className={cn("text-xs font-semibold uppercase tracking-wider", deleted ? "text-muted-foreground" : "text-success/80")}>{groupTitle}</p>
+        <p className="text-sm font-medium text-foreground">{title} — {deleted ? "Document deleted" : "Drafted"}</p>
       </div>
     </Tag>
   )
