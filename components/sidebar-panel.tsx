@@ -18,6 +18,13 @@ export function SidebarPanel({
    *  Used by History, which must never resize the chat column (see compliance-view.tsx /
    *  transactions-onboarding.tsx). Requires a `relative` ancestor to position against. */
   overlay = false,
+  /** Controlled collapse state, for callers (History) that need to react to open/close outside
+   *  this component — e.g. to measure whether the overlay would cover the chat and shift it.
+   *  Falls back to internal state when omitted, exactly as before. */
+  collapsed: collapsedProp,
+  onCollapsedChange,
+  /** Attached to the expanded overlay's <aside> so a caller can measure its rendered bounds. */
+  panelRef,
   children,
 }: {
   icon: LucideIcon
@@ -27,9 +34,17 @@ export function SidebarPanel({
   defaultCollapsed?: boolean
   bordered?: boolean
   overlay?: boolean
+  collapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
+  panelRef?: React.Ref<HTMLElement>
   children: React.ReactNode
 }) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed)
+  const [collapsedState, setCollapsedState] = useState(defaultCollapsed)
+  const collapsed = collapsedProp ?? collapsedState
+  const setCollapsed = (next: boolean) => {
+    onCollapsedChange?.(next)
+    if (collapsedProp === undefined) setCollapsedState(next)
+  }
   const isLeft = side === "left"
 
   if (collapsed) {
@@ -42,12 +57,11 @@ export function SidebarPanel({
           onClick={() => setCollapsed(false)}
           aria-label={`Expand ${label}`}
           className={cn(
-            "absolute inset-y-0 z-10 hidden w-9 flex-col items-center gap-1.5 pl-1 pt-5 pb-3 text-muted-foreground transition-colors hover:text-foreground sm:flex",
+            "absolute inset-y-0 z-10 hidden w-9 flex-col items-center justify-center text-muted-foreground transition-colors hover:text-foreground sm:flex",
             isLeft ? "left-0" : "right-0"
           )}
         >
-          <Icon className="h-6 w-6" />
-          <span className="[writing-mode:vertical-rl] rotate-180 text-[11px] font-medium tracking-wide">{label}</span>
+          <Icon className="h-5 w-5" />
         </button>
       )
     }
@@ -82,8 +96,9 @@ export function SidebarPanel({
           onClick={() => setCollapsed(true)}
         />
         <aside
+          ref={panelRef}
           className={cn(
-            "absolute inset-y-0 z-20 hidden shrink-0 flex-col bg-card shadow-lg sm:flex",
+            "absolute inset-y-0 z-20 hidden shrink-0 flex-col bg-background shadow-lg sm:flex",
             widthClass,
             isLeft ? "left-0 border-r border-border" : "right-0 border-l border-border"
           )}

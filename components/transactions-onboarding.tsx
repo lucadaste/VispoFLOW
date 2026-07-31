@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2 } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
@@ -34,6 +34,7 @@ type TransactionsPersisted = {
   activeItemId: string | null
   docs: Record<string, LibraryDoc>
   inputMode?: "chat" | "form"
+  activeFiling?: ActiveFiling | null
   history?: ConversationEntry[]
 }
 
@@ -103,6 +104,8 @@ export function TransactionsOnboarding({
   const [history, setHistory] = useState<ConversationEntry[]>([])
   const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [historyExpanded, setHistoryExpanded] = useState(false)
+  const [chatShift, setChatShift] = useState(0)
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: TransactionItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -119,6 +122,9 @@ export function TransactionsOnboarding({
   const [hasStartedFlow, setHasStartedFlow] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
+  const chatWrapperRef = useRef<HTMLDivElement>(null)
+  const messageContentRef = useRef<HTMLDivElement>(null)
+  const historyPanelRef = useRef<HTMLElement>(null)
   const idRef = useRef(0)
   const startedRef = useRef(false)
 
@@ -164,6 +170,9 @@ export function TransactionsOnboarding({
     // clears it) even though the in-progress form itself wasn't restored above — the sidebar
     // still needs to know a filing is "open" so switching to a different one asks to confirm.
     setActiveItemId(saved.activeItemId)
+    // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
+    // reload — restore them so the field-answer bubble stays interactive after a remount.
+    setActiveFiling(saved.activeFiling ?? null)
   }, [])
 
   useEffect(() => {
@@ -207,14 +216,48 @@ export function TransactionsOnboarding({
       docs,
       history,
       inputMode,
+      activeFiling,
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, activeFiling, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
+
+  // History floats over the left edge of the chat area rather than pushing it — but on a narrow
+  // enough column that overlay would sit right on top of the message bubbles/avatars, which
+  // actually need to be nudged clear of it. Compare the overlay's right edge to where the
+  // (naturally centered) message column starts and shift only by however much they'd overlap —
+  // zero on any viewport wide enough that the overlay fits in the existing gutter.
+  useLayoutEffect(() => {
+    const wrapperEl = chatWrapperRef.current
+    if (!wrapperEl) return
+    const recompute = () => {
+      const panelEl = historyPanelRef.current
+      const contentEl = messageContentRef.current
+      if (!historyExpanded || !panelEl || !contentEl) {
+        setChatShift(0)
+        return
+      }
+      // Measure the message column's natural (untransformed) position — reading its rect while
+      // a prior shift is still applied would double-count that shift on this pass.
+      const prevTransform = contentEl.style.transform
+      contentEl.style.transform = "none"
+      const overlap = panelEl.getBoundingClientRect().right - contentEl.getBoundingClientRect().left
+      contentEl.style.transform = prevTransform
+      setChatShift(overlap > 0 ? Math.ceil(overlap) : 0)
+    }
+    recompute()
+    const ro = new ResizeObserver(recompute)
+    ro.observe(wrapperEl)
+    window.addEventListener("resize", recompute)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener("resize", recompute)
+    }
+  }, [historyExpanded])
 
   const selectCategory = useCallback((cat: TransactionCategory) => {
     pushUser(cat.label)
@@ -488,64 +531,95 @@ export function TransactionsOnboarding({
           </div>
         </div>
 
-        {/* ── Chat ── */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl space-y-4">
-            {messages.map((m) => {
-              if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
-              if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
-              if (m.role === "note") return (
-                <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
-              )
-              if (m.role === "doc") {
-                if (completed[m.item.id]) return null
-                return (
-                  <TransactionFormCard
+        {/* ── Chat — wrapper bounds History's overlay to exactly this area (below the header, ── */}
+        {/*    above the input bar), and is where History nudges the message column clear of it. */}
+        <div ref={chatWrapperRef} className="relative flex-1 overflow-hidden">
+          <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+            <div
+              ref={messageContentRef}
+              className="mx-auto max-w-2xl space-y-4"
+              style={{ transform: chatShift ? `translateX(${chatShift}px)` : undefined, transition: "transform 200ms ease" }}
+            >
+              {messages.map((m) => {
+                if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
+                if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
+                if (m.role === "note") return (
+                  <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
+                )
+                if (m.role === "doc") {
+                  if (completed[m.item.id]) return null
+                  return (
+                    <TransactionFormCard
+                      key={m.id}
+                      item={m.item}
+                      groupTitle={m.groupTitle}
+                      prefill={prefill}
+                      onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
+                      onInfoClick={() => setInfoItem(m.item)}
+                    />
+                  )
+                }
+                if (m.role === "docDrafted") {
+                  const doc = docs[m.item.id]
+                  return (
+                    <DraftedCard
+                      key={m.id}
+                      groupTitle={m.groupTitle}
+                      title={m.item.title}
+                      onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
+                    />
+                  )
+                }
+                if (m.role === "fieldChoices") return (
+                  <FieldChoicesBubble
                     key={m.id}
-                    item={m.item}
-                    groupTitle={m.groupTitle}
-                    prefill={prefill}
-                    onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
-                    onInfoClick={() => setInfoItem(m.item)}
+                    field={m.item.fields[m.fieldIndex]}
+                    active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
+                    onChoose={(val) => handleFieldSubmit(val)}
                   />
                 )
-              }
-              if (m.role === "docDrafted") {
-                const doc = docs[m.item.id]
-                return (
-                  <DraftedCard
-                    key={m.id}
-                    groupTitle={m.groupTitle}
-                    title={m.item.title}
-                    onClick={doc ? () => openDoc(doc, m.item, m.groupTitle) : undefined}
-                  />
-                )
-              }
-              if (m.role === "fieldChoices") return (
-                <FieldChoicesBubble
-                  key={m.id}
-                  field={m.item.fields[m.fieldIndex]}
-                  active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
-                  onChoose={(val) => handleFieldSubmit(val)}
-                />
-              )
-              return null
-            })}
-            {!hasStartedFlow && (
-              <div className="flex flex-wrap gap-2 pt-2">
-                {TRANSACTION_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => selectCategory(cat)}
-                    className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {isTyping && <TypingIndicator />}
+                return null
+              })}
+              {!hasStartedFlow && (
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {TRANSACTION_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => selectCategory(cat)}
+                      className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:border-primary hover:text-primary"
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isTyping && <TypingIndicator />}
+            </div>
           </div>
+
+          {/* ── History — icon-only tab that opens as a floating overlay confined to this area ── */}
+          <SidebarPanel
+            icon={HistoryIcon}
+            label="History"
+            widthClass="w-44 md:w-48 lg:w-56 2xl:w-60"
+            side="left"
+            bordered={false}
+            overlay
+            collapsed={!historyExpanded}
+            onCollapsedChange={(c) => setHistoryExpanded(!c)}
+            panelRef={historyPanelRef}
+          >
+            {historyContent}
+          </SidebarPanel>
+          <MobileSidebarTab
+            icon={HistoryIcon}
+            label="History"
+            side="left"
+            open={historyOpen}
+            onOpenChange={setHistoryOpen}
+          >
+            {historyContent}
+          </MobileSidebarTab>
         </div>
 
         {/* ── Input bar ── */}
@@ -595,25 +669,10 @@ export function TransactionsOnboarding({
       <MobileSidebarTab
         icon={ArrowLeftRight}
         label="Transaction Documents"
-        count={total > 0 ? { done: doneCount, total } : undefined}
         open={mobileOpen}
         onOpenChange={setMobileOpen}
       >
         {sidebarContent}
-      </MobileSidebarTab>
-
-      {/* ── History — icon tab that opens as a floating overlay, never shifts the layout ── */}
-      <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed overlay>
-        {historyContent}
-      </SidebarPanel>
-      <MobileSidebarTab
-        icon={HistoryIcon}
-        label="History"
-        side="left"
-        open={historyOpen}
-        onOpenChange={setHistoryOpen}
-      >
-        {historyContent}
       </MobileSidebarTab>
 
       {infoItem && (
