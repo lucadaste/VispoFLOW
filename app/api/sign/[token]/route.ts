@@ -37,12 +37,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 })
   if (row.status === "signed") return NextResponse.json({ error: "Already signed" }, { status: 409 })
 
-  // A locked name means the slot requires this exact printed name to land on the right
-  // line — don't let a tampered client request override it.
-  if (row.lockedName && signerName.trim() !== row.lockedName.trim()) {
-    return NextResponse.json({ error: "Signer name doesn't match the assigned signer" }, { status: 400 })
-  }
-
   const requiredFields = (row.requiredFields as string[] | null) ?? []
   const submittedFields: Record<string, string> = {}
   for (const label of requiredFields) {

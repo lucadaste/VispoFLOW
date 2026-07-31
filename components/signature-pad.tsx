@@ -15,9 +15,8 @@ export function SignaturePad({
   onCapture,
 }: {
   defaultName: string
-  /** when set, the name field is pre-filled and locked to this exact value — used when a
-   *  signature request already knows who's signing, so their name is guaranteed to match the
-   *  document line it needs to land on */
+  /** when set, pre-fills the name field with this value — used when a signature request already
+   *  knows who's signing. The signer can still edit it (e.g. to fix a typo). */
   lockedName?: string
   confirmLabel?: string
   /** blocks the confirm action (e.g. until the signer has agreed to the e-signature consent) without hiding the pad */
@@ -98,11 +97,7 @@ export function SignaturePad({
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Your full name"
-        readOnly={!!lockedName}
-        className={cn(
-          "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20",
-          lockedName && "cursor-not-allowed bg-secondary text-muted-foreground",
-        )}
+        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
       />
 
       <div className="flex gap-1.5 rounded-lg bg-secondary p-1">
