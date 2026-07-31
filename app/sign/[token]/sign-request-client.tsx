@@ -47,6 +47,10 @@ export function SignRequestClient({
       setError(`Please fill in your ${missingFields.join(" and ").toLowerCase()} before signing.`)
       return
     }
+    if (!consented) {
+      setError("Please check the box above to agree to sign electronically.")
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -131,16 +135,13 @@ export function SignRequestClient({
               />
               I agree that typing or drawing my name below constitutes my electronic signature on this document.
             </label>
-            {consented ? (
-              <SignaturePad
-                defaultName={recipientName ?? ""}
-                lockedName={lockedName ?? undefined}
-                confirmLabel="Sign"
-                onCapture={handleCapture}
-              />
-            ) : (
-              <p className="text-xs text-muted-foreground">Check the box above to sign.</p>
-            )}
+            <SignaturePad
+              defaultName={recipientName ?? ""}
+              lockedName={lockedName ?? undefined}
+              confirmLabel="Sign"
+              disabled={!consented}
+              onCapture={handleCapture}
+            />
             {submitting && <p className="mt-2 text-xs text-muted-foreground">Signing…</p>}
             {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
           </div>

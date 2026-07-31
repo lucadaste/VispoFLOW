@@ -11,6 +11,7 @@ export function SignaturePad({
   defaultName,
   lockedName,
   confirmLabel = "Save signature",
+  disabled,
   onCapture,
 }: {
   defaultName: string
@@ -19,6 +20,8 @@ export function SignaturePad({
    *  document line it needs to land on */
   lockedName?: string
   confirmLabel?: string
+  /** blocks the confirm action (e.g. until the signer has agreed to the e-signature consent) without hiding the pad */
+  disabled?: boolean
   onCapture: (dataUrl: string, method: Mode, name: string) => void
 }) {
   const [mode, setMode] = useState<Mode>("typed")
@@ -155,7 +158,7 @@ export function SignaturePad({
       <button
         type="button"
         onClick={confirm}
-        disabled={!canConfirm}
+        disabled={!canConfirm || disabled}
         className="w-full rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {confirmLabel}
