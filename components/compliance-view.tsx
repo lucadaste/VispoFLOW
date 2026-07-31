@@ -617,7 +617,7 @@ export function ComplianceView({
                       ? activeFiling.item.fields[activeFiling.fieldIndex].optional
                         ? "Type an answer, or press Enter to skip…"
                         : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
-                          ? "Type the amount…"
+                          ? "Type the amount, or ask a question…"
                           : "Type your answer, or ask a question…"
                       : "Feel free to ask any questions…"
                   }

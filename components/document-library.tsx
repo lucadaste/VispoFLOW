@@ -199,10 +199,22 @@ function docTitleLineIndex(content: string): number {
   return content.split("\n").findIndex((l) => l.trim().length > 0)
 }
 
+/** Matches a signature block's party label — e.g. "THE COMPANY:", "INVESTOR:", "ACCEPTED AND
+ *  AGREED TO:" — which isAllCapsHeadingLine excludes because of the trailing colon. Bolded like
+ *  any other heading, but left-aligned rather than centered since these sit above a name/address
+ *  block, not standing alone as a section title. */
+function isSignatureBlockHeaderLine(line: string): boolean {
+  const trimmed = line.trim()
+  if (!trimmed || trimmed.length > 60) return false
+  if (!/[A-Z]/.test(trimmed) || /[a-z]/.test(trimmed)) return false
+  return /^[A-Z][A-Z ]*:$/.test(trimmed)
+}
+
 function classifyDocLine(line: string, isTitle: boolean): { bold: boolean; center: boolean } {
   if (isTitle) return { bold: true, center: true }
   if (isAllCapsHeadingLine(line)) return { bold: true, center: true }
   if (isNumberedHeadingLine(line)) return { bold: true, center: false }
+  if (isSignatureBlockHeaderLine(line)) return { bold: true, center: false }
   return { bold: false, center: false }
 }
 
