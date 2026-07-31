@@ -60,7 +60,7 @@ export function SidebarPanel({
           "group absolute z-10 flex items-stretch justify-center transition-colors",
           bordered
             ? "top-3 h-6 w-6 rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:border-primary hover:text-primary"
-            : "top-4 h-14 w-6 gap-1",
+            : "top-6 h-10 w-4 gap-0.5",
           isLeft ? "-right-3" : "-left-3"
         )}
         aria-label={`Minimize ${label}`}
