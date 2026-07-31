@@ -25,6 +25,7 @@ import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { DocumentViewer, withDocSignatures, type LibraryDoc, type DocSignature } from "@/components/document-library"
 import { renderTransactionDocument } from "@/lib/transaction-templates"
+import { ConversationViewer, type ConversationEntry, type ConversationMessage } from "@/components/conversation-viewer"
 
 type TransactionsPersisted = {
   messages: ChatMsg[]
@@ -33,6 +34,7 @@ type TransactionsPersisted = {
   activeItemId: string | null
   docs: Record<string, LibraryDoc>
   inputMode?: "chat" | "form"
+  history?: ConversationEntry[]
 }
 
 type ChatMsg =
@@ -61,6 +63,19 @@ const looksLikeQuestion = (text: string) =>
   /\?\s*$/.test(text) ||
   /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
 
+// Converts a finished item's live chat transcript into the trimmed, replayable shape stored in
+// History — drops interactive-only messages (category chips, field-choice bubbles, the inline
+// document form card) since each of those is always immediately followed by a `user` message
+// echoing the answer that was given, so nothing is lost by dropping the interactive widget itself.
+function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
+  const kept: ConversationMessage[] = []
+  for (const m of messages) {
+    if (m.role === "bot" || m.role === "user" || m.role === "note") kept.push(m)
+    else if (m.role === "docDrafted") kept.push({ id: m.id, role: "docDrafted", groupTitle: m.groupTitle, title: m.item.title })
+  }
+  return kept
+}
+
 export function TransactionsOnboarding({
   answers = initialAnswers,
   signedDocs,
@@ -85,6 +100,9 @@ export function TransactionsOnboarding({
   const [activeFiling, setActiveFiling] = useState<ActiveFiling | null>(null)
   const [isTyping, setIsTyping] = useState(false)
   const [infoItem, setInfoItem] = useState<TransactionItem | null>(null)
+  const [history, setHistory] = useState<ConversationEntry[]>([])
+  const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
+  const [sidebarTab, setSidebarTab] = useState<"documents" | "history">("documents")
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: TransactionItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -137,6 +155,7 @@ export function TransactionsOnboarding({
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
     setDocs(saved.docs ?? {})
+    setHistory(saved.history ?? [])
     setInputMode(saved.inputMode ?? "chat")
     setHasStartedFlow(
       restoredMessages.length > 1 || !!restoredCategory || Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0
@@ -186,11 +205,12 @@ export function TransactionsOnboarding({
       completed,
       activeItemId,
       docs,
+      history,
       inputMode,
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, inputMode, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -259,6 +279,7 @@ export function TransactionsOnboarding({
   }, [pushBotTyped, prefill])
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
+    setMessages([])
     pushUser(item.title)
     setActiveItemId(item.id)
     setMobileOpen(false)
@@ -277,15 +298,27 @@ export function TransactionsOnboarding({
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
-    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values, createdAt: new Date().toISOString() }
+    const completedAt = new Date().toISOString()
+    const doc: LibraryDoc = { id: item.id, title: item.title, subtitle: groupTitle, content: renderTransactionDocument(item.id, values, answers.directors, ceoName) ?? undefined, values, createdAt: completedAt }
+    const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const entry: ConversationEntry = {
+      id: item.id,
+      itemId: item.id,
+      title: item.title,
+      groupTitle,
+      completedAt,
+      messages: archiveMessages([...messages, docDraftedMsg]),
+    }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
+    setHistory((h) => [entry, ...h.filter((e) => e.itemId !== item.id)])
     setActiveItemId(null)
     setActiveFiling(null)
-    setMessages((m) => [...m, { id: ++idRef.current, role: "docDrafted", item, groupTitle }])
-    pushBot("Select another document from the right to continue, or ask me anything.")
+    // Finishing this item's conversation ends it — the next message starts a fresh, short
+    // thread instead of appending onto what's now an archived (see `history`) conversation.
+    setMessages([{ id: ++idRef.current, role: "bot", text: "Select another document from the right to continue, or ask me anything." }])
     onDocumentReady?.(doc)
-  }, [pushBot, onDocumentReady, answers.directors, answers.officers])
+  }, [messages, onDocumentReady, answers.directors, answers.officers])
 
   const handleFieldSubmit = useCallback((raw: string) => {
     if (!activeFiling) return
@@ -405,6 +438,10 @@ export function TransactionsOnboarding({
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onViewClick={openDoc}
+      sidebarTab={sidebarTab}
+      onSidebarTabChange={setSidebarTab}
+      history={history}
+      onHistoryClick={setViewingConversation}
     />
   )
 
@@ -586,10 +623,29 @@ export function TransactionsOnboarding({
               const { [item.id]: _removed, ...rest } = d
               return rest
             })
+            setHistory((h) => h.filter((e) => e.itemId !== item.id))
             onItemDeleted?.(item.id)
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}
+        />
+      )}
+      {viewingConversation && (
+        <ConversationViewer
+          entry={viewingConversation}
+          onClose={() => setViewingConversation(null)}
+          onOpenDoc={
+            docs[viewingConversation.itemId]
+              ? () => {
+                  const item = allItems.find((i) => i.id === viewingConversation.itemId)
+                  const doc = docs[viewingConversation.itemId]
+                  if (item && doc) {
+                    setViewingConversation(null)
+                    openDoc(doc, item, viewingConversation.groupTitle)
+                  }
+                }
+              : undefined
+          }
         />
       )}
       {switchConfirm && (
@@ -635,6 +691,7 @@ export function TransactionsOnboarding({
 
 function SidebarContent({
   expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
+  sidebarTab, onSidebarTabChange, history, onHistoryClick,
 }: {
   expandedCategoryId: TransactionCategory["id"] | null
   completed: Record<string, boolean>
@@ -644,14 +701,65 @@ function SidebarContent({
   onCategoryClick: (cat: TransactionCategory) => void
   onInfoClick: (item: TransactionItem) => void
   onViewClick: (doc: LibraryDoc, item: TransactionItem, groupTitle: string) => void
+  sidebarTab: "documents" | "history"
+  onSidebarTabChange: (tab: "documents" | "history") => void
+  history: ConversationEntry[]
+  onHistoryClick: (entry: ConversationEntry) => void
 }) {
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Transaction Documents</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Pick a category below to see what's available.</p>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">Transaction Documents</h2>
+          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[11px] shadow-sm">
+            <button
+              onClick={() => onSidebarTabChange("documents")}
+              className={cn(
+                "rounded-full px-2.5 py-1 font-medium transition-colors",
+                sidebarTab === "documents" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Documents
+            </button>
+            <button
+              onClick={() => onSidebarTabChange("history")}
+              className={cn(
+                "rounded-full px-2.5 py-1 font-medium transition-colors",
+                sidebarTab === "history" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              History
+            </button>
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {sidebarTab === "documents" ? "Pick a category below to see what's available." : "Past conversations from completed documents."}
+        </p>
       </div>
 
+      {sidebarTab === "history" ? (
+        <div className="flex-1 overflow-y-auto px-2 py-3">
+          {history.length === 0 ? (
+            <p className="px-2 py-4 text-xs text-muted-foreground">No completed documents yet.</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {history.map((entry) => (
+                <li key={entry.itemId}>
+                  <button
+                    onClick={() => onHistoryClick(entry)}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                  >
+                    <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto">
         {TRANSACTION_CATEGORIES.map((cat) => {
           const items = cat.groups.flatMap((g) => g.items)
@@ -751,6 +859,7 @@ function SidebarContent({
           )
         })}
       </div>
+      )}
     </>
   )
 }

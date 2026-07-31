@@ -343,23 +343,36 @@ export function ComplianceView({
   }, [pushBotTyped, answers, docs])
 
   const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>) => {
+    const completedAt = new Date().toISOString()
     const doc: LibraryDoc = {
       id: item.id,
       title: item.title,
       subtitle: groupTitle,
       content: renderComplianceDocument(item.id, values) ?? undefined,
       values,
-      createdAt: new Date().toISOString(),
+      createdAt: completedAt,
+    }
+    const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const entry: ConversationEntry = {
+      id: item.id,
+      itemId: item.id,
+      title: item.title,
+      groupTitle,
+      completedAt,
+      messages: archiveMessages([...messages, docDraftedMsg]),
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
+    setHistory((h) => [entry, ...h.filter((e) => e.itemId !== item.id)])
     setActiveItemId(null)
-    setMessages((m) => [...m, { id: ++idRef.current, role: "docDrafted", item, groupTitle }])
-    pushBot("Select another filing from the right to continue, or ask me anything.")
+    // Finishing this item's conversation ends it — the next message starts a fresh, short
+    // thread instead of appending onto what's now an archived (see `history`) conversation.
+    setMessages([{ id: ++idRef.current, role: "bot", text: "Select another filing from the right to continue, or ask me anything." }])
     onItemComplete?.(doc)
-  }, [pushBot, onItemComplete])
+  }, [messages, onItemComplete])
 
   const openItem = useCallback((item: ComplianceItem, groupTitle: string) => {
+    setMessages([])
     pushUser(item.title)
     setActiveItemId(item.id)
     setMobileOpen(false)
@@ -473,6 +486,10 @@ export function ComplianceView({
       onCategoryClick={toggleCategory}
       onInfoClick={setInfoItem}
       onViewClick={openDoc}
+      sidebarTab={sidebarTab}
+      onSidebarTabChange={setSidebarTab}
+      history={history}
+      onHistoryClick={setViewingConversation}
     />
   )
 
@@ -655,10 +672,29 @@ export function ComplianceView({
               const { [item.id]: _removed, ...rest } = d
               return rest
             })
+            setHistory((h) => h.filter((e) => e.itemId !== item.id))
             onItemDeleted?.(item.id)
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}
+        />
+      )}
+      {viewingConversation && (
+        <ConversationViewer
+          entry={viewingConversation}
+          onClose={() => setViewingConversation(null)}
+          onOpenDoc={
+            docs[viewingConversation.itemId]
+              ? () => {
+                  const item = allItems.find((i) => i.id === viewingConversation.itemId)
+                  const doc = docs[viewingConversation.itemId]
+                  if (item && doc) {
+                    setViewingConversation(null)
+                    openDoc(doc, item, viewingConversation.groupTitle)
+                  }
+                }
+              : undefined
+          }
         />
       )}
       {switchConfirm && (
@@ -729,6 +765,7 @@ function CategoryPickerBubble({
 
 function SidebarContent({
   expandedCategoryId, completed, docs, activeItemId, onItemClick, onCategoryClick, onInfoClick, onViewClick,
+  sidebarTab, onSidebarTabChange, history, onHistoryClick,
 }: {
   expandedCategoryId: ComplianceCategory["id"] | null
   completed: Record<string, boolean>
@@ -738,14 +775,65 @@ function SidebarContent({
   onCategoryClick: (cat: ComplianceCategory) => void
   onInfoClick: (item: ComplianceItem) => void
   onViewClick: (doc: LibraryDoc, item: ComplianceItem, groupTitle: string) => void
+  sidebarTab: "documents" | "history"
+  onSidebarTabChange: (tab: "documents" | "history") => void
+  history: ConversationEntry[]
+  onHistoryClick: (entry: ConversationEntry) => void
 }) {
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Compliance Documents</h2>
-        <p className="mt-1 text-xs text-muted-foreground">Pick a category below to see what's next.</p>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-foreground">Compliance Documents</h2>
+          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-[11px] shadow-sm">
+            <button
+              onClick={() => onSidebarTabChange("documents")}
+              className={cn(
+                "rounded-full px-2.5 py-1 font-medium transition-colors",
+                sidebarTab === "documents" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Documents
+            </button>
+            <button
+              onClick={() => onSidebarTabChange("history")}
+              className={cn(
+                "rounded-full px-2.5 py-1 font-medium transition-colors",
+                sidebarTab === "history" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              History
+            </button>
+          </div>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {sidebarTab === "documents" ? "Pick a category below to see what's next." : "Past conversations from completed filings."}
+        </p>
       </div>
 
+      {sidebarTab === "history" ? (
+        <div className="flex-1 overflow-y-auto px-2 py-3">
+          {history.length === 0 ? (
+            <p className="px-2 py-4 text-xs text-muted-foreground">No completed filings yet.</p>
+          ) : (
+            <ul className="space-y-0.5">
+              {history.map((entry) => (
+                <li key={entry.itemId}>
+                  <button
+                    onClick={() => onHistoryClick(entry)}
+                    className="flex w-full flex-col items-start gap-0.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-secondary/60"
+                  >
+                    <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
       <div className="flex-1 overflow-y-auto">
         {COMPLIANCE_CATEGORIES.map((cat) => {
           const items = cat.groups.flatMap((g) => g.items)
@@ -845,6 +933,7 @@ function SidebarContent({
           )
         })}
       </div>
+      )}
     </>
   )
 }
