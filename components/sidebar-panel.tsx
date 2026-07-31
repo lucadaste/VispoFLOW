@@ -18,13 +18,6 @@ export function SidebarPanel({
    *  Used by History, which must never resize the chat column (see compliance-view.tsx /
    *  transactions-onboarding.tsx). Requires a `relative` ancestor to position against. */
   overlay = false,
-  /** Controlled collapse state, for callers (History) that need to react to open/close outside
-   *  this component — e.g. to measure whether the overlay would cover the chat and shift it.
-   *  Falls back to internal state when omitted, exactly as before. */
-  collapsed: collapsedProp,
-  onCollapsedChange,
-  /** Attached to the expanded overlay's <aside> so a caller can measure its rendered bounds. */
-  panelRef,
   children,
 }: {
   icon: LucideIcon
@@ -34,17 +27,9 @@ export function SidebarPanel({
   defaultCollapsed?: boolean
   bordered?: boolean
   overlay?: boolean
-  collapsed?: boolean
-  onCollapsedChange?: (collapsed: boolean) => void
-  panelRef?: React.Ref<HTMLElement>
   children: React.ReactNode
 }) {
-  const [collapsedState, setCollapsedState] = useState(defaultCollapsed)
-  const collapsed = collapsedProp ?? collapsedState
-  const setCollapsed = (next: boolean) => {
-    onCollapsedChange?.(next)
-    if (collapsedProp === undefined) setCollapsedState(next)
-  }
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
   const isLeft = side === "left"
 
   if (collapsed) {
@@ -96,7 +81,6 @@ export function SidebarPanel({
           onClick={() => setCollapsed(true)}
         />
         <aside
-          ref={panelRef}
           className={cn(
             "absolute top-0 z-20 hidden max-h-full shrink-0 flex-col overflow-hidden rounded-lg bg-background shadow-xl sm:flex",
             widthClass,

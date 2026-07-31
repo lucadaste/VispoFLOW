@@ -1,7 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2 } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2, RotateCcw } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -104,8 +104,6 @@ export function TransactionsOnboarding({
   const [history, setHistory] = useState<ConversationEntry[]>([])
   const [viewingConversation, setViewingConversation] = useState<ConversationEntry | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
-  const [historyExpanded, setHistoryExpanded] = useState(false)
-  const [chatShift, setChatShift] = useState(0)
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: TransactionItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: TransactionItem; groupTitle: string } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
@@ -122,9 +120,6 @@ export function TransactionsOnboarding({
   const [hasStartedFlow, setHasStartedFlow] = useState(false)
   const [value, setValue] = useState("")
   const scrollRef = useRef<HTMLDivElement>(null)
-  const chatWrapperRef = useRef<HTMLDivElement>(null)
-  const messageContentRef = useRef<HTMLDivElement>(null)
-  const historyPanelRef = useRef<HTMLElement>(null)
   const idRef = useRef(0)
   const startedRef = useRef(false)
 
@@ -225,39 +220,6 @@ export function TransactionsOnboarding({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
-
-  // History floats over the left edge of the chat area rather than pushing it — but on a narrow
-  // enough column that overlay would sit right on top of the message bubbles/avatars, which
-  // actually need to be nudged clear of it. Compare the overlay's right edge to where the
-  // (naturally centered) message column starts and shift only by however much they'd overlap —
-  // zero on any viewport wide enough that the overlay fits in the existing gutter.
-  useLayoutEffect(() => {
-    const wrapperEl = chatWrapperRef.current
-    if (!wrapperEl) return
-    const recompute = () => {
-      const panelEl = historyPanelRef.current
-      const contentEl = messageContentRef.current
-      if (!historyExpanded || !panelEl || !contentEl) {
-        setChatShift(0)
-        return
-      }
-      // Measure the message column's natural (untransformed) position — reading its rect while
-      // a prior shift is still applied would double-count that shift on this pass.
-      const prevTransform = contentEl.style.transform
-      contentEl.style.transform = "none"
-      const overlap = panelEl.getBoundingClientRect().right - contentEl.getBoundingClientRect().left
-      contentEl.style.transform = prevTransform
-      setChatShift(overlap > 0 ? Math.ceil(overlap) : 0)
-    }
-    recompute()
-    const ro = new ResizeObserver(recompute)
-    ro.observe(wrapperEl)
-    window.addEventListener("resize", recompute)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener("resize", recompute)
-    }
-  }, [historyExpanded])
 
   const selectCategory = useCallback((cat: TransactionCategory) => {
     pushUser(cat.label)
@@ -506,40 +468,47 @@ export function TransactionsOnboarding({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ── Header ── */}
         <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
-            <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
-            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
-              <button
-                onClick={() => requestSetInputMode("chat")}
-                className={cn(
-                  "rounded-full px-3 py-1 font-medium transition-colors",
-                  inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Chat
-              </button>
-              <button
-                onClick={() => requestSetInputMode("form")}
-                className={cn(
-                  "rounded-full px-3 py-1 font-medium transition-colors",
-                  inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Questionnaire
-              </button>
+          <div className="flex items-center gap-3">
+            <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
+              <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
+              <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+                <button
+                  onClick={() => requestSetInputMode("chat")}
+                  className={cn(
+                    "rounded-full px-3 py-1 font-medium transition-colors",
+                    inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => requestSetInputMode("form")}
+                  className={cn(
+                    "rounded-full px-3 py-1 font-medium transition-colors",
+                    inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Questionnaire
+                </button>
+              </div>
+            </div>
+            {/* Invisible spacer matching the Incorporation tab's Restart button, so this row's
+                title/toggle centers identically across all three tabs. */}
+            <div
+              aria-hidden
+              className="invisible inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Restart</span>
             </div>
           </div>
         </div>
 
-        {/* ── Chat — wrapper bounds History's overlay to exactly this area (below the header, ── */}
-        {/*    above the input bar), and is where History nudges the message column clear of it. */}
-        <div ref={chatWrapperRef} className="relative flex-1 overflow-hidden">
+        {/* ── Chat — wrapper bounds History's overlay to exactly this area, below the header ── */}
+        {/*    and above the input bar; History simply pops over the chat rather than shifting it. */}
+        <div className="relative flex-1 overflow-hidden">
           <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
-            <div
-              ref={messageContentRef}
-              className="mx-auto max-w-2xl space-y-4"
-              style={{ transform: chatShift ? `translateX(${chatShift}px)` : undefined, transition: "transform 200ms ease" }}
-            >
+            <div className="mx-auto max-w-2xl space-y-4">
               {messages.map((m) => {
                 if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
                 if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
@@ -598,17 +567,7 @@ export function TransactionsOnboarding({
           </div>
 
           {/* ── History — icon-only tab that opens as a floating overlay confined to this area ── */}
-          <SidebarPanel
-            icon={HistoryIcon}
-            label="History"
-            widthClass="w-44 md:w-48 lg:w-56 2xl:w-60"
-            side="left"
-            bordered={false}
-            overlay
-            collapsed={!historyExpanded}
-            onCollapsedChange={(c) => setHistoryExpanded(!c)}
-            panelRef={historyPanelRef}
-          >
+          <SidebarPanel icon={HistoryIcon} label="History" widthClass="w-44 md:w-48 lg:w-56 2xl:w-60" side="left" bordered={false} defaultCollapsed overlay>
             {historyContent}
           </SidebarPanel>
           <MobileSidebarTab
