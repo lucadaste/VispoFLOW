@@ -63,7 +63,7 @@ export function SidebarPanel({
         className={cn(
           "group absolute top-1/2 z-10 flex -translate-y-1/2 items-center justify-center transition-colors",
           bordered
-            ? "h-9 w-3 rounded-full border border-border/60 bg-card/80 text-muted-foreground/60 hover:border-primary/50 hover:bg-card hover:text-primary"
+            ? "h-9 w-3 rounded-full border border-border/60 bg-card/80 text-muted-foreground/60 hover:border-primary hover:bg-primary/10 hover:text-primary"
             : "top-6 h-10 w-4 translate-y-0 gap-0.5",
           isLeft ? (bordered ? "-right-1.5" : "-right-3") : bordered ? "-left-1.5" : "-left-3"
         )}
