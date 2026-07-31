@@ -14,6 +14,7 @@ export function SignRequestClient({
   docTitle,
   docContent,
   recipientName,
+  recipientEmail,
   slotLabel,
   lockedName,
   alreadySigned,
@@ -25,6 +26,7 @@ export function SignRequestClient({
   docTitle: string
   docContent: string
   recipientName: string | null
+  recipientEmail: string
   slotLabel: string | null
   lockedName: string | null
   alreadySigned: boolean
@@ -38,7 +40,7 @@ export function SignRequestClient({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [fields, setFields] = useState<Record<string, string>>(() =>
-    Object.fromEntries(requiredFields.map((label) => [label, ""])),
+    Object.fromEntries(requiredFields.map((label) => [label, label === "Email" ? recipientEmail : ""])),
   )
   const missingFields = requiredFields.filter((label) => !fields[label]?.trim())
 
