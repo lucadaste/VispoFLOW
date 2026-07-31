@@ -1,7 +1,7 @@
 "use client"
 
 import { Fragment, useLayoutEffect, useRef, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, PenLine, Mail, MoreVertical, CheckSquare, Share } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, ChevronLeft, PenLine, Mail, MoreVertical, CheckSquare, Share } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
@@ -1241,7 +1241,17 @@ function blobToBase64(blob: Blob): Promise<string> {
  *  any persisted server-side state and just posts directly to the send API from here. PDF is the
  *  default format since it's the one every recipient can open without extra software; any other
  *  download format is still one dropdown selection away. */
-function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc; answers: FlowAnswers; onDone: () => void }) {
+function SendDocumentPopoverContent({
+  doc,
+  answers,
+  onDone,
+  onBack,
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  onDone: () => void
+  onBack: () => void
+}) {
   const [email, setEmail] = useState("")
   const [message, setMessage] = useState("")
   const [format, setFormat] = useState<DownloadFormat>("pdf")
@@ -1274,7 +1284,16 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
 
   return (
     <div className="space-y-2.5 p-3">
-      <p className="text-xs font-medium text-foreground">Share this document</p>
+      <div className="-m-1 flex items-center gap-1">
+        <button
+          onClick={onBack}
+          title="Back"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <p className="text-xs font-medium text-foreground">Share this document</p>
+      </div>
       <input
         type="email"
         value={email}
@@ -1316,10 +1335,29 @@ function SendDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc;
 /** The download half of the "Share document" / "Download document" pair — a flat list of
  *  formats with none singled out as a default, opened from a "Download document" entry point
  *  the same way "Share document" opens SendDocumentPopoverContent. */
-function DownloadDocumentPopoverContent({ doc, answers, onDone }: { doc: LibraryDoc; answers: FlowAnswers; onDone: () => void }) {
+function DownloadDocumentPopoverContent({
+  doc,
+  answers,
+  onDone,
+  onBack,
+}: {
+  doc: LibraryDoc
+  answers: FlowAnswers
+  onDone: () => void
+  onBack: () => void
+}) {
   return (
     <div className="py-1">
-      <p className="px-3 pb-1 pt-2 text-xs font-medium text-foreground">Download as</p>
+      <div className="flex items-center gap-1 px-2 pb-1 pt-2">
+        <button
+          onClick={onBack}
+          title="Back"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+        </button>
+        <p className="text-xs font-medium text-foreground">Download as</p>
+      </div>
       {DOWNLOAD_FORMATS.map((format) => (
         <button
           key={format}
@@ -1480,8 +1518,12 @@ function DocTileMenu({
             {mode === "send" && onSendToSign && (
               <SendToSignPopoverContent doc={doc} answers={answers} onSendToSign={onSendToSign} onDone={close} />
             )}
-            {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
-            {mode === "download" && <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
+            {mode === "email" && (
+              <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} onBack={() => setMode("menu")} />
+            )}
+            {mode === "download" && (
+              <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} onBack={() => setMode("menu")} />
+            )}
             {mode === "delete-confirm" && (
               <div className="space-y-2.5 p-3">
                 <p className="text-xs font-medium text-foreground">Delete this document?</p>
@@ -1944,8 +1986,12 @@ function DocViewerMoreMenu({
                 )}
               </div>
             )}
-            {mode === "email" && <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
-            {mode === "download" && <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} />}
+            {mode === "email" && (
+              <SendDocumentPopoverContent doc={doc} answers={answers} onDone={close} onBack={() => setMode("menu")} />
+            )}
+            {mode === "download" && (
+              <DownloadDocumentPopoverContent doc={doc} answers={answers} onDone={close} onBack={() => setMode("menu")} />
+            )}
             {mode === "delete-confirm" && onDelete && (
               <div className="space-y-2.5 p-3">
                 <p className="text-xs font-medium text-foreground">Delete this document?</p>
