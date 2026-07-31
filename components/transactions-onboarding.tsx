@@ -314,9 +314,14 @@ export function TransactionsOnboarding({
     setHistory((h) => [entry, ...h.filter((e) => e.itemId !== item.id)])
     setActiveItemId(null)
     setActiveFiling(null)
-    // Finishing this item's conversation ends it — the next message starts a fresh, short
-    // thread instead of appending onto what's now an archived (see `history`) conversation.
-    setMessages([{ id: ++idRef.current, role: "bot", text: "Select another document from the right to continue, or ask me anything." }])
+    // The finished conversation (with its Drafted card) stays on screen — it's only cleared
+    // once a new document is opened (see the reset at the top of openItem below), not immediately.
+    // It's already archived into `history` above regardless.
+    setMessages((m) => [
+      ...m,
+      docDraftedMsg,
+      { id: ++idRef.current, role: "bot", text: "Select another document from the right to continue, or ask me anything." },
+    ])
     onDocumentReady?.(doc)
   }, [messages, onDocumentReady, answers.directors, answers.officers])
 
