@@ -21,20 +21,12 @@ import { assembleChatAnswers } from "@/lib/incorporation-chat-fields"
 
 type SubmitFn = (displayText: string, patch: Partial<FlowAnswers>) => void
 
-/** Kinds rendered as a full StepFormCard (see below) rather than a slim footer-bar widget —
- *  these belong inline in the chat flow like FilingFormCard/TransactionFormCard on the other
- *  two pages, not squeezed into the input bar. */
-const FORM_CARD_KINDS = new Set<StepInput["kind"]>([
-  "incorporator",
-  "corpAddress",
-  "directorNames",
-  "officers",
-  "allocations",
-  "vesting",
-])
-
-export function isFormCardInput(input: StepInput): boolean {
-  return FORM_CARD_KINDS.has(input.kind)
+/** Only "text" (a single required field, answered exactly like Chat mode's one-field-at-a-time
+ *  FieldComposer) stays in the footer bar. Every other kind — choices, multi-field forms, rich
+ *  cards — belongs inline in the chat flow like FilingFormCard/TransactionFormCard on the other
+ *  two pages, leaving the footer free for asking a question. */
+export function isInlineCardInput(input: StepInput): boolean {
+  return input.kind !== "text"
 }
 
 /** Shared step-in-progress values for the 4 step kinds that also decompose into one-at-a-time
@@ -95,6 +87,30 @@ export function ChatInput({
     default:
       return null
   }
+}
+
+/** The footer's persistent stand-in when the current step's widget is inline in the chat flow —
+ *  purely for asking a tangential question, since the step itself is answered via the card above. */
+export function AskQuestionBar({ onSubmit }: { onSubmit: (text: string) => void }) {
+  const [value, setValue] = useState("")
+  const submit = () => {
+    const t = value.trim()
+    if (!t) return
+    onSubmit(t)
+    setValue("")
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+        placeholder="Ask a question…"
+        className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+      />
+      <SubmitButton onClick={submit} disabled={!value.trim()} />
+    </div>
+  )
 }
 
 /* ---------- shared bits ---------- */

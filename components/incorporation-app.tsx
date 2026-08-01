@@ -29,7 +29,7 @@ import {
   TypingIndicator,
 } from "@/components/chat-message"
 import { FormedCard } from "@/components/formed-card"
-import { ChatInput, isFormCardInput } from "@/components/chat-inputs"
+import { ChatInput, AskQuestionBar, isInlineCardInput } from "@/components/chat-inputs"
 import { FieldComposer } from "@/components/field-composer"
 import { DocumentTracker, DocumentTrackerEmpty } from "@/components/document-tracker"
 import { STEPS, type StepInput } from "@/lib/steps"
@@ -965,6 +965,14 @@ export function IncorporationApp() {
     handleChatFieldSubmit(raw)
   }, [activeChatFields, pushUser, pushBot, handleChatFieldSubmit])
 
+  // The footer's generic box once the current step's own widget has moved inline (see
+  // isInlineCardInput) — it never answers the step, only replies to a tangential question.
+  const handleAskQuestion = useCallback(async (text: string) => {
+    pushUser(text)
+    await delay(250)
+    await pushBot("Happy to help — feel free to continue with the step above whenever you're ready, or ask me anything else.")
+  }, [pushUser, pushBot])
+
   // Re-renders the current step's input under a newly selected mode, without replaying the
   // step's intro messages (those already happened) — used when switching Chat/Questionnaire
   // mid-step, as opposed to `playStep`, which is only for advancing to a new step. Both modes
@@ -1182,7 +1190,7 @@ export function IncorporationApp() {
                     return null
                   })}
                   {isTyping && <TypingIndicator />}
-                  {!isTyping && activeInput && isFormCardInput(activeInput) && (
+                  {!isTyping && activeInput && isInlineCardInput(activeInput) && (
                     <ChatInput
                       input={activeInput}
                       answers={effectiveAnswers}
@@ -1227,26 +1235,26 @@ export function IncorporationApp() {
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Restart</span>
                   </button>
-                  {!(activeInput && isFormCardInput(activeInput)) && (
-                    <div className="flex-1">
-                      {inputMode === "chat" && activeChatFields ? (
-                        <FieldComposer
-                          key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
-                          field={activeChatFields.fields[activeChatFields.fieldIndex]}
-                          initialValue={(activeStepValues ?? {})[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
-                          onSubmit={handleChatFieldInput}
-                        />
-                      ) : (
-                        <ChatInput
-                          input={activeInput!}
-                          answers={effectiveAnswers}
-                          onSubmit={handleSubmit}
-                          values={activeStepValues ?? undefined}
-                          onValuesChange={setActiveStepValues}
-                        />
-                      )}
-                    </div>
-                  )}
+                  <div className="flex-1">
+                    {activeChatFields ? (
+                      <FieldComposer
+                        key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
+                        field={activeChatFields.fields[activeChatFields.fieldIndex]}
+                        initialValue={(activeStepValues ?? {})[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
+                        onSubmit={handleChatFieldInput}
+                      />
+                    ) : activeInput && !isInlineCardInput(activeInput) ? (
+                      <ChatInput
+                        input={activeInput}
+                        answers={effectiveAnswers}
+                        onSubmit={handleSubmit}
+                        values={activeStepValues ?? undefined}
+                        onValuesChange={setActiveStepValues}
+                      />
+                    ) : (
+                      <AskQuestionBar onSubmit={handleAskQuestion} />
+                    )}
+                  </div>
                 </div>
               </div>
             )}
