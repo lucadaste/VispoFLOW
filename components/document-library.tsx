@@ -745,7 +745,7 @@ export function DocumentLibrary({
       <div className="mx-auto max-w-4xl">
         <div className="mb-8 flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">
+            <h1 className="font-serif text-xl font-bold tracking-tight text-foreground">
               {companyName ? `${companyName}'s Document Vault` : "Document Vault"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -944,7 +944,7 @@ function DocSection({
           <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", SECTION_ACCENTS[accent])}>
             <Icon className="h-4 w-4" />
           </span>
-          <h2 className="text-sm font-semibold text-foreground">{title}</h2>
+          <h2 className="font-serif text-sm font-semibold text-foreground">{title}</h2>
         </div>
         <span className="text-xs font-medium text-muted-foreground">{visible.length}</span>
       </div>

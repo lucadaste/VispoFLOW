@@ -151,7 +151,7 @@ export function Landing({
 
       <div className="w-full max-w-xl shrink-0 space-y-1 text-center">
         <p className="text-[11px] font-medium uppercase tracking-wider text-primary/70">Your startup, on rails</p>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">What would you like to take care of?</h1>
+        <h1 className="font-serif text-xl font-semibold tracking-tight text-foreground sm:text-2xl">What would you like to take care of?</h1>
       </div>
 
       {/* Quick-access utility, pulled out of the main journey below */}
@@ -336,7 +336,7 @@ function StepRow({
 
       <div className="min-w-0 flex-1 pb-2 pt-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-foreground">{title}</p>
+          <p className="font-serif text-sm font-semibold text-foreground">{title}</p>
           <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/30 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{description}</p>
