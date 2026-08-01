@@ -126,8 +126,14 @@ export function TransactionsOnboarding({
     setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
   }, [])
 
+  // Repeated mode toggling with nothing else happening in between (see requestSetInputMode)
+  // shouldn't stack up a growing list of these — replace the trailing note in place instead.
   const pushNote = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: ++idRef.current, role: "note", text }])
+    setMessages((m) => {
+      const last = m[m.length - 1]
+      if (last?.role === "note") return [...m.slice(0, -1), { ...last, text }]
+      return [...m, { id: ++idRef.current, role: "note", text }]
+    })
   }, [])
 
   const pushUser = useCallback((text: string) => {
