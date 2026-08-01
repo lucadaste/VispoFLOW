@@ -434,15 +434,17 @@ export function TransactionsOnboarding({
     if (target === inputMode) return
     if (!activeItemId) {
       setInputMode(target)
+      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
       return
     }
     const fromItem = allItems.find((i) => i.id === activeItemId)
     if (!fromItem) {
       setInputMode(target)
+      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
       return
     }
     setSwitchConfirm({ mode: "switchInput", target, fromItem })
-  }, [inputMode, activeItemId, allItems])
+  }, [inputMode, activeItemId, allItems, pushNote])
 
   const openDoc = useCallback((doc: LibraryDoc, item: TransactionItem, groupTitle: string) => {
     setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
