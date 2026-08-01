@@ -546,7 +546,7 @@ const SAFE_CAP: TransactionItem = {
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "valuationCap", label: "Post-money valuation cap", type: "number", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -560,7 +560,7 @@ const SAFE_MFN: TransactionItem = {
     companyNameField,
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -581,7 +581,7 @@ const SAFE_DISCOUNT: TransactionItem = {
       placeholder: "e.g. 20",
       hint: "The document's Discount Rate is shown as 100 minus this number (a 20% discount becomes an 80% Discount Rate).",
     },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
+    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -621,8 +621,8 @@ const FOUNDER_LOAN: TransactionItem = {
       placeholder: "e.g. 0.05",
       hint: "5% would be 0.05.",
     },
-    { name: "choiceOfLaw", label: "Choice of law", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware" },
-    { name: "venue", label: "Venue", question: "And which state should be the venue for resolving any disputes?", placeholder: "e.g. Delaware" },
+    { name: "choiceOfLaw", label: "Choice of law", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
+    { name: "venue", label: "Venue", question: "And which state should be the venue for resolving any disputes?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
   ],
 }
 
@@ -662,6 +662,7 @@ const SERVICES_AGREEMENT: TransactionItem = {
       label: "Choice of law and venue state",
       question: "Which state should govern this agreement, and be the venue for any disputes?",
       placeholder: "e.g. Delaware",
+      prefillKey: "stateOfIncorporation",
     },
     {
       name: "availability",
@@ -940,6 +941,7 @@ const NDA: TransactionItem = {
       label: "Choice of law and venue state",
       question: "Which state should govern this agreement, and be the venue for any disputes?",
       placeholder: "e.g. Delaware",
+      prefillKey: "stateOfIncorporation",
     },
   ],
 }
@@ -1225,6 +1227,7 @@ export type FlowAnswers = {
   incorporatorAddress: string
   registeredAgentName: string
   registeredAgentAddress: string
+  stateOfIncorporation: string
   corpAddress: string
   directorCount: number
   directors: string[]
@@ -1244,6 +1247,7 @@ export const initialAnswers: FlowAnswers = {
   incorporatorAddress: "",
   registeredAgentName: "A Registered Agent, Inc.",
   registeredAgentAddress: "8 The Green Suite A, Dover, DE 19901",
+  stateOfIncorporation: "Delaware",
   corpAddress: "",
   directorCount: 2,
   directors: [],
