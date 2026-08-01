@@ -18,7 +18,7 @@ export function BotMessage({ children }: { children: React.ReactNode }) {
 export function UserMessage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex animate-message-in items-start justify-end gap-3">
-      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground shadow-sm">
+      <div className="max-w-[88%] whitespace-pre-line rounded-2xl rounded-tr-sm bg-secondary px-4 py-3 text-sm leading-relaxed text-foreground shadow-sm ring-1 ring-border">
         {children}
       </div>
     </div>
