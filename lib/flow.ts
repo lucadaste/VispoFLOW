@@ -124,7 +124,7 @@ export type ComplianceField = {
   label: string
   /** How this field is asked in chat mode — a natural question. Falls back to `label` if omitted. */
   question?: string
-  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "number" | "ssn"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -191,7 +191,7 @@ const EIN: ComplianceItem = {
     { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", placeholder: "e.g. New Castle County, Delaware" },
     { name: "responsible", label: "Responsible party — full legal name (Line 7a)", question: "Who's the responsible party — what's their full legal name?", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
-    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", placeholder: "XXX-XX-XXXX", sensitive: true, delegatable: { nameField: "responsible" } },
+    { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", type: "ssn", placeholder: "XXX-XX-XXXX", sensitive: true, delegatable: { nameField: "responsible" } },
     { name: "reason", label: "Reason for applying (Line 10)", question: "Why are you applying for an EIN?", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
     { name: "incorporationDate", label: "Date business started or acquired (Line 11)", question: "When did the business start or get acquired?", type: "date" },
     {

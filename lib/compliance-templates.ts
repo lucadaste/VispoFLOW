@@ -53,7 +53,7 @@ Under penalties of perjury, I declare that I have examined this application, and
 
 DELEGATED THIRD PARTY DECLARATION
 
-I the undersigned, ${v.responsible}, understand that I am authorizing the third party, Nicola Serragiotto, to apply for and receive the EIN on behalf of ${v.companyName}, and to answer questions about the completion of this Form SS-4 on my behalf.
+I the undersigned, ${v.responsible}, understand that I am authorizing the third party, Vispo Labs, Inc., to apply for and receive the EIN on behalf of ${v.companyName}, and to answer questions about the completion of this Form SS-4 on my behalf.
 
 By signing below, I certify under penalties of perjury that the information provided above is true, correct, and complete to the best of my knowledge, and I authorize the above delegation.
 

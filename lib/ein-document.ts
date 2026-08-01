@@ -9,6 +9,7 @@
  *  reflows the form would require re-deriving them the same way. */
 
 import { PDFDocument, PDFFont, PDFName, StandardFonts, rgb } from "pdf-lib"
+import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
 
 export type EinSignature = { dataUrl: string; signerName: string; signedAt: string }
 
@@ -109,7 +110,7 @@ async function appendDelegationPage(pdfDoc: PDFDocument, values: Record<string, 
   y -= 40
 
   const paragraphs = [
-    `I, the undersigned — ${values.responsible || "[Responsible Party]"} — understand that I am authorizing the third party, Nicola Serragiotto, to apply for and receive the Employer Identification Number (EIN) on behalf of ${values.companyName || "the Company"}, and to answer questions on my behalf about the completion of the attached Form SS-4.`,
+    `I, the undersigned — ${values.responsible || "[Responsible Party]"} — understand that I am authorizing the third party, Vispo Labs, Inc., to apply for and receive the Employer Identification Number (EIN) on behalf of ${values.companyName || "the Company"}, and to answer questions on my behalf about the completion of the attached Form SS-4.`,
     "By signing below, I certify under penalties of perjury that the information provided on the attached Form SS-4 is true, correct, and complete to the best of my knowledge, and I authorize the above delegation.",
   ]
   for (const para of paragraphs) {
@@ -179,7 +180,10 @@ export async function buildEinPdfBytes(values: Record<string, string>, signature
   setText(FIELD.mailingCityStateZip, cityStateZip)
   setText(FIELD.countyState, values.county)
   setText(FIELD.responsibleName, values.responsible)
-  setText(FIELD.responsibleSsn, values.ssn)
+  // A redacted SSN (see lib/sensitive-field.ts) reads as a full sentence — far too long for box
+  // 7b's width — so it's left blank here rather than overflowing the box; the account holder
+  // still gets a clear "reopen this filing to re-enter" cue from the Doc Library card itself.
+  setText(FIELD.responsibleSsn, values.ssn === SENSITIVE_FIELD_PLACEHOLDER ? undefined : values.ssn)
 
   check(CHECKBOX.llcNo) // this app only ever forms Delaware C-Corps, never LLCs
 

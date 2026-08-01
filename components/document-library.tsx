@@ -9,6 +9,7 @@ import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import { findComplianceItem, type FlowAnswers } from "@/lib/flow"
 import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
+import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -74,7 +75,7 @@ export function withDocSignatures(doc: LibraryDoc, signatures: DocSignature[], a
   return { ...doc, signatures: validSignatures, signed: slots.length > 0 && validSignatures.length >= slots.length }
 }
 
-export const SENSITIVE_FIELD_PLACEHOLDER = "(not saved — reopen this filing to re-enter)"
+export { SENSITIVE_FIELD_PLACEHOLDER }
 
 /** Strips any field marked `sensitive` in lib/flow.ts (e.g. an SSN/ITIN collected for the EIN or
  *  83(b) filing) out of a doc before it's written to localStorage or the server — those values
@@ -1417,6 +1418,7 @@ function DownloadDocumentPopoverContent({
 
 /** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
+  if (doc.id === "ein") return <Ss4MiniPreview doc={doc} />
   if (!doc.content) {
     return (
       <div className="flex h-full items-center justify-center bg-white">
@@ -1770,10 +1772,10 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
   )
 }
 
-/** The EIN filing's detail-panel body — unlike every other document (plain text run through
- *  DocumentBody's line-by-line renderer), this one is the actual filled IRS Form SS-4 PDF, so it's
- *  shown with the browser's own inline PDF viewer instead. */
-function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
+/** Builds (and keeps up to date) the actual filled Form SS-4 PDF as a blob URL — shared by the
+ *  full detail-panel preview and the Doc Library tile thumbnail, so both always show the real
+ *  document instead of one of them falling back to a stale plain-text rendering. */
+function useEinPdfUrl(doc: LibraryDoc): { url: string | null; failed: boolean } {
   const [url, setUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
 
@@ -1797,6 +1799,41 @@ function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
     // what actually changes the rendered PDF (a newly placed signature), so key off that instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc.id, doc.values, doc.signatures?.length])
+
+  return { url, failed }
+}
+
+/** The EIN filing's tile thumbnail on the Doc Library grid — the real SS-4, scaled to fill the
+ *  tile like every other doc's MiniPreview, rather than that renderer's plain-text line clipping
+ *  (which doesn't mean anything for a document that's actually a grid of boxes). Non-interactive:
+ *  it's a thumbnail, not a second place to scroll/zoom the PDF, and clicks must still reach the
+ *  tile's own onClick underneath it. */
+function Ss4MiniPreview({ doc }: { doc: LibraryDoc }) {
+  const { url } = useEinPdfUrl(doc)
+  if (!url) {
+    return (
+      <div className="flex h-full items-center justify-center bg-white">
+        <FileText className="h-7 w-7 text-neutral-300" />
+      </div>
+    )
+  }
+  return (
+    <div className="pointer-events-none h-full overflow-hidden bg-white">
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title={doc.title}
+        tabIndex={-1}
+        className="h-full w-full border-0"
+      />
+    </div>
+  )
+}
+
+/** The EIN filing's detail-panel body — unlike every other document (plain text run through
+ *  DocumentBody's line-by-line renderer), this one is the actual filled IRS Form SS-4 PDF, so it's
+ *  shown with the browser's own inline PDF viewer instead. */
+function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
+  const { url, failed } = useEinPdfUrl(doc)
 
   if (failed) return <p className="text-sm text-neutral-500">Couldn't render the SS-4 preview. Try downloading the PDF instead.</p>
   if (!url) return <p className="text-sm text-neutral-500">Preparing preview…</p>
