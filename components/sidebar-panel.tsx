@@ -82,7 +82,7 @@ export function SidebarPanel({
         />
         <aside
           className={cn(
-            "absolute top-0 z-20 hidden max-h-full shrink-0 flex-col overflow-hidden rounded-lg bg-background shadow-xl sm:flex",
+            "animate-panel-drop-in absolute top-0 z-20 hidden max-h-full shrink-0 flex-col overflow-hidden rounded-lg bg-background shadow-xl sm:flex",
             widthClass,
             isLeft ? "left-0" : "right-0"
           )}

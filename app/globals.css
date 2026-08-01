@@ -126,6 +126,22 @@
   animation: message-in 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+@keyframes panel-drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-panel-drop-in {
+  animation: panel-drop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top;
+}
+
 @keyframes dot-bounce {
   0%,
   80%,

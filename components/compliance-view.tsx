@@ -1047,9 +1047,9 @@ function HistoryPanelContent({
 }) {
   return (
     <>
-      <div className="px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground/60">History</h2>
-        <p className="mt-1 text-xs text-muted-foreground/70">Past conversations from completed filings.</p>
+      <div className="border-b border-border px-4 py-4">
+        <h2 className="text-sm font-semibold text-foreground">History</h2>
+        <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed filings.</p>
       </div>
       <div className="flex-1 overflow-y-auto">
         {history.length === 0 ? (
@@ -1064,7 +1064,7 @@ function HistoryPanelContent({
                     onClick={() => onEntryClick(entry)}
                     className="flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-2 text-left transition-colors hover:bg-secondary/40"
                   >
-                    <p className="font-mono text-[12px] font-medium text-foreground/60">{entry.title}</p>
+                    <p className="text-[12px] font-medium text-foreground">{entry.title}</p>
                     <p className="text-[10px] text-muted-foreground/70">
                       {entry.groupTitle} · {new Date(entry.completedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </p>
