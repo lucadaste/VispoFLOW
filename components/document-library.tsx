@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useLayoutEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, ChevronLeft, PenLine, Mail, MoreVertical, CheckSquare, Share } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -8,6 +8,7 @@ import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, f
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import { findComplianceItem, type FlowAnswers } from "@/lib/flow"
 import { renderComplianceDocument } from "@/lib/compliance-templates"
+import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -282,7 +283,22 @@ function buildTxt(doc: LibraryDoc, answers: FlowAnswers): BuiltFile {
   return { blob: new Blob([fullContent(doc, answers)], { type: "text/plain" }), filename: `${doc.title}.txt` }
 }
 
+/** The EIN filing's one signature (always the default "officer" slot — see lib/document-signers.ts),
+ *  in the shape lib/ein-document.ts needs to place it on the actual IRS form and its Delegated Third
+ *  Party Declaration page instead of through the generic text-line matching every other doc uses. */
+function einSignature(doc: LibraryDoc): EinSignature | undefined {
+  const sig = doc.signatures?.find((s) => s.slotId === "officer")
+  return sig ? { dataUrl: sig.signatureDataUrl, signerName: sig.signerName, signedAt: sig.signedAt } : undefined
+}
+
+async function buildEinPdf(doc: LibraryDoc): Promise<BuiltFile> {
+  const bytes = await buildEinPdfBytes(doc.values ?? {}, einSignature(doc))
+  return { blob: new Blob([bytes as BlobPart], { type: "application/pdf" }), filename: `${doc.title}.pdf` }
+}
+
 async function buildPdf(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFile> {
+  if (doc.id === "ein") return buildEinPdf(doc)
+
   const { jsPDF } = await import("jspdf")
   const pdf = new jsPDF({ unit: "pt", format: "letter" })
   const margin = 56
@@ -1754,6 +1770,39 @@ function DocumentBody({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers 
   )
 }
 
+/** The EIN filing's detail-panel body — unlike every other document (plain text run through
+ *  DocumentBody's line-by-line renderer), this one is the actual filled IRS Form SS-4 PDF, so it's
+ *  shown with the browser's own inline PDF viewer instead. */
+function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
+  const [url, setUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let objectUrl: string | null = null
+    let cancelled = false
+    setUrl(null)
+    setFailed(false)
+    buildEinPdfBytes(doc.values ?? {}, einSignature(doc))
+      .then((bytes) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }))
+        setUrl(objectUrl)
+      })
+      .catch(() => !cancelled && setFailed(true))
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+    // doc.signatures is a new array identity most renders even when unchanged — its length is
+    // what actually changes the rendered PDF (a newly placed signature), so key off that instead.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id, doc.values, doc.signatures?.length])
+
+  if (failed) return <p className="text-sm text-neutral-500">Couldn't render the SS-4 preview. Try downloading the PDF instead.</p>
+  if (!url) return <p className="text-sm text-neutral-500">Preparing preview…</p>
+  return <iframe src={url} title={doc.title} className="h-full min-h-[75vh] w-full rounded-md border border-border" />
+}
+
 /** Downloads every selected (and downloadable) document at once, in whichever format the user
  *  picks — same format menu as the single-document download button. */
 function BulkDownloadButton({ count, onDownload }: { count: number; onDownload: (format: DownloadFormat) => Promise<void> }) {
@@ -2202,7 +2251,9 @@ export function DocumentViewer({
           </div>
         )}
         <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
-          {doc.content ? (
+          {doc.id === "ein" ? (
+            <Ss4PdfPreview doc={doc} />
+          ) : doc.content ? (
             <DocumentBody doc={doc} answers={answers} />
           ) : (
             <p className="text-sm text-neutral-500">No document preview is available for this item yet.</p>
