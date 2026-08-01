@@ -8,7 +8,7 @@ export function BotMessage({ children }: { children: React.ReactNode }) {
     <div className="flex animate-message-in items-start gap-3">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/beaker.png" alt="" className="mt-0.5 h-9 w-9 shrink-0 object-contain" />
-      <div className="max-w-[88%] rounded-2xl rounded-tl-sm bg-secondary px-4 py-3 text-sm leading-relaxed text-secondary-foreground shadow-sm ring-1 ring-border">
+      <div className="max-w-[92%] px-1 py-1 text-sm leading-relaxed text-foreground">
         {children}
       </div>
     </div>
