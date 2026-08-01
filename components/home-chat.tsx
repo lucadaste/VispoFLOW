@@ -174,7 +174,12 @@ export function HomeChat({
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.map((m, i) =>
             m.role === "assistant" ? (
-              <BotMessage key={i}>{m.content}</BotMessage>
+              <BotMessage
+                key={i}
+                showIcon={messages[i + 1]?.role !== "assistant" && !(i === messages.length - 1 && isTyping)}
+              >
+                {m.content}
+              </BotMessage>
             ) : (
               <UserMessage key={i}>{m.content}</UserMessage>
             ),
