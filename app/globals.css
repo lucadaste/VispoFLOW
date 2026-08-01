@@ -129,17 +129,16 @@
 @keyframes panel-drop-in {
   from {
     opacity: 0;
-    transform: translateY(-6px) scale(0.98);
+    transform: translateY(-100%);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 .animate-panel-drop-in {
-  animation: panel-drop-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top;
+  animation: panel-drop-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes dot-bounce {
