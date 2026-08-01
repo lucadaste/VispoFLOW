@@ -455,10 +455,13 @@ export function TransactionsOnboarding({
     const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
     const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
     setActiveFiling({ item, groupTitle, fieldIndex, values })
-    // Only ask if this exact field's prompt isn't already sitting in the transcript — otherwise
-    // repeated toggling would stack up duplicate copies of the same question.
-    const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === fieldPrompt(item.fields[fieldIndex]))
-    if (!alreadyAsked) promptField(item, groupTitle, fieldIndex)
+    // Only skip asking if this field's prompt is already the most recent bot message — i.e. we're
+    // resuming exactly where chat left off (repeated toggling with nothing else happening in
+    // between). If anything else has happened since (a field got filled via the form, etc.), the
+    // question needs to be shown again even if its exact text appeared earlier for a different
+    // field-visit — otherwise the chat view can look stuck on a stale question after a switch.
+    const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
+    if (lastBotText !== fieldPrompt(item.fields[fieldIndex])) promptField(item, groupTitle, fieldIndex)
   }, [activeFiling, promptField, messages])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same document open — nothing is lost,

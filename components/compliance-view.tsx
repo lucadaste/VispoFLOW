@@ -384,11 +384,21 @@ export function ComplianceView({
   // answer from elsewhere (e.g. the vesting start date set earlier in onboarding), in which
   // case it's treated like any other prefillable value: dropped straight into the chat input
   // as text so accepting it is just hitting Enter, same as text/textarea fields.
+  // The message promptField pushes for `field` — either the normal question, or (if delegated to
+  // someone else) the email-request instead. Used both to actually ask, and by reinitFilingForMode
+  // to tell whether that exact prompt is already the most recent thing shown.
+  const expectedFieldPrompt = (field: ComplianceField, values: Record<string, string>): string => {
+    const delegateTo = delegateRecipient(field, values)
+    return delegateTo
+      ? `That's not you, so I'll ask ${delegateTo} to enter it directly instead — what's their email address?`
+      : fieldPrompt(field)
+  }
+
   const promptField = useCallback(async (item: ComplianceItem, groupTitle: string, fieldIndex: number, values: Record<string, string>, addChoices = true) => {
     const field = item.fields[fieldIndex]
     const delegateTo = delegateRecipient(field, values)
     if (delegateTo) {
-      await pushBotTyped(`That's not you, so I'll ask ${delegateTo} to enter it directly instead — what's their email address?`)
+      await pushBotTyped(expectedFieldPrompt(field, values))
       setValue("")
       return
     }
@@ -603,10 +613,13 @@ export function ComplianceView({
     const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
     const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
     setActiveFiling({ item, groupTitle, fieldIndex, values })
-    // Only ask if this exact field's prompt isn't already sitting in the transcript — otherwise
-    // repeated toggling would stack up duplicate copies of the same question.
-    const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === fieldPrompt(item.fields[fieldIndex]))
-    if (!alreadyAsked) promptField(item, groupTitle, fieldIndex, values)
+    // Only skip asking if this field's prompt is already the most recent bot message — i.e. we're
+    // resuming exactly where chat left off (repeated toggling with nothing else happening in
+    // between). If anything else has happened since (a field got filled via the form, etc.), the
+    // question needs to be shown again even if its exact text appeared earlier for a different
+    // field-visit — otherwise the chat view can look stuck on a stale question after a switch.
+    const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
+    if (lastBotText !== expectedFieldPrompt(item.fields[fieldIndex], values)) promptField(item, groupTitle, fieldIndex, values)
   }, [activeFiling, promptField, messages])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same filing open — nothing is lost,

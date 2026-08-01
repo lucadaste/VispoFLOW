@@ -970,11 +970,13 @@ export function IncorporationApp() {
       setActiveInput(null)
       setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
       // Toggling modes back and forth re-enters chat at the same field every time (nothing to
-      // resume past, since neither mode lifts its in-progress values to the other) — only push
-      // the prompt the first time it's shown, so repeated toggling doesn't stack up duplicates.
+      // resume past, since neither mode lifts its in-progress values to the other). Only skip
+      // pushing the prompt if it's already the most recent bot message — i.e. repeated toggling
+      // with nothing else happening in between — so a real event since then (however unlikely
+      // here) still gets a fresh prompt instead of looking stuck on a stale one.
       const prompt = chatFieldPrompt(decomposed.fields[0])
-      const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === prompt)
-      if (!decomposed.skipFirstPrompt && !alreadyAsked) pushBot(prompt)
+      const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
+      if (!decomposed.skipFirstPrompt && lastBotText !== prompt) pushBot(prompt)
     } else {
       setActiveChatFields(null)
       setActiveInput(step.input)
