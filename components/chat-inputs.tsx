@@ -96,9 +96,71 @@ function SubmitButton({
 }
 
 const fieldClass =
-  "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
+  "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
 
-const labelClass = "mb-1 block text-xs font-medium text-muted-foreground"
+/** Matches the Questionnaire-mode card look used in Transactions/Compliance (see
+ *  TransactionFormCard / FilingFormCard) — header with title/description, fields body, and a
+ *  footer bar with a status line plus the submit action. */
+function StepFormCard({
+  title,
+  description,
+  status,
+  action,
+  children,
+}: {
+  title: string
+  description?: string
+  status?: React.ReactNode
+  action: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+      <div className="border-b border-border bg-secondary/30 px-5 py-4">
+        <h3 className="text-xl font-bold tracking-tight text-foreground">{title}</h3>
+        {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      </div>
+      <div className="space-y-4 px-5 py-5">{children}</div>
+      <div className="flex items-center justify-between border-t border-border bg-secondary/20 px-5 py-3.5">
+        <p className="text-sm text-muted-foreground">{status}</p>
+        {action}
+      </div>
+    </div>
+  )
+}
+
+function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
+        {label}
+        <span className="text-destructive">*</span>
+      </label>
+      {children}
+    </div>
+  )
+}
+
+function CardSubmitButton({
+  children = "Continue",
+  disabled,
+  onClick,
+}: {
+  children?: React.ReactNode
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {children}
+      <ArrowRight className="h-4 w-4" />
+    </button>
+  )
+}
 
 /* ---------- questions ---------- */
 
@@ -202,29 +264,29 @@ function TextInput({
 function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
   const [name, setName] = useState(answers.incorporatorName)
   const [address, setAddress] = useState(answers.incorporatorAddress)
+  const remaining = [name, address].filter((v) => !v.trim()).length
+  const valid = remaining === 0
   const submit = () => {
-    if (!name.trim() || !address.trim()) return
+    if (!valid) return
     onSubmit(`${name}\n${address}`, {
       incorporatorName: name.trim(),
       incorporatorAddress: address.trim(),
     })
   }
   return (
-    <Shell>
-      <div className="space-y-3">
-        <div>
-          <label className={labelClass}>Your full name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Mailing address</label>
-          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
-        </div>
-        <div className="flex justify-end">
-          <SubmitButton onClick={submit} disabled={!name.trim() || !address.trim()} />
-        </div>
-      </div>
-    </Shell>
+    <StepFormCard
+      title="Incorporator"
+      description="You'll be the incorporator who signs the initial filing."
+      status={valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
+      action={<CardSubmitButton onClick={submit} disabled={!valid} />}
+    >
+      <FormField label="Your full name">
+        <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
+      </FormField>
+      <FormField label="Mailing address">
+        <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
+      </FormField>
+    </StepFormCard>
   )
 }
 
@@ -232,22 +294,23 @@ function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubm
 
 function CorpAddressInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
   const [address, setAddress] = useState(answers.corpAddress)
+  const valid = !!address.trim()
   return (
-    <Shell>
-      <div className="space-y-3">
-        <div>
-          <label className={labelClass}>Corporation's principal address</label>
-          <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">No address yet? Buy one in the Compliance Center.</span>
-          <SubmitButton
-            onClick={() => address.trim() && onSubmit(address.trim(), { corpAddress: address.trim() })}
-            disabled={!address.trim()}
-          />
-        </div>
-      </div>
-    </Shell>
+    <StepFormCard
+      title="Corporate Address"
+      description="The corporation's principal address. No address yet? Buy one in the Compliance Center."
+      status={valid ? "All fields complete." : "1 required field remaining."}
+      action={
+        <CardSubmitButton
+          onClick={() => valid && onSubmit(address.trim(), { corpAddress: address.trim() })}
+          disabled={!valid}
+        />
+      }
+    >
+      <FormField label="Principal address">
+        <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
+      </FormField>
+    </StepFormCard>
   )
 }
 
@@ -359,25 +422,25 @@ function DirectorNamesInput({ answers, onSubmit }: { answers: FlowAnswers; onSub
     Array.from({ length: answers.directorCount }, (_, i) => KNOWN_FOUNDERS[i] ?? ""),
   )
   const update = (i: number, v: string) => setNames((arr) => arr.map((n, idx) => (idx === i ? v : n)))
-  const valid = names.every((n) => n.trim())
+  const remaining = names.filter((n) => !n.trim()).length
+  const valid = remaining === 0
   const submit = () => {
     const clean = names.map((n) => n.trim())
     onSubmit(clean.join("\n"), { directors: clean, foundersList: clean.join(" & ") })
   }
   return (
-    <Shell>
-      <div className="space-y-2.5">
-        {names.map((n, i) => (
-          <div key={i}>
-            <label className={labelClass}>Director {i + 1}</label>
-            <input value={n} onChange={(e) => update(i, e.target.value)} className={fieldClass} />
-          </div>
-        ))}
-        <div className="flex justify-end pt-1">
-          <SubmitButton onClick={submit} disabled={!valid} />
-        </div>
-      </div>
-    </Shell>
+    <StepFormCard
+      title="Director Names"
+      description="One name per director."
+      status={valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
+      action={<CardSubmitButton onClick={submit} disabled={!valid} />}
+    >
+      {names.map((n, i) => (
+        <FormField key={i} label={`Director ${i + 1}`}>
+          <input value={n} onChange={(e) => update(i, e.target.value)} className={fieldClass} />
+        </FormField>
+      ))}
+    </StepFormCard>
   )
 }
 
@@ -399,46 +462,26 @@ function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: 
   ])
   const update = (i: number, v: string) =>
     setOfficers((arr) => arr.map((o, idx) => (idx === i ? { ...o, name: v } : o)))
-  const valid = officers.every((o) => o.name.trim())
+  const remaining = officers.filter((o) => !o.name.trim()).length
+  const valid = remaining === 0
   const submit = () =>
     onSubmit(
       officers.map((o) => `${o.title} — ${o.name.trim()}`).join("\n"),
       { officers: officers.map((o) => ({ ...o, name: o.name.trim() })) },
     )
   return (
-    <Shell>
-      <div className="space-y-2">
-        <div className="grid grid-cols-[90px_1fr] gap-x-3 gap-y-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Title</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Officer name</span>
-          {officers.map((o, i) => (
-            <FragmentRow key={o.title} title={o.title} value={o.name} onChange={(v) => update(i, v)} />
-          ))}
-        </div>
-        <div className="flex justify-end pt-1">
-          <SubmitButton onClick={submit} disabled={!valid} />
-        </div>
-      </div>
-    </Shell>
-  )
-}
-
-function FragmentRow({
-  title,
-  value,
-  onChange,
-}: {
-  title: string
-  value: string
-  onChange: (v: string) => void
-}) {
-  return (
-    <>
-      <div className="flex items-center rounded-lg bg-secondary px-2.5 text-sm font-medium text-secondary-foreground">
-        {title}
-      </div>
-      <input value={value} onChange={(e) => onChange(e.target.value)} className={fieldClass} />
-    </>
+    <StepFormCard
+      title="Company Officers"
+      description="Typically a CEO, CFO, and Secretary — one person can hold all roles."
+      status={valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
+      action={<CardSubmitButton onClick={submit} disabled={!valid} />}
+    >
+      {officers.map((o, i) => (
+        <FormField key={o.title} label={o.title}>
+          <input value={o.name} onChange={(e) => update(i, e.target.value)} className={fieldClass} />
+        </FormField>
+      ))}
+    </StepFormCard>
   )
 }
 
@@ -478,56 +521,46 @@ function AllocationsInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmi
     return ((shares / AUTHORIZED_SHARES) * 100).toFixed(1).replace(/\.0$/, "")
   }
 
+  const statusText =
+    remaining === 0
+      ? "Fully allocated."
+      : remaining > 0
+        ? `${remaining.toLocaleString()} shares unallocated.`
+        : `${Math.abs(remaining).toLocaleString()} shares over-allocated.`
+
   return (
-    <Shell>
-      <div className="space-y-2">
-        <div className="grid grid-cols-[1fr_120px_56px] items-center gap-x-3 gap-y-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Holder</span>
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shares</span>
-          <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">%</span>
-          {rows.map((r, i) => (
-            <div key={r.name} className="contents">
-              <div
-                className={cn(
-                  "flex items-center rounded-lg px-2.5 py-2 text-sm font-medium",
-                  r.isPool ? "bg-accent/15 text-accent-foreground" : "bg-secondary text-secondary-foreground",
-                )}
-              >
-                {r.name}
-              </div>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={r.shares.toLocaleString()}
-                onChange={(e) => update(i, Math.max(0, Math.floor(parseNumberInput(formatNumberInput(e.target.value)))))}
-                className={cn(fieldClass, "tabular-nums")}
-              />
-              <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(r.shares)}%</span>
+    <StepFormCard
+      title="Stock Allocations"
+      description={`Set founder and option pool shares out of ${AUTHORIZED_SHARES.toLocaleString()} authorized.`}
+      status={statusText}
+      action={<CardSubmitButton onClick={submit} disabled={!valid} />}
+    >
+      <div className="grid grid-cols-[1fr_120px_56px] items-center gap-x-3 gap-y-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Holder</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shares</span>
+        <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">%</span>
+        {rows.map((r, i) => (
+          <div key={r.name} className="contents">
+            <div
+              className={cn(
+                "flex items-center rounded-lg px-2.5 py-2 text-sm font-medium",
+                r.isPool ? "bg-accent/15 text-accent-foreground" : "bg-secondary text-secondary-foreground",
+              )}
+            >
+              {r.name}
             </div>
-          ))}
-        </div>
-
-        <div
-          className={cn(
-            "flex items-center justify-between rounded-lg px-3 py-2 text-xs",
-            valid ? "bg-success/10 text-success" : "bg-muted text-muted-foreground",
-          )}
-        >
-          <span>{AUTHORIZED_SHARES.toLocaleString()} authorized shares</span>
-          <span className="font-medium">
-            {remaining === 0
-              ? "Fully allocated"
-              : remaining > 0
-                ? `${remaining.toLocaleString()} unallocated`
-                : `${Math.abs(remaining).toLocaleString()} over-allocated`}
-          </span>
-        </div>
-
-        <div className="flex justify-end pt-1">
-          <SubmitButton onClick={submit} disabled={!valid} />
-        </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={r.shares.toLocaleString()}
+              onChange={(e) => update(i, Math.max(0, Math.floor(parseNumberInput(formatNumberInput(e.target.value)))))}
+              className={cn(fieldClass, "tabular-nums")}
+            />
+            <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(r.shares)}%</span>
+          </div>
+        ))}
       </div>
-    </Shell>
+    </StepFormCard>
   )
 }
 
@@ -557,56 +590,54 @@ function VestingInput({ onSubmit }: { onSubmit: SubmitFn }) {
   }
 
   return (
-    <Shell>
-      <div className="space-y-2.5">
-        <button
-          onClick={() => setChoice("default")}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
-            choice === "default" ? "border-primary bg-primary/5" : "border-border hover:bg-secondary",
-          )}
-        >
-          <Radio active={choice === "default"} />
-          <div>
-            <p className="text-sm font-medium text-foreground">Incorporation date</p>
-            <p className="text-xs text-muted-foreground">Recommended default</p>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setChoice("earlier")}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
-            choice === "earlier" ? "border-primary bg-primary/5" : "border-border hover:bg-secondary",
-          )}
-        >
-          <Radio active={choice === "earlier"} />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">Earlier date</p>
-            <p className="text-xs text-muted-foreground">If you were already working on the project</p>
-          </div>
-          {choice === "earlier" && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1">
-              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="date"
-                value={date}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => {
-                  e.stopPropagation()
-                  setDate(e.target.value)
-                }}
-                className="bg-transparent text-sm text-foreground outline-none"
-              />
-            </div>
-          )}
-        </button>
-
-        <div className="flex justify-end pt-1">
-          <SubmitButton onClick={submit}>Confirm</SubmitButton>
+    <StepFormCard
+      title="Vesting Start Date"
+      description="4-year vesting with a 1-year cliff, starting when a founder began contributing."
+      action={<CardSubmitButton onClick={submit}>Confirm</CardSubmitButton>}
+    >
+      <button
+        onClick={() => setChoice("default")}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+          choice === "default" ? "border-primary bg-primary/5" : "border-border hover:bg-secondary",
+        )}
+      >
+        <Radio active={choice === "default"} />
+        <div>
+          <p className="text-sm font-medium text-foreground">Incorporation date</p>
+          <p className="text-xs text-muted-foreground">Recommended default</p>
         </div>
-      </div>
-    </Shell>
+      </button>
+
+      <button
+        onClick={() => setChoice("earlier")}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+          choice === "earlier" ? "border-primary bg-primary/5" : "border-border hover:bg-secondary",
+        )}
+      >
+        <Radio active={choice === "earlier"} />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-foreground">Earlier date</p>
+          <p className="text-xs text-muted-foreground">If you were already working on the project</p>
+        </div>
+        {choice === "earlier" && (
+          <div className="flex items-center gap-1.5 rounded-lg border border-input bg-background px-2 py-1">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="date"
+              value={date}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                e.stopPropagation()
+                setDate(e.target.value)
+              }}
+              className="bg-transparent text-sm text-foreground outline-none"
+            />
+          </div>
+        )}
+      </button>
+    </StepFormCard>
   )
 }
 

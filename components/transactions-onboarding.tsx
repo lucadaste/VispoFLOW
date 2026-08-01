@@ -449,8 +449,11 @@ export function TransactionsOnboarding({
     const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
     const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
     setActiveFiling({ item, groupTitle, fieldIndex, values })
-    promptField(item, groupTitle, fieldIndex)
-  }, [activeFiling, promptField])
+    // Only ask if this exact field's prompt isn't already sitting in the transcript — otherwise
+    // repeated toggling would stack up duplicate copies of the same question.
+    const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === fieldPrompt(item.fields[fieldIndex]))
+    if (!alreadyAsked) promptField(item, groupTitle, fieldIndex)
+  }, [activeFiling, promptField, messages])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same document open — nothing is lost,
   // so this just swaps which mode renders the current question (see reinitFilingForMode).

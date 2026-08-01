@@ -963,12 +963,17 @@ export function IncorporationApp() {
     if (decomposed) {
       setActiveInput(null)
       setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
-      if (!decomposed.skipFirstPrompt) pushBot(chatFieldPrompt(decomposed.fields[0]))
+      // Toggling modes back and forth re-enters chat at the same field every time (nothing to
+      // resume past, since neither mode lifts its in-progress values to the other) — only push
+      // the prompt the first time it's shown, so repeated toggling doesn't stack up duplicates.
+      const prompt = chatFieldPrompt(decomposed.fields[0])
+      const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === prompt)
+      if (!decomposed.skipFirstPrompt && !alreadyAsked) pushBot(prompt)
     } else {
       setActiveChatFields(null)
       setActiveInput(step.input)
     }
-  }, [activeStepIndex, pushBot])
+  }, [activeStepIndex, pushBot, messages])
 
   // Switching Chat/Questionnaire mode mid-step discards answers already stepped past in the
   // chat-field sequence, so confirm first when there's real progress to lose. Nothing is lost
