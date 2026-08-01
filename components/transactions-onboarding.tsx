@@ -541,15 +541,6 @@ export function TransactionsOnboarding({
                 </button>
               </div>
             </div>
-            <button
-              onClick={startNewChat}
-              disabled={!!activeItemId}
-              title={activeItemId ? "Finish or abandon the current document before starting a new chat" : "Start a new chat — your progress and documents are kept"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">New chat</span>
-            </button>
           </div>
           {/* ── Mobile sidebar triggers — stacked here instead of floating over the chat, so ── */}
           {/*    they never sit on top of the messages. */}
@@ -682,38 +673,49 @@ export function TransactionsOnboarding({
 
         {/* ── Input bar ── */}
         <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
-            {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
-              <FieldComposer
-                key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
-                field={activeFiling.item.fields[activeFiling.fieldIndex]}
-                initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex])}
-                onSubmit={handleFieldInput}
-              />
-            ) : (
-              <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-                <input
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder={
-                    activeFiling && inputMode === "chat"
-                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                        ? "Type an answer, or press Enter to skip…"
-                        : "Type your answer, or ask a question…"
-                      : "Feel free to ask any questions…"
-                  }
-                  className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+          <div className="mx-auto flex max-w-2xl items-end gap-2">
+            <button
+              onClick={startNewChat}
+              disabled={!!activeItemId}
+              title={activeItemId ? "Finish or abandon the current document before starting a new chat" : "Start a new chat — your progress and documents are kept"}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New chat</span>
+            </button>
+            <div className="flex-1">
+              {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "date" && activeFiling.item.fields[activeFiling.fieldIndex].type !== "select" ? (
+                <FieldComposer
+                  key={`${activeFiling.item.id}-${activeFiling.fieldIndex}`}
+                  field={activeFiling.item.fields[activeFiling.fieldIndex]}
+                  initialValue={prefill(activeFiling.item.fields[activeFiling.fieldIndex])}
+                  onSubmit={handleFieldInput}
                 />
-                <button
-                  onClick={handleSend}
-                  disabled={!value.trim() && !(activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
-                >
-                  Send <Send className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+                  <input
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder={
+                      activeFiling && inputMode === "chat"
+                        ? activeFiling.item.fields[activeFiling.fieldIndex].optional
+                          ? "Type an answer, or press Enter to skip…"
+                          : "Type your answer, or ask a question…"
+                        : "Feel free to ask any questions…"
+                    }
+                    className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!value.trim() && !(activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
+                  >
+                    Send <Send className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

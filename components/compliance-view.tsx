@@ -680,34 +680,24 @@ export function ComplianceView({
           <div className="flex items-center gap-3">
             <div className="mx-auto flex max-w-2xl flex-1 flex-wrap items-center justify-between gap-3">
               <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
-              <div className="flex items-center gap-2">
-                <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
-                  <button
-                    onClick={() => requestSetInputMode("chat")}
-                    className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
-                      inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Chat
-                  </button>
-                  <button
-                    onClick={() => requestSetInputMode("form")}
-                    className={cn(
-                      "rounded-full px-3 py-1 font-medium transition-colors",
-                      inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    Questionnaire
-                  </button>
-                </div>
+              <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                 <button
-                  onClick={requestNewChat}
-                  title={activeItemId ? "Start a new chat — this will abandon the filing you're currently working on" : "Start a new chat — your progress and documents are kept"}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  onClick={() => requestSetInputMode("chat")}
+                  className={cn(
+                    "rounded-full px-3 py-1 font-medium transition-colors",
+                    inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <MessageSquarePlus className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">New chat</span>
+                  Chat
+                </button>
+                <button
+                  onClick={() => requestSetInputMode("form")}
+                  className={cn(
+                    "rounded-full px-3 py-1 font-medium transition-colors",
+                    inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Questionnaire
                 </button>
               </div>
             </div>
@@ -837,8 +827,16 @@ export function ComplianceView({
 
         {/* ── Input bar ── */}
         <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl">
-            <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
+          <div className="mx-auto flex max-w-2xl items-end gap-2">
+            <button
+              onClick={requestNewChat}
+              title={activeItemId ? "Start a new chat — this will abandon the filing you're currently working on" : "Start a new chat — your progress and documents are kept"}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary sm:px-3"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New chat</span>
+            </button>
+            <div className="flex flex-1 items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
               {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type === "address" ? (
                 <div className="flex-1">
                   <AddressAutocomplete
