@@ -139,7 +139,7 @@ Must be submitted together with a current Certificate of Good Standing issued by
 ${v.companyName}
 
 2. Jurisdiction (state, foreign country, or place where this corporation is formed — must match the Certificate of Good Standing provided)
-${v.stateOfIncorp}
+Delaware
 
 3. Business addresses
    a. Principal executive office (do not enter a P.O. box)

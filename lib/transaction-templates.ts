@@ -141,7 +141,7 @@ ${v.companyName}
 SAFE
 (Simple Agreement for Future Equity)
 
-THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a ${v.stateOfIncorporation} corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
+THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a Delaware corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
 
 This Safe is one of the forms available at http://ycombinator.com/documents and the Company and the Investor agree that neither one has modified the form, except to fill in blanks and bracketed terms.
 
@@ -276,7 +276,7 @@ ${v.companyName}
 SAFE
 (Simple Agreement for Future Equity)
 
-THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a ${v.stateOfIncorporation} corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
+THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a Delaware corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
 
 This Safe is one of the forms available at http://ycombinator.com/documents and the Company and the Investor agree that neither one has modified the form, except to fill in blanks and bracketed terms.
 
@@ -382,7 +382,7 @@ ${v.companyName}
 SAFE
 (Simple Agreement for Future Equity)
 
-THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a ${v.stateOfIncorporation} corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
+THIS CERTIFIES THAT in exchange for the payment by ${v.investorName} (the "Investor") of $${v.purchaseAmount} (the "Purchase Amount") on or about ${formatDate(v.date)}, ${v.companyName}, a Delaware corporation (the "Company"), issues to the Investor the right to certain shares of the Company's Capital Stock, subject to the terms described below.
 
 This Safe is one of the forms available at http://ycombinator.com/documents and the Company and the Investor agree that neither one has modified the form, except to fill in blanks and bracketed terms.
 
@@ -1755,7 +1755,7 @@ Terms and Conditions; Price`
 function saasResellerAgreement(v: Record<string, string>): string {
   return `RESELLER AGREEMENT
 
-This RESELLER AGREEMENT (the "Agreement") is entered into as of ${formatDate(v.effectiveDate)} (the "Effective Date") by and between ${v.companyName}, a ${v.companyStateOfIncorporation} corporation with its principal place of business at ${v.companyAddress} ("Company"), and ${v.resellerName}, a ${v.resellerStateOfIncorporation} corporation with its principal place of business at ${v.resellerAddress} ("Reseller").
+This RESELLER AGREEMENT (the "Agreement") is entered into as of ${formatDate(v.effectiveDate)} (the "Effective Date") by and between ${v.companyName}, a Delaware corporation with its principal place of business at ${v.companyAddress} ("Company"), and ${v.resellerName}, a ${v.resellerStateOfIncorporation} corporation with its principal place of business at ${v.resellerAddress} ("Reseller").
 
 RECITALS
 

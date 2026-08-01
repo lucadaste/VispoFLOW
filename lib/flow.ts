@@ -251,7 +251,6 @@ const CA_QUALIFICATION: ComplianceItem = {
   deadline: "Before transacting business in CA",
   fields: [
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
-    { name: "stateOfIncorp", label: "State of incorporation", question: "Which state is the company incorporated in?", placeholder: "e.g. Delaware" },
     { name: "principalAddress", label: "Principal business address", question: "What's the company's principal business address?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "caAddress", label: "California office address (if any)", question: "Does the company have a California office address? If so, what is it?", type: "address", optional: true },
     { name: "ceoName", label: "Chief executive officer name", question: "Who's the CEO?", prefillKey: "incorporatorName" },
@@ -544,7 +543,6 @@ const SAFE_CAP: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "valuationCap", label: "Post-money valuation cap", type: "number", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
@@ -560,7 +558,6 @@ const SAFE_MFN: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", shared: true },
@@ -575,7 +572,6 @@ const SAFE_DISCOUNT: TransactionItem = {
   fields: [
     { name: "date", label: "Date of SAFE", type: "date", question: "What's the date of this SAFE?" },
     companyNameField,
-    { name: "stateOfIncorporation", label: "State of incorporation", question: "What state is the company incorporated in?", placeholder: "e.g. Delaware", shared: true },
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     {
@@ -1022,7 +1018,6 @@ const SAAS_RESELLER_AGREEMENT: TransactionItem = {
   fields: [
     companyNameField,
     { name: "effectiveDate", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
-    { name: "companyStateOfIncorporation", label: "Company's state of incorporation", placeholder: "e.g. Delaware" },
     { name: "companyAddress", label: "Company's principal place of business", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
     { name: "resellerName", label: "Reseller's full legal name", placeholder: "e.g. Acme Reseller, Inc." },
     { name: "resellerStateOfIncorporation", label: "Reseller's state of incorporation", placeholder: "e.g. California" },
