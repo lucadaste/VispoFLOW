@@ -29,7 +29,7 @@ import {
   TypingIndicator,
 } from "@/components/chat-message"
 import { FormedCard } from "@/components/formed-card"
-import { ChatInput } from "@/components/chat-inputs"
+import { ChatInput, isFormCardInput } from "@/components/chat-inputs"
 import { FieldComposer } from "@/components/field-composer"
 import { DocumentTracker, DocumentTrackerEmpty } from "@/components/document-tracker"
 import { STEPS, type StepInput } from "@/lib/steps"
@@ -114,7 +114,6 @@ type ActiveChatFields = {
   input: StepInput
   fields: ChatField[]
   fieldIndex: number
-  values: Record<string, string>
 }
 
 type IncorporationPersisted = {
@@ -126,6 +125,9 @@ type IncorporationPersisted = {
   activeStepIndex: number
   activeInput: StepInput | null
   activeChatFields?: ActiveChatFields | null
+  /** In-progress, unsubmitted answers for the current step, shared by both Chat and Questionnaire
+   *  mode so switching between them mid-step resumes instead of discarding — see requestSetInputMode. */
+  activeStepValues?: Record<string, string> | null
   inputMode?: "chat" | "form"
 }
 
@@ -220,6 +222,7 @@ export function IncorporationApp() {
   const effectiveAnswers = profile.autofillEnabled ? mergeProfileIntoAnswers(answers, profile) : answers
   const [activeInput, setActiveInput] = useState<StepInput | null>(null)
   const [activeChatFields, setActiveChatFields] = useState<ActiveChatFields | null>(null)
+  const [activeStepValues, setActiveStepValues] = useState<Record<string, string> | null>(null)
   const [inputMode, setInputMode] = useState<"chat" | "form">("chat")
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0)
   const [isTyping, setIsTyping] = useState(false)
@@ -243,7 +246,6 @@ export function IncorporationApp() {
   const [infoRequests, setInfoRequests] = useState<InfoRequest[]>([])
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [incorporationRestartConfirm, setIncorporationRestartConfirm] = useState(false)
-  const [modeSwitchConfirm, setModeSwitchConfirm] = useState<"chat" | "form" | null>(null)
   // Gate the "save" effects below on these (state, not refs) so a save can never fire
   // with the pre-load initial values — see the comment on the library save effect.
   const [libraryLoaded, setLibraryLoaded] = useState(false)
@@ -743,6 +745,9 @@ export function IncorporationApp() {
       setActiveStepIndex(index)
       setActiveInput(null)
       setActiveChatFields(null)
+      // A new step has no prior progress to preserve — always start it fresh, whichever mode
+      // renders it (see requestSetInputMode for the mid-step, cross-mode resume case).
+      setActiveStepValues(null)
 
       for (const msg of step.messages) {
         await pushBot(msg)
@@ -754,9 +759,10 @@ export function IncorporationApp() {
       }
 
       if (step.input && !step.autoAdvance) {
-        const decomposed = inputMode === "chat" ? getChatFields(step.input, effectiveAnswersRef.current) : null
-        if (decomposed) {
-          setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
+        const decomposed = getChatFields(step.input, effectiveAnswersRef.current)
+        if (decomposed) setActiveStepValues(decomposed.defaults)
+        if (inputMode === "chat" && decomposed) {
+          setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0 })
           if (!decomposed.skipFirstPrompt) {
             await pushBot(chatFieldPrompt(decomposed.fields[0]))
           }
@@ -782,6 +788,7 @@ export function IncorporationApp() {
     setActiveStepIndex(saved.activeStepIndex)
     setActiveInput(saved.activeInput)
     setActiveChatFields(saved.activeChatFields ?? null)
+    setActiveStepValues(saved.activeStepValues ?? null)
     setInputMode(saved.inputMode ?? "chat")
   }, [])
 
@@ -830,6 +837,7 @@ export function IncorporationApp() {
       activeStepIndex,
       activeInput,
       activeChatFields,
+      activeStepValues,
       inputMode,
     }
     savePersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation, snapshot)
@@ -842,6 +850,7 @@ export function IncorporationApp() {
     activeStepIndex,
     activeInput,
     activeChatFields,
+    activeStepValues,
     inputMode,
     isSignedIn,
     incorporationHydrated,
@@ -916,16 +925,17 @@ export function IncorporationApp() {
   const handleChatFieldSubmit = useCallback(
     async (raw: string) => {
       if (!activeChatFields) return
-      const { input, fields, fieldIndex, values } = activeChatFields
+      const { input, fields, fieldIndex } = activeChatFields
       const field = fields[fieldIndex]
       const val = raw.trim()
       if (!field.optional && !val) return
       pushUser(val || "Skipped")
       await delay(250)
-      const nextValues = { ...values, [field.name]: val }
+      const nextValues = { ...(activeStepValues ?? {}), [field.name]: val }
+      setActiveStepValues(nextValues)
       const nextIndex = fieldIndex + 1
       if (nextIndex < fields.length) {
-        setActiveChatFields({ input, fields, fieldIndex: nextIndex, values: nextValues })
+        setActiveChatFields({ input, fields, fieldIndex: nextIndex })
         await pushBot(chatFieldPrompt(fields[nextIndex]))
       } else {
         setActiveChatFields(null)
@@ -934,7 +944,7 @@ export function IncorporationApp() {
         await handleSubmit("", patch)
       }
     },
-    [activeChatFields, pushUser, pushBot, handleSubmit],
+    [activeChatFields, activeStepValues, pushUser, pushBot, handleSubmit],
   )
 
   // What's typed might be a genuine question rather than an answer — in which case explain
@@ -957,7 +967,9 @@ export function IncorporationApp() {
 
   // Re-renders the current step's input under a newly selected mode, without replaying the
   // step's intro messages (those already happened) — used when switching Chat/Questionnaire
-  // mid-step, as opposed to `playStep`, which is only for advancing to a new step.
+  // mid-step, as opposed to `playStep`, which is only for advancing to a new step. Both modes
+  // read/write the same activeStepValues, so this never discards progress — it just picks up
+  // at the equivalent point (mirrors compliance-view.tsx's reinitFilingForMode).
   const reinitStepForMode = useCallback((mode: "chat" | "form") => {
     const step = STEPS[activeStepIndex]
     if (!step?.input || step.autoAdvance) {
@@ -965,38 +977,38 @@ export function IncorporationApp() {
       setActiveChatFields(null)
       return
     }
-    const decomposed = mode === "chat" ? getChatFields(step.input, effectiveAnswersRef.current) : null
-    if (decomposed) {
-      setActiveInput(null)
-      setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0, values: decomposed.defaults })
-      // Toggling modes back and forth re-enters chat at the same field every time (nothing to
-      // resume past, since neither mode lifts its in-progress values to the other). Only skip
-      // pushing the prompt if it's already the most recent bot message — i.e. repeated toggling
-      // with nothing else happening in between — so a real event since then (however unlikely
-      // here) still gets a fresh prompt instead of looking stuck on a stale one.
-      const prompt = chatFieldPrompt(decomposed.fields[0])
-      const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
-      if (!decomposed.skipFirstPrompt && lastBotText !== prompt) pushBot(prompt)
-    } else {
+    const decomposed = getChatFields(step.input, effectiveAnswersRef.current)
+    if (!decomposed) {
       setActiveChatFields(null)
       setActiveInput(step.input)
-    }
-  }, [activeStepIndex, pushBot, messages])
-
-  // Switching Chat/Questionnaire mode mid-step discards answers already stepped past in the
-  // chat-field sequence, so confirm first when there's real progress to lose. Nothing is lost
-  // switching away from an unstarted or form-mode step, so those switch immediately.
-  const requestSetInputMode = useCallback((target: "chat" | "form") => {
-    if (target === inputMode) return
-    const hasProgress = inputMode === "chat" && !!activeChatFields && activeChatFields.fieldIndex > 0
-    if (!hasProgress) {
-      setInputMode(target)
-      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-      reinitStepForMode(target)
       return
     }
-    setModeSwitchConfirm(target)
-  }, [inputMode, activeChatFields, pushNote, reinitStepForMode])
+    const currentValues = activeStepValues ?? decomposed.defaults
+    setActiveStepValues(currentValues)
+    if (mode === "form") {
+      setActiveChatFields(null)
+      setActiveInput(step.input)
+      return
+    }
+    setActiveInput(null)
+    // Resume at the first still-empty required field rather than restarting at 0 — whatever was
+    // answered already (in either mode) stays answered. Only push the prompt if it's not already
+    // the most recent bot message, so repeated toggling with nothing else happening in between
+    // doesn't stack up duplicate questions.
+    const nextEmpty = decomposed.fields.findIndex((f) => !f.optional && !currentValues[f.name]?.trim())
+    const fieldIndex = nextEmpty === -1 ? decomposed.fields.length - 1 : nextEmpty
+    setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex })
+    const prompt = chatFieldPrompt(decomposed.fields[fieldIndex])
+    const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
+    if (lastBotText !== prompt) pushBot(prompt)
+  }, [activeStepIndex, activeStepValues, pushBot, messages])
+
+  const requestSetInputMode = useCallback((target: "chat" | "form") => {
+    if (target === inputMode) return
+    setInputMode(target)
+    pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
+    reinitStepForMode(target)
+  }, [inputMode, pushNote, reinitStepForMode])
 
   const restartFormation = () => {
     startedRef.current = false
@@ -1007,6 +1019,7 @@ export function IncorporationApp() {
     setAnswers(initialAnswers)
     setActiveInput(null)
     setActiveChatFields(null)
+    setActiveStepValues(null)
     setActiveStepIndex(0)
     setIsTyping(false)
     setView("chat")
@@ -1169,6 +1182,15 @@ export function IncorporationApp() {
                     return null
                   })}
                   {isTyping && <TypingIndicator />}
+                  {!isTyping && activeInput && isFormCardInput(activeInput) && (
+                    <ChatInput
+                      input={activeInput}
+                      answers={effectiveAnswers}
+                      onSubmit={handleSubmit}
+                      values={activeStepValues ?? undefined}
+                      onValuesChange={setActiveStepValues}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1205,18 +1227,26 @@ export function IncorporationApp() {
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Restart</span>
                   </button>
-                  <div className="flex-1">
-                    {activeChatFields ? (
-                      <FieldComposer
-                        key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
-                        field={activeChatFields.fields[activeChatFields.fieldIndex]}
-                        initialValue={activeChatFields.values[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
-                        onSubmit={handleChatFieldInput}
-                      />
-                    ) : (
-                      <ChatInput input={activeInput!} answers={effectiveAnswers} onSubmit={handleSubmit} />
-                    )}
-                  </div>
+                  {!(activeInput && isFormCardInput(activeInput)) && (
+                    <div className="flex-1">
+                      {inputMode === "chat" && activeChatFields ? (
+                        <FieldComposer
+                          key={`${activeStepIndex}-${activeChatFields.fieldIndex}`}
+                          field={activeChatFields.fields[activeChatFields.fieldIndex]}
+                          initialValue={(activeStepValues ?? {})[activeChatFields.fields[activeChatFields.fieldIndex].name] ?? ""}
+                          onSubmit={handleChatFieldInput}
+                        />
+                      ) : (
+                        <ChatInput
+                          input={activeInput!}
+                          answers={effectiveAnswers}
+                          onSubmit={handleSubmit}
+                          values={activeStepValues ?? undefined}
+                          onValuesChange={setActiveStepValues}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1310,22 +1340,6 @@ export function IncorporationApp() {
             restartFormation()
           }}
           onCancel={() => setIncorporationRestartConfirm(false)}
-        />
-      )}
-
-      {modeSwitchConfirm && (
-        <ConfirmModal
-          title="Switch modes and restart this step?"
-          description={`Switching to ${modeLabel(modeSwitchConfirm)} mode will restart this step and discard the answers you've entered for it so far.`}
-          confirmLabel="Restart & switch"
-          onConfirm={() => {
-            const target = modeSwitchConfirm
-            setModeSwitchConfirm(null)
-            setInputMode(target)
-            pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-            reinitStepForMode(target)
-          }}
-          onCancel={() => setModeSwitchConfirm(null)}
         />
       )}
     </div>

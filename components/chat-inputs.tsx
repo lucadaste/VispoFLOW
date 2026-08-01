@@ -13,29 +13,50 @@ import {
   ExternalLink,
 } from "lucide-react"
 import type { StepInput } from "@/lib/steps"
-import {
-  type FlowAnswers,
-  type Officer,
-  type Allocation,
-  AUTHORIZED_SHARES,
-} from "@/lib/flow"
+import { type FlowAnswers, AUTHORIZED_SHARES } from "@/lib/flow"
 import { AddressAutocomplete } from "@/components/address-autocomplete"
 import { cn } from "@/lib/utils"
 import { formatNumberInput, parseNumberInput } from "@/lib/number-format"
-
-const KNOWN_FOUNDERS: string[] = []
+import { assembleChatAnswers } from "@/lib/incorporation-chat-fields"
 
 type SubmitFn = (displayText: string, patch: Partial<FlowAnswers>) => void
+
+/** Kinds rendered as a full StepFormCard (see below) rather than a slim footer-bar widget —
+ *  these belong inline in the chat flow like FilingFormCard/TransactionFormCard on the other
+ *  two pages, not squeezed into the input bar. */
+const FORM_CARD_KINDS = new Set<StepInput["kind"]>([
+  "incorporator",
+  "corpAddress",
+  "directorNames",
+  "officers",
+  "allocations",
+  "vesting",
+])
+
+export function isFormCardInput(input: StepInput): boolean {
+  return FORM_CARD_KINDS.has(input.kind)
+}
+
+/** Shared step-in-progress values for the 4 step kinds that also decompose into one-at-a-time
+ *  chat questions (see lib/incorporation-chat-fields.ts's getChatFields) — keeping both modes'
+ *  widgets controlled off the same values, keyed the same way, is what lets switching modes
+ *  mid-step resume instead of losing progress. Every other kind ignores these two props. */
+type SharedValuesProps = {
+  values?: Record<string, string>
+  onValuesChange?: (values: Record<string, string>) => void
+}
 
 export function ChatInput({
   input,
   answers,
   onSubmit,
+  values,
+  onValuesChange,
 }: {
   input: StepInput
   answers: FlowAnswers
   onSubmit: SubmitFn
-}) {
+} & SharedValuesProps) {
   switch (input.kind) {
     case "start":
       return <StartInput onSubmit={onSubmit} />
@@ -44,7 +65,9 @@ export function ChatInput({
     case "text":
       return <TextInput input={input} answers={answers} onSubmit={onSubmit} />
     case "incorporator":
-      return <IncorporatorInput answers={answers} onSubmit={onSubmit} />
+      return (
+        <IncorporatorInput input={input} answers={answers} values={values ?? {}} onValuesChange={onValuesChange!} onSubmit={onSubmit} />
+      )
     case "paywall":
       return <PaywallInput onSubmit={onSubmit} />
     case "corpAddress":
@@ -52,11 +75,17 @@ export function ChatInput({
     case "directorCount":
       return <DirectorCountInput onSubmit={onSubmit} />
     case "directorNames":
-      return <DirectorNamesInput answers={answers} onSubmit={onSubmit} />
+      return (
+        <DirectorNamesInput input={input} answers={answers} values={values ?? {}} onValuesChange={onValuesChange!} onSubmit={onSubmit} />
+      )
     case "officers":
-      return <OfficersInput answers={answers} onSubmit={onSubmit} />
+      return (
+        <OfficersInput input={input} answers={answers} values={values ?? {}} onValuesChange={onValuesChange!} onSubmit={onSubmit} />
+      )
     case "allocations":
-      return <AllocationsInput answers={answers} onSubmit={onSubmit} />
+      return (
+        <AllocationsInput input={input} answers={answers} values={values ?? {}} onValuesChange={onValuesChange!} onSubmit={onSubmit} />
+      )
     case "vesting":
       return <VestingInput onSubmit={onSubmit} />
     case "continue":
@@ -261,17 +290,26 @@ function TextInput({
 
 /* ---------- incorporator ---------- */
 
-function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
-  const [name, setName] = useState(answers.incorporatorName)
-  const [address, setAddress] = useState(answers.incorporatorAddress)
+function IncorporatorInput({
+  input,
+  answers,
+  values,
+  onValuesChange,
+  onSubmit,
+}: {
+  input: Extract<StepInput, { kind: "incorporator" }>
+  answers: FlowAnswers
+  values: Record<string, string>
+  onValuesChange: (values: Record<string, string>) => void
+  onSubmit: SubmitFn
+}) {
+  const name = values.incorporatorName ?? ""
+  const address = values.incorporatorAddress ?? ""
   const remaining = [name, address].filter((v) => !v.trim()).length
   const valid = remaining === 0
   const submit = () => {
     if (!valid) return
-    onSubmit(`${name}\n${address}`, {
-      incorporatorName: name.trim(),
-      incorporatorAddress: address.trim(),
-    })
+    onSubmit(`${name}\n${address}`, assembleChatAnswers(input, values, answers).patch)
   }
   return (
     <StepFormCard
@@ -281,10 +319,10 @@ function IncorporatorInput({ answers, onSubmit }: { answers: FlowAnswers; onSubm
       action={<CardSubmitButton onClick={submit} disabled={!valid} />}
     >
       <FormField label="Your full name">
-        <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
+        <input value={name} onChange={(e) => onValuesChange({ ...values, incorporatorName: e.target.value })} className={fieldClass} />
       </FormField>
       <FormField label="Mailing address">
-        <AddressAutocomplete value={address} onChange={setAddress} className={fieldClass} />
+        <AddressAutocomplete value={address} onChange={(v) => onValuesChange({ ...values, incorporatorAddress: v })} className={fieldClass} />
       </FormField>
     </StepFormCard>
   )
@@ -417,16 +455,26 @@ function DirectorCountInput({ onSubmit }: { onSubmit: SubmitFn }) {
 
 /* ---------- director names ---------- */
 
-function DirectorNamesInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
-  const [names, setNames] = useState<string[]>(() =>
-    Array.from({ length: answers.directorCount }, (_, i) => KNOWN_FOUNDERS[i] ?? ""),
-  )
-  const update = (i: number, v: string) => setNames((arr) => arr.map((n, idx) => (idx === i ? v : n)))
+function DirectorNamesInput({
+  input,
+  answers,
+  values,
+  onValuesChange,
+  onSubmit,
+}: {
+  input: Extract<StepInput, { kind: "directorNames" }>
+  answers: FlowAnswers
+  values: Record<string, string>
+  onValuesChange: (values: Record<string, string>) => void
+  onSubmit: SubmitFn
+}) {
+  const names = Array.from({ length: answers.directorCount }, (_, i) => values[`director_${i}`] ?? "")
+  const update = (i: number, v: string) => onValuesChange({ ...values, [`director_${i}`]: v })
   const remaining = names.filter((n) => !n.trim()).length
   const valid = remaining === 0
   const submit = () => {
     const clean = names.map((n) => n.trim())
-    onSubmit(clean.join("\n"), { directors: clean, foundersList: clean.join(" & ") })
+    onSubmit(clean.join("\n"), assembleChatAnswers(input, values, answers).patch)
   }
   return (
     <StepFormCard
@@ -446,28 +494,28 @@ function DirectorNamesInput({ answers, onSubmit }: { answers: FlowAnswers; onSub
 
 /* ---------- officers ---------- */
 
-function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
-  // Only prefilled when the signer's saved profile says they actually hold that title —
-  // director order doesn't reliably predict who's CEO/CFO/Secretary, so no more guessing.
-  const savedName = (title: string) => answers.officers.find((o) => o.title === title)?.name ?? ""
-  const defaults: Record<string, string> = {
-    CEO: savedName("CEO"),
-    CFO: savedName("CFO"),
-    Secretary: savedName("Secretary"),
-  }
-  const [officers, setOfficers] = useState<Officer[]>([
-    { title: "CEO", name: defaults.CEO },
-    { title: "CFO", name: defaults.CFO },
-    { title: "Secretary", name: defaults.Secretary },
-  ])
-  const update = (i: number, v: string) =>
-    setOfficers((arr) => arr.map((o, idx) => (idx === i ? { ...o, name: v } : o)))
-  const remaining = officers.filter((o) => !o.name.trim()).length
+function OfficersInput({
+  input,
+  answers,
+  values,
+  onValuesChange,
+  onSubmit,
+}: {
+  input: Extract<StepInput, { kind: "officers" }>
+  answers: FlowAnswers
+  values: Record<string, string>
+  onValuesChange: (values: Record<string, string>) => void
+  onSubmit: SubmitFn
+}) {
+  const titles = ["CEO", "CFO", "Secretary"]
+  const names = titles.map((title) => values[title] ?? "")
+  const update = (i: number, v: string) => onValuesChange({ ...values, [titles[i]]: v })
+  const remaining = names.filter((n) => !n.trim()).length
   const valid = remaining === 0
   const submit = () =>
     onSubmit(
-      officers.map((o) => `${o.title} — ${o.name.trim()}`).join("\n"),
-      { officers: officers.map((o) => ({ ...o, name: o.name.trim() })) },
+      titles.map((title, i) => `${title} — ${names[i].trim()}`).join("\n"),
+      assembleChatAnswers(input, values, answers).patch,
     )
   return (
     <StepFormCard
@@ -476,9 +524,9 @@ function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: 
       status={valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
       action={<CardSubmitButton onClick={submit} disabled={!valid} />}
     >
-      {officers.map((o, i) => (
-        <FormField key={o.title} label={o.title}>
-          <input value={o.name} onChange={(e) => update(i, e.target.value)} className={fieldClass} />
+      {titles.map((title, i) => (
+        <FormField key={title} label={title}>
+          <input value={names[i]} onChange={(e) => update(i, e.target.value)} className={fieldClass} />
         </FormField>
       ))}
     </StepFormCard>
@@ -487,38 +535,45 @@ function OfficersInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: 
 
 /* ---------- allocations ---------- */
 
-function AllocationsInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmit: SubmitFn }) {
+function AllocationsInput({
+  input,
+  answers,
+  values,
+  onValuesChange,
+  onSubmit,
+}: {
+  input: Extract<StepInput, { kind: "allocations" }>
+  answers: FlowAnswers
+  values: Record<string, string>
+  onValuesChange: (values: Record<string, string>) => void
+  onSubmit: SubmitFn
+}) {
   const founders = answers.directors.length ? answers.directors : ["Founder"]
   const founderDefault = Math.floor((AUTHORIZED_SHARES * 0.8) / founders.length)
-  const [rows, setRows] = useState<Allocation[]>(() => {
-    const f = founders.map((name) => ({ name, shares: founderDefault }))
-    const used = founderDefault * founders.length
-    return [...f, { name: "Option Pool", shares: AUTHORIZED_SHARES - used, isPool: true }]
-  })
-  const update = (i: number, v: number) =>
-    setRows((arr) => arr.map((r, idx) => (idx === i ? { ...r, shares: v } : r)))
+  const founderShares = founders.map((_, i) => Math.max(0, Math.floor(parseNumberInput(values[`alloc_${i}`] ?? ""))))
+  // The option pool isn't one of getChatFields's chat questions (chat mode always derives it as
+  // the remainder), so — unlike the founder rows — it has no shared-values counterpart to resume
+  // from across a mode switch; it stays local here, same as it always has.
+  const [poolShares, setPoolShares] = useState(() => AUTHORIZED_SHARES - founderDefault * founders.length)
+  const update = (i: number, v: number) => onValuesChange({ ...values, [`alloc_${i}`]: String(v) })
 
-  const total = rows.reduce((s, r) => s + (r.shares || 0), 0)
+  const total = founderShares.reduce((s, n) => s + n, 0) + poolShares
   const remaining = AUTHORIZED_SHARES - total
-  const valid = remaining === 0 && rows.every((r) => r.shares > 0)
-
-  const submit = () => {
-    const founderShares = rows.filter((r) => !r.isPool).reduce((s, r) => s + r.shares, 0)
-    const pool = rows.find((r) => r.isPool)?.shares ?? 0
-    onSubmit(
-      rows
-        .map((r) => `${r.name}: ${r.shares.toLocaleString()} (${pct(r.shares)}%)`)
-        .join("\n"),
-      {
-        allocations: rows,
-        founderShares: founderShares.toLocaleString(),
-        poolShares: pool.toLocaleString(),
-      },
-    )
-  }
+  const valid = remaining === 0 && founderShares.every((s) => s > 0)
 
   function pct(shares: number) {
     return ((shares / AUTHORIZED_SHARES) * 100).toFixed(1).replace(/\.0$/, "")
+  }
+
+  const submit = () => {
+    if (!valid) return
+    onSubmit(
+      [
+        ...founders.map((name, i) => `${name}: ${founderShares[i].toLocaleString()} (${pct(founderShares[i])}%)`),
+        `Option Pool: ${poolShares.toLocaleString()} (${pct(poolShares)}%)`,
+      ].join("\n"),
+      assembleChatAnswers(input, values, answers).patch,
+    )
   }
 
   const statusText =
@@ -539,26 +594,34 @@ function AllocationsInput({ answers, onSubmit }: { answers: FlowAnswers; onSubmi
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Holder</span>
         <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Shares</span>
         <span className="text-right text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">%</span>
-        {rows.map((r, i) => (
-          <div key={r.name} className="contents">
-            <div
-              className={cn(
-                "flex items-center rounded-lg px-2.5 py-2 text-sm font-medium",
-                r.isPool ? "bg-accent/15 text-accent-foreground" : "bg-secondary text-secondary-foreground",
-              )}
-            >
-              {r.name}
+        {founders.map((name, i) => (
+          <div key={name} className="contents">
+            <div className="flex items-center rounded-lg bg-secondary px-2.5 py-2 text-sm font-medium text-secondary-foreground">
+              {name}
             </div>
             <input
               type="text"
               inputMode="numeric"
-              value={r.shares.toLocaleString()}
+              value={founderShares[i].toLocaleString()}
               onChange={(e) => update(i, Math.max(0, Math.floor(parseNumberInput(formatNumberInput(e.target.value)))))}
               className={cn(fieldClass, "tabular-nums")}
             />
-            <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(r.shares)}%</span>
+            <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(founderShares[i])}%</span>
           </div>
         ))}
+        <div className="contents">
+          <div className="flex items-center rounded-lg bg-accent/15 px-2.5 py-2 text-sm font-medium text-accent-foreground">
+            Option Pool
+          </div>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={poolShares.toLocaleString()}
+            onChange={(e) => setPoolShares(Math.max(0, Math.floor(parseNumberInput(formatNumberInput(e.target.value)))))}
+            className={cn(fieldClass, "tabular-nums")}
+          />
+          <span className="text-right text-sm tabular-nums text-muted-foreground">{pct(poolShares)}%</span>
+        </div>
       </div>
     </StepFormCard>
   )

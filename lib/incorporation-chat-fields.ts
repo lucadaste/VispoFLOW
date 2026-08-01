@@ -53,12 +53,11 @@ export function getChatFields(
           name: `alloc_${i}`,
           label: `How many shares will ${name} hold?`,
           type: "number" as const,
-          // A computed even split, shown only as a placeholder/hint (never pre-filled as a
-          // real value) — it's a suggestion, not data from the profile or an earlier answer.
-          placeholder: String(founderDefault),
           hint: `Suggested: ${founderDefault.toLocaleString()} shares. The remainder goes to the option pool.`,
         })),
-        defaults: {},
+        // Pre-filled with the same even split Questionnaire mode's form starts from, so the two
+        // modes agree from the first render instead of only converging once someone types.
+        defaults: Object.fromEntries(founders.map((_, i) => [`alloc_${i}`, String(founderDefault)])),
       }
     }
     default:
