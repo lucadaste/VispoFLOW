@@ -183,6 +183,7 @@ export function ComplianceView({
     | { mode: "abandon"; fromItem: ComplianceItem; item: ComplianceItem; groupTitle: string }
     | null
   >(null)
+  const [newChatAbandonConfirm, setNewChatAbandonConfirm] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
   // Messages before this id are collapsed behind "Show earlier messages" (see startNewChat) —
@@ -636,13 +637,22 @@ export function ComplianceView({
   }, [signedDocs, answers])
 
   // Non-destructive: collapses everything said so far behind "Show earlier messages" rather than
-  // deleting it — progress, docs, and history are untouched. Disabled while a filing is open (see
-  // the header button below) so the field it's waiting on never scrolls out of view.
+  // deleting it — progress, docs, and history are untouched.
   const startNewChat = useCallback(() => {
     setChatBreakId(idRef.current)
     setShowEarlier(false)
     pushBot("Started a new chat — pick an item from Compliance Documents to continue, or ask me anything.")
   }, [pushBot])
+
+  // Clicking New Chat mid-filing can't just start fresh underneath the field it's waiting on —
+  // it needs to abandon the open filing first, same as switching to a different item does.
+  const requestNewChat = useCallback(() => {
+    if (activeItemId) {
+      setNewChatAbandonConfirm(true)
+      return
+    }
+    startNewChat()
+  }, [activeItemId, startNewChat])
 
   const sidebarContent = (
     <SidebarContent
@@ -668,38 +678,39 @@ export function ComplianceView({
         {/* ── Header ── */}
         <div className="relative border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3">
-            <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
+            <div className="mx-auto flex max-w-2xl flex-1 flex-wrap items-center justify-between gap-3">
               <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
-              <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
+                  <button
+                    onClick={() => requestSetInputMode("chat")}
+                    className={cn(
+                      "rounded-full px-3 py-1 font-medium transition-colors",
+                      inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Chat
+                  </button>
+                  <button
+                    onClick={() => requestSetInputMode("form")}
+                    className={cn(
+                      "rounded-full px-3 py-1 font-medium transition-colors",
+                      inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Questionnaire
+                  </button>
+                </div>
                 <button
-                  onClick={() => requestSetInputMode("chat")}
-                  className={cn(
-                    "rounded-full px-3 py-1 font-medium transition-colors",
-                    inputMode === "chat" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
+                  onClick={requestNewChat}
+                  title={activeItemId ? "Start a new chat — this will abandon the filing you're currently working on" : "Start a new chat — your progress and documents are kept"}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
                 >
-                  Chat
-                </button>
-                <button
-                  onClick={() => requestSetInputMode("form")}
-                  className={cn(
-                    "rounded-full px-3 py-1 font-medium transition-colors",
-                    inputMode === "form" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Questionnaire
+                  <MessageSquarePlus className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">New chat</span>
                 </button>
               </div>
             </div>
-            <button
-              onClick={startNewChat}
-              disabled={!!activeItemId}
-              title={activeItemId ? "Finish or abandon the current filing before starting a new chat" : "Start a new chat — your progress and documents are kept"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <MessageSquarePlus className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">New chat</span>
-            </button>
           </div>
           {/* ── Mobile sidebar triggers — stacked here instead of floating over the chat, so ── */}
           {/*    they never sit on top of the messages. */}
@@ -962,6 +973,20 @@ export function ComplianceView({
             openItem(item, groupTitle)
           }}
           onCancel={() => setSwitchConfirm(null)}
+        />
+      )}
+      {newChatAbandonConfirm && activeItemId && (
+        <ConfirmModal
+          title="Abandon the filing you're currently working on?"
+          description={`You're partway through "${allItems.find((i) => i.id === activeItemId)?.title ?? "this filing"}". Starting a new chat now will abandon your progress on it.`}
+          confirmLabel="Abandon & start new chat"
+          onConfirm={() => {
+            setNewChatAbandonConfirm(false)
+            setActiveItemId(null)
+            setActiveFiling(null)
+            startNewChat()
+          }}
+          onCancel={() => setNewChatAbandonConfirm(false)}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2, RotateCcw } from "lucide-react"
+import { Send, Check, Circle, ArrowLeftRight, Info, CalendarClock, History as HistoryIcon, FileCheck2, Trash2, MessageSquarePlus } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -36,6 +36,7 @@ type TransactionsPersisted = {
   inputMode?: "chat" | "form"
   activeFiling?: ActiveFiling | null
   history?: ConversationEntry[]
+  chatBreakId?: number | null
 }
 
 type ChatMsg =
@@ -118,6 +119,10 @@ export function TransactionsOnboarding({
   // activeItemId/activeFiling but shouldn't bring the chips back.
   const [hasStartedFlow, setHasStartedFlow] = useState(false)
   const [value, setValue] = useState("")
+  // Messages before this id are collapsed behind "Show earlier messages" (see startNewChat) —
+  // nothing is ever deleted, this only affects what's rendered by default.
+  const [chatBreakId, setChatBreakId] = useState<number | null>(null)
+  const [showEarlier, setShowEarlier] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0)
   const startedRef = useRef(false)
@@ -173,6 +178,8 @@ export function TransactionsOnboarding({
     // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
     // reload — restore them so the field-answer bubble stays interactive after a remount.
     setActiveFiling(saved.activeFiling ?? null)
+    setChatBreakId(saved.chatBreakId ?? null)
+    setShowEarlier(false)
   }, [])
 
   useEffect(() => {
@@ -217,10 +224,11 @@ export function TransactionsOnboarding({
       history,
       inputMode,
       activeFiling,
+      chatBreakId,
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
-  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, activeFiling, isSignedIn])
+  }, [messages, activeCategory, completed, activeItemId, docs, history, inputMode, activeFiling, chatBreakId, isSignedIn])
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
@@ -477,6 +485,15 @@ export function TransactionsOnboarding({
     setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
   }, [signedDocs, answers])
 
+  // Non-destructive: collapses everything said so far behind "Show earlier messages" rather than
+  // deleting it — progress, docs, and history are untouched. Disabled while a document is open
+  // (see the header button below) so the field it's waiting on never scrolls out of view.
+  const startNewChat = useCallback(() => {
+    setChatBreakId(idRef.current)
+    setShowEarlier(false)
+    pushBot("Started a new chat — pick a document from Transaction Documents to continue, or ask me anything.")
+  }, [pushBot])
+
   const sidebarContent = (
     <SidebarContent
       expandedCategoryId={expandedCategoryId}
@@ -491,6 +508,9 @@ export function TransactionsOnboarding({
   )
 
   const historyContent = <HistoryPanelContent history={history} docs={docs} onEntryClick={setViewingConversation} />
+
+  const hiddenMessageCount = chatBreakId != null ? messages.filter((m) => m.id <= chatBreakId).length : 0
+  const visibleMessages = chatBreakId != null && !showEarlier ? messages.filter((m) => m.id > chatBreakId) : messages
 
   return (
     <div className="relative flex w-full flex-1 overflow-hidden">
@@ -521,15 +541,15 @@ export function TransactionsOnboarding({
                 </button>
               </div>
             </div>
-            {/* Invisible spacer matching the Incorporation tab's Restart button, so this row's
-                title/toggle centers identically across all three tabs. */}
-            <div
-              aria-hidden
-              className="invisible inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium"
+            <button
+              onClick={startNewChat}
+              disabled={!!activeItemId}
+              title={activeItemId ? "Finish or abandon the current document before starting a new chat" : "Start a new chat — your progress and documents are kept"}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Restart</span>
-            </div>
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New chat</span>
+            </button>
           </div>
           {/* ── Mobile sidebar triggers — stacked here instead of floating over the chat, so ── */}
           {/*    they never sit on top of the messages. */}
@@ -558,7 +578,17 @@ export function TransactionsOnboarding({
         <div className="relative flex-1 overflow-hidden">
           <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
             <div className="mx-auto max-w-2xl space-y-4">
-              {messages.map((m) => {
+              {hiddenMessageCount > 0 && !showEarlier && (
+                <button
+                  onClick={() => setShowEarlier(true)}
+                  className="mx-auto flex w-full max-w-xs items-center gap-2 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                >
+                  <span className="h-px flex-1 bg-border" />
+                  Show {hiddenMessageCount} earlier message{hiddenMessageCount === 1 ? "" : "s"}
+                  <span className="h-px flex-1 bg-border" />
+                </button>
+              )}
+              {visibleMessages.map((m) => {
                 if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
                 if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
                 if (m.role === "note") return (
