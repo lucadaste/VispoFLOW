@@ -77,6 +77,19 @@ const isValidEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
  *  distinct from SENSITIVE_FIELD_PLACEHOLDER (used only at the localStorage/server persistence
  *  boundary): this one is meant to be read, since it renders directly into the draft document. */
 const delegatedFieldPlaceholder = (recipientName: string) => `(to be entered directly by ${recipientName})`
+const DELEGATED_PLACEHOLDER_RE = /^\(to be entered directly by (.+)\)$/
+
+// Reconstructs which fields ended up delegated to a third party purely from the collected
+// `values` — used when a filing is completed from Questionnaire mode, where (unlike the chat
+// flow) there's no separately-threaded `pendingDelegations` list to hand off.
+function derivePendingDelegations(item: ComplianceItem, values: Record<string, string>): PendingDelegation[] {
+  const result: PendingDelegation[] = []
+  for (const f of item.fields) {
+    const match = DELEGATED_PLACEHOLDER_RE.exec(values[f.name] ?? "")
+    if (match) result.push({ fieldName: f.name, fieldLabel: f.label, recipientName: match[1] })
+  }
+  return result
+}
 
 /** Heuristic for whether a chat message sent mid-filing is a question rather than an answer. */
 const looksLikeQuestion = (text: string) =>
@@ -166,7 +179,6 @@ export function ComplianceView({
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: ComplianceItem; groupTitle: string }
     | { mode: "abandon"; fromItem: ComplianceItem; item: ComplianceItem; groupTitle: string }
-    | { mode: "switchInput"; target: "chat" | "form"; fromItem: ComplianceItem }
     | null
   >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -422,17 +434,20 @@ export function ComplianceView({
     pushUser(item.title)
     setActiveItemId(item.id)
     setMobileOpen(false)
+    // Values live on activeFiling regardless of mode, so switching Chat/Questionnaire mid-filing
+    // can carry over whatever's already been answered instead of losing it (see requestSetInputMode).
+    const initialValues = Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
+    setActiveFiling({ item, groupTitle, fieldIndex: 0, values: initialValues })
     if (inputMode === "chat") {
-      setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
         await pushBotTyped(`Let's complete the ${item.title} filing — I'll ask you for each field one at a time. Feel free to ask me anything along the way.`)
-        await promptField(item, groupTitle, 0, {})
+        await promptField(item, groupTitle, 0, initialValues)
       })()
     } else {
       pushBot(`Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`)
       setMessages((m) => [...m, { id: ++idRef.current, role: "filing", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
+  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode, prefill])
 
   // Advances an in-progress filing to `nextIndex`, prompting for it (or finishing the filing) —
   // shared by the normal per-field path and the delegated-field-invite path below, which reach
@@ -484,7 +499,7 @@ export function ComplianceView({
   }, [answers, pushBotTyped, advanceFiling])
 
   const submitFieldAnswer = useCallback((raw: string) => {
-    if (!activeFiling) return
+    if (!activeFiling || inputMode !== "chat") return
     const { item, groupTitle, fieldIndex, values, pendingDelegations } = activeFiling
     const field = item.fields[fieldIndex]
     const val = raw.trim()
@@ -505,27 +520,28 @@ export function ComplianceView({
     const answerText = val ? (field.sensitive ? "•".repeat(val.length) : val) : "Skipped"
     const nextValues = { ...values, [field.name]: val }
     advanceFiling(item, groupTitle, fieldIndex + 1, nextValues, pendingDelegations, answerText)
-  }, [activeFiling, pushUser, pushBotTyped, submitDelegateEmail, advanceFiling])
+  }, [activeFiling, inputMode, pushUser, pushBotTyped, submitDelegateEmail, advanceFiling])
 
   const handleSend = useCallback(() => {
     const text = value.trim()
-    const activeField = activeFiling ? activeFiling.item.fields[activeFiling.fieldIndex] : undefined
+    const chatFieldActive = !!activeFiling && inputMode === "chat"
+    const activeField = chatFieldActive ? activeFiling!.item.fields[activeFiling!.fieldIndex] : undefined
 
     if (!text) {
       // Nothing typed: the only valid send is skipping an optional field.
-      if (activeFiling && activeField?.optional) submitFieldAnswer("")
+      if (chatFieldActive && activeField?.optional) submitFieldAnswer("")
       return
     }
     setValue("")
 
-    if (activeFiling && !looksLikeQuestion(text)) {
+    if (chatFieldActive && !looksLikeQuestion(text)) {
       submitFieldAnswer(text)
       return
     }
 
     pushUser(text)
-    if (activeFiling) {
-      const { item, groupTitle, fieldIndex, values } = activeFiling
+    if (chatFieldActive) {
+      const { item, groupTitle, fieldIndex, values } = activeFiling!
       const field = item.fields[fieldIndex]
       ;(async () => {
         await pushBotTyped(field.hint ?? item.explainer ?? item.description)
@@ -535,7 +551,7 @@ export function ComplianceView({
     } else {
       pushBot("Happy to help. Feel free to fill out the form above or click any item in Compliance Documents to get started.")
     }
-  }, [value, activeFiling, pushUser, pushBot, pushBotTyped, promptField, submitFieldAnswer])
+  }, [value, activeFiling, inputMode, pushUser, pushBot, pushBotTyped, promptField, submitFieldAnswer])
 
   const allItems = COMPLIANCE_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
@@ -554,23 +570,35 @@ export function ComplianceView({
     setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
   }, [activeItemId, allItems, openItem])
 
-  // Switching Chat/Questionnaire mode mid-filing abandons whatever's in progress —
-  // confirm first, then clear the active flow so the chat bar reverts to free-form.
+  // Re-renders the in-progress filing's current question under a newly selected mode, without
+  // losing what's already been answered — mirrors incorporation-app.tsx's `reinitStepForMode`.
+  // Questionnaire mode shows the full form card (creating it the first time, pre-filled with
+  // whatever chat has collected so far); chat mode resumes at the first still-empty field.
+  const reinitFilingForMode = useCallback((mode: "chat" | "form") => {
+    if (!activeFiling) return
+    const { item, groupTitle, values } = activeFiling
+    if (mode === "form") {
+      setMessages((m) =>
+        m.some((msg) => msg.role === "filing" && msg.item.id === item.id)
+          ? m
+          : [...m, { id: ++idRef.current, role: "filing", item, groupTitle }]
+      )
+      return
+    }
+    const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
+    const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
+    setActiveFiling({ item, groupTitle, fieldIndex, values })
+    promptField(item, groupTitle, fieldIndex, values)
+  }, [activeFiling, promptField])
+
+  // Switching Chat/Questionnaire mode mid-filing keeps the same filing open — nothing is lost,
+  // so this just swaps which mode renders the current question (see reinitFilingForMode).
   const requestSetInputMode = useCallback((target: "chat" | "form") => {
     if (target === inputMode) return
-    if (!activeItemId) {
-      setInputMode(target)
-      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-      return
-    }
-    const fromItem = allItems.find((i) => i.id === activeItemId)
-    if (!fromItem) {
-      setInputMode(target)
-      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-      return
-    }
-    setSwitchConfirm({ mode: "switchInput", target, fromItem })
-  }, [inputMode, activeItemId, allItems, pushNote])
+    setInputMode(target)
+    pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
+    reinitFilingForMode(target)
+  }, [inputMode, pushNote, reinitFilingForMode])
 
   const openDoc = useCallback((doc: LibraryDoc, item: ComplianceItem, groupTitle: string) => {
     setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
@@ -668,9 +696,18 @@ export function ComplianceView({
                       item={m.item}
                       groupTitle={m.groupTitle}
                       answers={answers}
-                      prefill={prefill}
+                      values={activeFiling?.item.id === m.item.id ? activeFiling.values : {}}
+                      onChange={(name, val) =>
+                        setActiveFiling((af) =>
+                          af && af.item.id === m.item.id ? { ...af, values: { ...af.values, [name]: val } } : af
+                        )
+                      }
                       delegateRecipient={delegateRecipient}
-                      onComplete={(values, pendingDelegations) => handleFilingComplete(m.item, m.groupTitle, values, pendingDelegations)}
+                      onComplete={() => {
+                        if (activeFiling?.item.id === m.item.id) {
+                          handleFilingComplete(m.item, m.groupTitle, activeFiling.values, derivePendingDelegations(m.item, activeFiling.values))
+                        }
+                      }}
                       onInfoClick={() => setInfoItem(m.item)}
                     />
                   )
@@ -682,7 +719,7 @@ export function ComplianceView({
                   <FieldChoicesBubble
                     key={m.id}
                     field={m.item.fields[m.fieldIndex]}
-                    active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
+                    active={inputMode === "chat" && !!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
                     onChoose={(val) => submitFieldAnswer(val)}
                   />
                 )
@@ -738,7 +775,7 @@ export function ComplianceView({
         <div className="border-t border-border bg-card/80 backdrop-blur px-4 py-4 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl">
             <div className="flex items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              {activeFiling?.item.fields[activeFiling.fieldIndex].type === "address" ? (
+              {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type === "address" ? (
                 <div className="flex-1">
                   <AddressAutocomplete
                     value={value}
@@ -754,12 +791,12 @@ export function ComplianceView({
                   value={value}
                   onChange={(e) => {
                     const raw = e.target.value
-                    const isNumberField = activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
+                    const isNumberField = inputMode === "chat" && activeFiling?.item.fields[activeFiling.fieldIndex].type === "number"
                     setValue(isNumberField && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={
-                    activeFiling
+                    activeFiling && inputMode === "chat"
                       ? activeFiling.item.fields[activeFiling.fieldIndex].optional
                         ? "Type an answer, or press Enter to skip…"
                         : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
@@ -772,7 +809,7 @@ export function ComplianceView({
               )}
               <button
                 onClick={handleSend}
-                disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+                disabled={!value.trim() && !(activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
               >
                 Send <Send className="h-3.5 w-3.5" />
@@ -853,29 +890,15 @@ export function ComplianceView({
           title={
             switchConfirm.mode === "restart"
               ? "Would you like to restart this filing?"
-              : switchConfirm.mode === "abandon"
-              ? "Would you like to abandon the filing you're currently working on?"
-              : "Switch modes and abandon this filing?"
+              : "Would you like to abandon the filing you're currently working on?"
           }
           description={
             switchConfirm.mode === "restart"
               ? `You're partway through "${switchConfirm.item.title}". Restarting will erase your progress and start over from the first question.`
-              : switchConfirm.mode === "abandon"
-              ? `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
-              : `You're partway through "${switchConfirm.fromItem.title}". Switching to ${switchConfirm.target === "chat" ? "Chat" : "Questionnaire"} mode will abandon your progress on it.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart filing" : "Abandon & switch"}
           onConfirm={() => {
-            if (switchConfirm.mode === "switchInput") {
-              const { target } = switchConfirm
-              setSwitchConfirm(null)
-              setActiveFiling(null)
-              setActiveItemId(null)
-              setInputMode(target)
-              setValue("")
-              pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode — select which filing you'd like to begin from the right, or ask me anything.`)
-              return
-            }
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
             openItem(item, groupTitle)
@@ -1089,27 +1112,27 @@ function HistoryPanelContent({
 /* ── Inline filing form card ── */
 
 function FilingFormCard({
-  item, groupTitle, answers, prefill, delegateRecipient, onComplete, onInfoClick,
+  item, groupTitle, answers, values, onChange, delegateRecipient, onComplete, onInfoClick,
 }: {
   item: ComplianceItem
   groupTitle: string
   answers: FlowAnswers
-  prefill: (field?: ComplianceField) => string
+  values: Record<string, string>
+  onChange: (name: string, val: string) => void
   delegateRecipient: (field: ComplianceField, values: Record<string, string>) => string | null
-  onComplete: (values: Record<string, string>, pendingDelegations?: PendingDelegation[]) => void
+  onComplete: () => void
   onInfoClick: () => void
 }) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
-  )
   const [delegateEmails, setDelegateEmails] = useState<Record<string, string>>({})
   const [delegateStatus, setDelegateStatus] = useState<Record<string, "sending" | "sent" | "error">>({})
-  const [pendingDelegations, setPendingDelegations] = useState<PendingDelegation[]>([])
 
   const isEmpty = (f: ComplianceField) => !f.optional && !values[f.name]?.trim()
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
-  const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
+  const set = (name: string, val: string) => onChange(name, val)
+  // A field already carries its delegated placeholder (e.g. the invite was sent in Chat mode
+  // before switching to Questionnaire) even though this card's own `delegateStatus` never saw it.
+  const isDelegatedFulfilled = (f: ComplianceField) => DELEGATED_PLACEHOLDER_RE.test(values[f.name] ?? "")
 
   const sendDelegateInvite = async (f: ComplianceField, recipientName: string) => {
     const email = delegateEmails[f.name]?.trim() ?? ""
@@ -1134,7 +1157,6 @@ function FilingFormCard({
       })
       if (!res.ok) throw new Error("failed")
       set(f.name, delegatedFieldPlaceholder(recipientName))
-      setPendingDelegations((p) => [...p, { fieldName: f.name, fieldLabel: f.label, recipientName }])
       setDelegateStatus((s) => ({ ...s, [f.name]: "sent" }))
     } catch {
       setDelegateStatus((s) => ({ ...s, [f.name]: "error" }))
@@ -1164,7 +1186,8 @@ function FilingFormCard({
         {item.fields.map((f) => {
           const delegateTo = delegateRecipient(f, values)
           const status = delegateStatus[f.name]
-          if (delegateTo && status !== "sent") {
+          const fulfilled = status === "sent" || isDelegatedFulfilled(f)
+          if (delegateTo && !fulfilled) {
             return (
               <div key={f.name}>
                 <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
@@ -1203,7 +1226,7 @@ function FilingFormCard({
               {f.label}
               {!f.optional && <span className="text-destructive">*</span>}
             </label>
-            {delegateTo && status === "sent" ? (
+            {delegateTo && fulfilled ? (
               <p className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-sm text-muted-foreground">
                 Sent — {delegateTo} will enter this directly.
               </p>
@@ -1254,7 +1277,7 @@ function FilingFormCard({
           {valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
         </p>
         <button
-          onClick={() => onComplete(values, pendingDelegations)}
+          onClick={onComplete}
           disabled={!valid}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >

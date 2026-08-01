@@ -109,7 +109,6 @@ export function TransactionsOnboarding({
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: TransactionItem; groupTitle: string }
     | { mode: "abandon"; fromItem: TransactionItem; item: TransactionItem; groupTitle: string }
-    | { mode: "switchInput"; target: "chat" | "form"; fromItem: TransactionItem }
     | null
   >(null)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -289,8 +288,11 @@ export function TransactionsOnboarding({
     setActiveItemId(item.id)
     setMobileOpen(false)
     setHasStartedFlow(true)
+    // Values live on activeFiling regardless of mode, so switching Chat/Questionnaire mid-filing
+    // can carry over whatever's already been answered instead of losing it (see requestSetInputMode).
+    const initialValues = Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
+    setActiveFiling({ item, groupTitle, fieldIndex: 0, values: initialValues })
     if (inputMode === "chat") {
-      setActiveFiling({ item, groupTitle, fieldIndex: 0, values: {} })
       ;(async () => {
         await pushBotTyped(`Let's prepare the ${item.title} — I'll ask you for each field one at a time.`)
         await promptField(item, groupTitle, 0)
@@ -299,7 +301,7 @@ export function TransactionsOnboarding({
       pushBot(`Let's prepare the ${item.title}. Fill out the form below — feel free to ask me any questions as you go.`)
       setMessages((m) => [...m, { id: ++idRef.current, role: "doc", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode])
+  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode, prefill])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>, lastUserText?: string) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
@@ -337,7 +339,7 @@ export function TransactionsOnboarding({
   }, [messages, onDocumentReady, answers.directors, answers.officers])
 
   const handleFieldSubmit = useCallback((raw: string) => {
-    if (!activeFiling) return
+    if (!activeFiling || inputMode !== "chat") return
     const { item, groupTitle, fieldIndex, values } = activeFiling
     const field = item.fields[fieldIndex]
     const val = raw.trim()
@@ -359,14 +361,14 @@ export function TransactionsOnboarding({
       setActiveFiling(null)
       handleDocComplete(item, groupTitle, nextValues, answerText)
     }
-  }, [activeFiling, pushUser, promptField, handleDocComplete])
+  }, [activeFiling, inputMode, pushUser, promptField, handleDocComplete])
 
   // Text/textarea/number/address fields accept free text, so what's typed might be a genuine
   // question rather than an answer — in which case explain and re-ask instead of recording it as
   // the value. Select/date fields never reach this handler — they're answered via the inline
   // choice bubble, or via the free-text bar's own question detection (see handleSend) instead.
   const handleFieldInput = useCallback((raw: string) => {
-    if (!activeFiling) return
+    if (!activeFiling || inputMode !== "chat") return
     const { item, fieldIndex } = activeFiling
     const field = item.fields[fieldIndex]
     const val = raw.trim()
@@ -379,27 +381,28 @@ export function TransactionsOnboarding({
       return
     }
     handleFieldSubmit(raw)
-  }, [activeFiling, pushUser, pushBotTyped, handleFieldSubmit])
+  }, [activeFiling, inputMode, pushUser, pushBotTyped, handleFieldSubmit])
 
   const handleSend = useCallback(() => {
     const text = value.trim()
-    const activeField = activeFiling ? activeFiling.item.fields[activeFiling.fieldIndex] : undefined
+    const chatFieldActive = !!activeFiling && inputMode === "chat"
+    const activeField = chatFieldActive ? activeFiling!.item.fields[activeFiling!.fieldIndex] : undefined
 
     if (!text) {
       // Nothing typed: the only valid send is skipping an optional field.
-      if (activeFiling && activeField?.optional) handleFieldSubmit("")
+      if (chatFieldActive && activeField?.optional) handleFieldSubmit("")
       return
     }
     setValue("")
 
-    if (activeFiling && !looksLikeQuestion(text)) {
+    if (chatFieldActive && !looksLikeQuestion(text)) {
       handleFieldSubmit(text)
       return
     }
 
     pushUser(text)
-    if (activeFiling) {
-      const { item, groupTitle, fieldIndex } = activeFiling
+    if (chatFieldActive) {
+      const { item, groupTitle, fieldIndex } = activeFiling!
       const field = item.fields[fieldIndex]
       ;(async () => {
         await pushBotTyped(field.hint ?? item.description)
@@ -409,7 +412,7 @@ export function TransactionsOnboarding({
     } else {
       pushBot("Happy to help. Feel free to fill out the form above or click any item in Transaction Documents to get started.")
     }
-  }, [value, activeFiling, pushUser, pushBot, pushBotTyped, promptField, handleFieldSubmit])
+  }, [value, activeFiling, inputMode, pushUser, pushBot, pushBotTyped, promptField, handleFieldSubmit])
 
   const allItems = TRANSACTION_CATEGORIES.flatMap((c) => c.groups.flatMap((g) => g.items))
   const doneCount = allItems.filter((i) => completed[i.id]).length
@@ -428,23 +431,35 @@ export function TransactionsOnboarding({
     setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
   }, [activeItemId, allItems, openItem])
 
-  // Switching Chat/Questionnaire mode mid-document abandons whatever's in progress —
-  // confirm first, then clear the active flow so the chat bar reverts to free-form.
+  // Re-renders the in-progress filing's current question under a newly selected mode, without
+  // losing what's already been answered — mirrors incorporation-app.tsx's `reinitStepForMode`.
+  // Questionnaire mode shows the full form card (creating it the first time, pre-filled with
+  // whatever chat has collected so far); chat mode resumes at the first still-empty field.
+  const reinitFilingForMode = useCallback((mode: "chat" | "form") => {
+    if (!activeFiling) return
+    const { item, groupTitle, values } = activeFiling
+    if (mode === "form") {
+      setMessages((m) =>
+        m.some((msg) => msg.role === "doc" && msg.item.id === item.id)
+          ? m
+          : [...m, { id: ++idRef.current, role: "doc", item, groupTitle }]
+      )
+      return
+    }
+    const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
+    const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
+    setActiveFiling({ item, groupTitle, fieldIndex, values })
+    promptField(item, groupTitle, fieldIndex)
+  }, [activeFiling, promptField])
+
+  // Switching Chat/Questionnaire mode mid-filing keeps the same document open — nothing is lost,
+  // so this just swaps which mode renders the current question (see reinitFilingForMode).
   const requestSetInputMode = useCallback((target: "chat" | "form") => {
     if (target === inputMode) return
-    if (!activeItemId) {
-      setInputMode(target)
-      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-      return
-    }
-    const fromItem = allItems.find((i) => i.id === activeItemId)
-    if (!fromItem) {
-      setInputMode(target)
-      pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
-      return
-    }
-    setSwitchConfirm({ mode: "switchInput", target, fromItem })
-  }, [inputMode, activeItemId, allItems, pushNote])
+    setInputMode(target)
+    pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
+    reinitFilingForMode(target)
+  }, [inputMode, pushNote, reinitFilingForMode])
 
   const openDoc = useCallback((doc: LibraryDoc, item: TransactionItem, groupTitle: string) => {
     setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })
@@ -544,8 +559,15 @@ export function TransactionsOnboarding({
                       key={m.id}
                       item={m.item}
                       groupTitle={m.groupTitle}
-                      prefill={prefill}
-                      onComplete={(values) => handleDocComplete(m.item, m.groupTitle, values)}
+                      values={activeFiling?.item.id === m.item.id ? activeFiling.values : {}}
+                      onChange={(name, val) =>
+                        setActiveFiling((af) =>
+                          af && af.item.id === m.item.id ? { ...af, values: { ...af.values, [name]: val } } : af
+                        )
+                      }
+                      onComplete={() => {
+                        if (activeFiling?.item.id === m.item.id) handleDocComplete(m.item, m.groupTitle, activeFiling.values)
+                      }}
                       onInfoClick={() => setInfoItem(m.item)}
                     />
                   )
@@ -565,7 +587,7 @@ export function TransactionsOnboarding({
                   <FieldChoicesBubble
                     key={m.id}
                     field={m.item.fields[m.fieldIndex]}
-                    active={!!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
+                    active={inputMode === "chat" && !!activeFiling && activeFiling.item.id === m.item.id && activeFiling.fieldIndex === m.fieldIndex}
                     onChoose={(val) => handleFieldSubmit(val)}
                   />
                 )
@@ -633,7 +655,7 @@ export function TransactionsOnboarding({
                   onChange={(e) => setValue(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={
-                    activeFiling
+                    activeFiling && inputMode === "chat"
                       ? activeFiling.item.fields[activeFiling.fieldIndex].optional
                         ? "Type an answer, or press Enter to skip…"
                         : "Type your answer, or ask a question…"
@@ -643,7 +665,7 @@ export function TransactionsOnboarding({
                 />
                 <button
                   onClick={handleSend}
-                  disabled={!value.trim() && !(activeFiling && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
+                  disabled={!value.trim() && !(activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].optional)}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-40"
                 >
                   Send <Send className="h-3.5 w-3.5" />
@@ -725,29 +747,15 @@ export function TransactionsOnboarding({
           title={
             switchConfirm.mode === "restart"
               ? "Would you like to restart this document?"
-              : switchConfirm.mode === "abandon"
-              ? "Would you like to abandon the document you're currently working on?"
-              : "Switch modes and abandon this document?"
+              : "Would you like to abandon the document you're currently working on?"
           }
           description={
             switchConfirm.mode === "restart"
               ? `You're partway through "${switchConfirm.item.title}". Restarting will erase your progress and start over from the first question.`
-              : switchConfirm.mode === "abandon"
-              ? `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
-              : `You're partway through "${switchConfirm.fromItem.title}". Switching to ${switchConfirm.target === "chat" ? "Chat" : "Questionnaire"} mode will abandon your progress on it.`
+              : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Abandon & switch"}
           onConfirm={() => {
-            if (switchConfirm.mode === "switchInput") {
-              const { target } = switchConfirm
-              setSwitchConfirm(null)
-              setActiveFiling(null)
-              setActiveItemId(null)
-              setInputMode(target)
-              setValue("")
-              pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode — select which filing you'd like to begin from the right, or ask me anything.`)
-              return
-            }
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
             openItem(item, groupTitle)
@@ -936,22 +944,19 @@ function HistoryPanelContent({
 /* ── Inline transaction document form card ── */
 
 function TransactionFormCard({
-  item, groupTitle, prefill, onComplete, onInfoClick,
+  item, groupTitle, values, onChange, onComplete, onInfoClick,
 }: {
   item: TransactionItem
   groupTitle: string
-  prefill: (field?: TransactionField) => string
-  onComplete: (values: Record<string, string>) => void
+  values: Record<string, string>
+  onChange: (name: string, val: string) => void
+  onComplete: () => void
   onInfoClick: () => void
 }) {
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(item.fields.map((f) => [f.name, prefill(f)]))
-  )
-
   const isEmpty = (f: TransactionField) => !f.optional && !values[f.name]?.trim()
   const remaining = item.fields.filter(isEmpty).length
   const valid = remaining === 0
-  const set = (name: string, val: string) => setValues((v) => ({ ...v, [name]: val }))
+  const set = (name: string, val: string) => onChange(name, val)
 
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
@@ -1025,7 +1030,7 @@ function TransactionFormCard({
           {valid ? "All fields complete." : `${remaining} required field${remaining === 1 ? "" : "s"} remaining.`}
         </p>
         <button
-          onClick={() => onComplete(values)}
+          onClick={onComplete}
           disabled={!valid}
           className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
