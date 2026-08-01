@@ -831,7 +831,7 @@ export function ComplianceView({
             <button
               onClick={requestNewChat}
               title={activeItemId ? "Start a new chat — this will abandon the filing you're currently working on" : "Start a new chat — your progress and documents are kept"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary sm:px-3"
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 self-stretch rounded-xl border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary sm:px-3"
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New chat</span>

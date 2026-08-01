@@ -1193,7 +1193,7 @@ export function IncorporationApp() {
                 <div className="mx-auto flex max-w-2xl items-end gap-2">
                   <button
                     onClick={() => setIncorporationRestartConfirm(true)}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-background px-2.5 py-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary hover:text-foreground sm:px-3"
+                    className="inline-flex shrink-0 items-center justify-center gap-1.5 self-stretch rounded-xl border border-border bg-background px-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-secondary hover:text-foreground sm:px-3"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Restart</span>

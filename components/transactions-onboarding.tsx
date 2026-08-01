@@ -678,7 +678,7 @@ export function TransactionsOnboarding({
               onClick={startNewChat}
               disabled={!!activeItemId}
               title={activeItemId ? "Finish or abandon the current document before starting a new chat" : "Start a new chat — your progress and documents are kept"}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 self-stretch rounded-xl border border-border bg-card px-2.5 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
             >
               <MessageSquarePlus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New chat</span>
