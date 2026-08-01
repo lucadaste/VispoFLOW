@@ -8,9 +8,9 @@ export function MobileSidebarTab({
   icon: Icon,
   label,
   title,
+  edgeOffset = "near",
   open,
   onOpenChange,
-  side = "right",
   children,
 }: {
   icon: LucideIcon
@@ -19,31 +19,32 @@ export function MobileSidebarTab({
    *  Center"), distinct from `label`. `children` already renders its own section heading
    *  (e.g. "Compliance Documents"/"History"), so reusing `label` here would show it twice. */
   title: string
+  /** Both of a page's tabs sit in the same top-right corner instead of opposite edges, so the
+   *  chat only loses width on one side rather than being squeezed from both. "far" shifts a
+   *  second icon further in from the edge so it doesn't land on top of the "near" one. */
+  edgeOffset?: "near" | "far"
   open: boolean
   onOpenChange: (open: boolean) => void
-  side?: "left" | "right"
   children: React.ReactNode
 }) {
-  const isLeft = side === "left"
-
   if (!open) {
     return (
       <button
         onClick={() => onOpenChange(true)}
         aria-label={`Open ${label}`}
+        title={label}
         className={cn(
-          "sm:hidden fixed top-1/2 z-40 flex -translate-y-1/2 flex-col items-center gap-2 border border-border bg-card px-2 py-3 text-foreground shadow-md transition-colors hover:border-primary hover:text-primary",
-          isLeft ? "left-0 rounded-r-xl border-l-0" : "right-0 rounded-l-xl border-r-0"
+          "absolute top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:hidden",
+          edgeOffset === "far" ? "right-12" : "right-2"
         )}
       >
-        <Icon className="h-4 w-4" />
-        <span className="[writing-mode:vertical-rl] rotate-180 text-xs font-medium tracking-wide">{label}</span>
+        <Icon className="h-5 w-5" />
       </button>
     )
   }
 
   return (
-    <div className={cn("sm:hidden fixed inset-0 z-50 flex", isLeft ? "justify-start" : "justify-end")}>
+    <div className="fixed inset-0 z-50 flex justify-end sm:hidden">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
       {/* Below `sm` the chat column has no room left to shrink — the sidebar always fully
        *  occupies the screen when open, so the drawer takes the whole width rather than a

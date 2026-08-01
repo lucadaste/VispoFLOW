@@ -694,11 +694,22 @@ export function ComplianceView({
             icon={HistoryIcon}
             label="History"
             title="Compliance Center"
-            side="left"
+            edgeOffset="far"
             open={historyOpen}
             onOpenChange={setHistoryOpen}
           >
             {historyContent}
+          </MobileSidebarTab>
+          {/* ── Mobile minimized tab / drawer (< sm only) — always available; positioned here ── */}
+          {/*    (rather than beside the desktop sidebar below) so it sits below the header, not on it. */}
+          <MobileSidebarTab
+            icon={ShieldCheck}
+            label="Compliance Documents"
+            title="Compliance Center"
+            open={mobileOpen}
+            onOpenChange={setMobileOpen}
+          >
+            {sidebarContent}
           </MobileSidebarTab>
         </div>
 
@@ -754,17 +765,6 @@ export function ComplianceView({
       <SidebarPanel icon={ShieldCheck} label="Compliance Documents" widthClass="w-52 md:w-60 lg:w-72 2xl:w-80">
         {sidebarContent}
       </SidebarPanel>
-
-      {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
-      <MobileSidebarTab
-        icon={ShieldCheck}
-        label="Compliance Documents"
-        title="Compliance Center"
-        open={mobileOpen}
-        onOpenChange={setMobileOpen}
-      >
-        {sidebarContent}
-      </MobileSidebarTab>
 
       {infoItem && (
         <InfoModal

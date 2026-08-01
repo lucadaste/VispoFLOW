@@ -1122,38 +1122,64 @@ export function IncorporationApp() {
               </div>
             </div>
 
-            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
-              <div className="mx-auto max-w-2xl space-y-4">
-                {messages.map((m) => {
-                  if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
-                  if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
-                  if (m.role === "system")
-                    return (
-                      <SystemNote key={m.id} variant={m.variant}>
-                        {m.text}
-                      </SystemNote>
-                    )
-                  if (m.role === "docDrafted") {
-                    const doc = DOCUMENTS.find((d) => d.id === m.docId)
-                    if (!doc) return null
-                    const libDoc = incorporationLibraryDocs.find((d) => d.id === m.docId)
-                    return (
-                      <DraftedCard
-                        key={m.id}
-                        groupTitle={doc.group}
-                        title={doc.label}
-                        onClick={libDoc ? () => setViewingDoc(libDoc) : undefined}
-                      />
-                    )
-                  }
-                  if (m.role === "widget" && m.widget === "formed")
-                    return <FormedCard key={m.id} answers={effectiveAnswers} />
-                  if (m.role === "note")
-                    return <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
-                  return null
-                })}
-                {isTyping && <TypingIndicator />}
+            {/* ── Chat — relative wrapper positions the mobile "Incorporation Documents" tab ── */}
+            {/*    below this header rather than mid-conversation. */}
+            <div className="relative flex-1 overflow-hidden">
+              <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
+                <div className="mx-auto max-w-2xl space-y-4">
+                  {messages.map((m) => {
+                    if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
+                    if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
+                    if (m.role === "system")
+                      return (
+                        <SystemNote key={m.id} variant={m.variant}>
+                          {m.text}
+                        </SystemNote>
+                      )
+                    if (m.role === "docDrafted") {
+                      const doc = DOCUMENTS.find((d) => d.id === m.docId)
+                      if (!doc) return null
+                      const libDoc = incorporationLibraryDocs.find((d) => d.id === m.docId)
+                      return (
+                        <DraftedCard
+                          key={m.id}
+                          groupTitle={doc.group}
+                          title={doc.label}
+                          onClick={libDoc ? () => setViewingDoc(libDoc) : undefined}
+                        />
+                      )
+                    }
+                    if (m.role === "widget" && m.widget === "formed")
+                      return <FormedCard key={m.id} answers={effectiveAnswers} />
+                    if (m.role === "note")
+                      return <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
+                    return null
+                  })}
+                  {isTyping && <TypingIndicator />}
+                </div>
               </div>
+
+              {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
+              <MobileSidebarTab
+                icon={FileText}
+                label="Incorporation Documents"
+                title="Incorporation Center"
+                open={mobileDocsOpen}
+                onOpenChange={setMobileDocsOpen}
+              >
+                {hasDocs ? (
+                  <DocumentTracker
+                    statuses={docStatuses}
+                    answers={effectiveAnswers}
+                    signedDocs={signedDocs}
+                    onGoToLibrary={() => handlePhaseClick("documents")}
+                    onDeleteRestart={() => setIncorporationRestartConfirm(true)}
+                    coiSigned={coiSigned}
+                  />
+                ) : (
+                  <DocumentTrackerEmpty />
+                )}
+              </MobileSidebarTab>
             </div>
 
             {(activeInput || activeChatFields) && (
@@ -1189,28 +1215,6 @@ export function IncorporationApp() {
               <DocumentTrackerEmpty />
             )}
           </SidebarPanel>
-
-          {/* ── Mobile minimized tab / drawer (< sm only) — always available ── */}
-          <MobileSidebarTab
-            icon={FileText}
-            label="Incorporation Documents"
-            title="Incorporation Center"
-            open={mobileDocsOpen}
-            onOpenChange={setMobileDocsOpen}
-          >
-            {hasDocs ? (
-              <DocumentTracker
-                statuses={docStatuses}
-                answers={effectiveAnswers}
-                signedDocs={signedDocs}
-                onGoToLibrary={() => handlePhaseClick("documents")}
-                onDeleteRestart={() => setIncorporationRestartConfirm(true)}
-                coiSigned={coiSigned}
-              />
-            ) : (
-              <DocumentTrackerEmpty />
-            )}
-          </MobileSidebarTab>
         </div>
         </SignedOutGate>
       ) : view === "compliance" ? (
