@@ -595,7 +595,7 @@ export function ComplianceView({
     <div className="relative flex w-full flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col">
         {/* ── Header ── */}
-        <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
+        <div className="relative border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3">
             <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
               <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
@@ -629,6 +629,26 @@ export function ComplianceView({
               <RotateCcw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Restart</span>
             </div>
+          </div>
+          {/* ── Mobile sidebar triggers — stacked here instead of floating over the chat, so ── */}
+          {/*    they never sit on top of the messages. */}
+          <div className="absolute right-2 top-1/2 flex -translate-y-1/2 flex-col gap-1 sm:hidden">
+            <button
+              onClick={() => setHistoryOpen(true)}
+              aria-label="Open History"
+              title="History"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <HistoryIcon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open Compliance Documents"
+              title="Compliance Documents"
+              className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <ShieldCheck className="h-4 w-4" />
+            </button>
           </div>
         </div>
 
@@ -694,7 +714,7 @@ export function ComplianceView({
             icon={HistoryIcon}
             label="History"
             title="Compliance Center"
-            edgeOffset="far"
+            hideTrigger
             open={historyOpen}
             onOpenChange={setHistoryOpen}
           >
@@ -706,6 +726,7 @@ export function ComplianceView({
             icon={ShieldCheck}
             label="Compliance Documents"
             title="Compliance Center"
+            hideTrigger
             open={mobileOpen}
             onOpenChange={setMobileOpen}
           >

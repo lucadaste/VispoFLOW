@@ -8,7 +8,9 @@ export function MobileSidebarTab({
   icon: Icon,
   label,
   title,
-  edgeOffset = "near",
+  /** Suppress the floating top-right trigger button — used when the page renders its own
+   *  trigger elsewhere (e.g. stacked in the header) instead of floating one over the chat. */
+  hideTrigger = false,
   open,
   onOpenChange,
   children,
@@ -19,24 +21,19 @@ export function MobileSidebarTab({
    *  Center"), distinct from `label`. `children` already renders its own section heading
    *  (e.g. "Compliance Documents"/"History"), so reusing `label` here would show it twice. */
   title: string
-  /** Both of a page's tabs sit in the same top-right corner instead of opposite edges, so the
-   *  chat only loses width on one side rather than being squeezed from both. "far" shifts a
-   *  second icon further in from the edge so it doesn't land on top of the "near" one. */
-  edgeOffset?: "near" | "far"
+  hideTrigger?: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
   children: React.ReactNode
 }) {
   if (!open) {
+    if (hideTrigger) return null
     return (
       <button
         onClick={() => onOpenChange(true)}
         aria-label={`Open ${label}`}
         title={label}
-        className={cn(
-          "absolute top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:hidden",
-          edgeOffset === "far" ? "right-12" : "right-2"
-        )}
+        className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground sm:hidden"
       >
         <Icon className="h-5 w-5" />
       </button>
