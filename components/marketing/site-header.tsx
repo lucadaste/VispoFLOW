@@ -71,7 +71,7 @@ export function SiteHeader() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/beaker.png" alt="" className="h-9 w-9 shrink-0 object-contain" />
           <span className="leading-tight">
-            <span className="block text-sm font-semibold tracking-tight text-foreground">Vispo Labs</span>
+            <span className="block font-serif text-sm font-semibold tracking-tight text-foreground">Vispo Labs</span>
             <span className="block text-[11px] text-muted-foreground">Startup Legal Studio</span>
           </span>
         </Link>

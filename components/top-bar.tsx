@@ -81,7 +81,7 @@ export function TopBar({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/beaker.png" alt="" className="h-9 w-9 shrink-0 object-contain" />
           <div className="leading-tight text-left">
-            <p className="text-sm font-semibold tracking-tight">Vispo Labs</p>
+            <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
             <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
           </div>
         </a>

@@ -487,7 +487,7 @@ export function TransactionsOnboarding({
         <div className="relative border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3">
             <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
-              <h1 className="text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
+              <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">Transaction Center</h1>
               <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                 <button
                   onClick={() => requestSetInputMode("chat")}
@@ -784,7 +784,7 @@ function SidebarContent({
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Transaction Documents</h2>
+        <h2 className="font-serif text-sm font-semibold text-foreground">Transaction Documents</h2>
         <p className="mt-1 text-xs text-muted-foreground">Pick a category below to see what's available.</p>
       </div>
 
@@ -805,7 +805,7 @@ function SidebarContent({
                   isExpanded ? "bg-secondary/50" : "hover:bg-secondary/30"
                 )}
               >
-                <span className="text-sm font-semibold text-foreground">{cat.label}</span>
+                <span className="font-serif text-sm font-semibold text-foreground">{cat.label}</span>
                 <span className="text-xs font-medium text-muted-foreground">{doneCount}/{total}</span>
               </button>
 
@@ -903,7 +903,7 @@ function HistoryPanelContent({
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">History</h2>
+        <h2 className="font-serif text-sm font-semibold text-foreground">History</h2>
         <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed documents.</p>
       </div>
       <div className="flex-1 overflow-y-auto">

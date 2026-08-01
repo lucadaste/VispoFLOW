@@ -1090,7 +1090,7 @@ export function IncorporationApp() {
             <div className="border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
               <div className="flex items-center gap-3">
                 <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
-                  <h1 className="text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
+                  <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">Incorporation Center</h1>
                   <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                     <button
                       onClick={() => requestSetInputMode("chat")}
