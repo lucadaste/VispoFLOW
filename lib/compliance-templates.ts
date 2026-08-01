@@ -319,3 +319,9 @@ const RENDERERS: Partial<Record<string, (v: Record<string, string>) => string>> 
 export function renderComplianceDocument(itemId: string, values: Record<string, string>): string | null {
   return RENDERERS[itemId]?.(values) ?? null
 }
+
+/** Whether a compliance item has a real document template wired up yet. Used to gray out and
+ *  disable sidebar items whose legal template text hasn't been provided yet. */
+export function hasComplianceTemplate(itemId: string): boolean {
+  return itemId in RENDERERS
+}

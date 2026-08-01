@@ -16,7 +16,7 @@ import {
   type ComplianceField,
   type FlowAnswers,
 } from "@/lib/flow"
-import { renderComplianceDocument } from "@/lib/compliance-templates"
+import { renderComplianceDocument, hasComplianceTemplate } from "@/lib/compliance-templates"
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
@@ -588,8 +588,11 @@ export function ComplianceView({
     const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
     const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
     setActiveFiling({ item, groupTitle, fieldIndex, values })
-    promptField(item, groupTitle, fieldIndex, values)
-  }, [activeFiling, promptField])
+    // Only ask if this exact field's prompt isn't already sitting in the transcript — otherwise
+    // repeated toggling would stack up duplicate copies of the same question.
+    const alreadyAsked = messages.some((m) => m.role === "bot" && m.text === fieldPrompt(item.fields[fieldIndex]))
+    if (!alreadyAsked) promptField(item, groupTitle, fieldIndex, values)
+  }, [activeFiling, promptField, messages])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same filing open — nothing is lost,
   // so this just swaps which mode renders the current question (see reinitFilingForMode).
@@ -626,7 +629,7 @@ export function ComplianceView({
         <div className="relative border-b border-border bg-card/40 px-4 py-4 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3">
             <div className="mx-auto flex max-w-2xl flex-1 items-center justify-between gap-3">
-              <h1 className="text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
+              <h1 className="font-serif text-lg font-semibold tracking-tight text-foreground">Compliance Center</h1>
               <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 text-xs shadow-sm">
                 <button
                   onClick={() => requestSetInputMode("chat")}
@@ -952,7 +955,7 @@ function SidebarContent({
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">Compliance Documents</h2>
+        <h2 className="font-serif text-sm font-semibold text-foreground">Compliance Documents</h2>
         <p className="mt-1 text-xs text-muted-foreground">Pick a category below to see what's next.</p>
       </div>
 
@@ -973,7 +976,7 @@ function SidebarContent({
                   isExpanded ? "bg-secondary/50" : "hover:bg-secondary/30"
                 )}
               >
-                <span className="text-sm font-semibold text-foreground">{cat.label}</span>
+                <span className="font-serif text-sm font-semibold text-foreground">{cat.label}</span>
                 <span className="text-xs font-medium text-muted-foreground">{doneCount}/{total}</span>
               </button>
 
@@ -987,29 +990,34 @@ function SidebarContent({
                       <p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.title}</p>
                       <ul className="space-y-0.5">
                         {group.items.map((item) => {
+                          const available = hasComplianceTemplate(item.id)
                           const done = !!completed[item.id]
                           const doc = docs[item.id]
                           const viewable = done && !!doc?.content
                           const isActive = activeItemId === item.id
                           const handleClick = () => {
+                            if (!available) return
                             if (done && doc) return onViewClick(doc, item, group.title)
                             return onItemClick(item, group.title)
                           }
                           return (
-                            <li key={item.id}>
+                            <li key={item.id} className="relative">
                               <div
                                 role="button"
-                                tabIndex={0}
+                                tabIndex={available ? 0 : -1}
+                                aria-disabled={!available}
                                 onClick={handleClick}
                                 onKeyDown={(e) => {
-                                  if (e.key === "Enter" || e.key === " ") {
+                                  if (available && (e.key === "Enter" || e.key === " ")) {
                                     e.preventDefault()
                                     handleClick()
                                   }
                                 }}
                                 className={cn(
-                                  "flex w-full cursor-pointer items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
-                                  isActive ? "bg-primary/10" : "hover:bg-secondary/60"
+                                  "flex w-full items-start gap-2 rounded-lg px-2 py-2 text-left transition-colors",
+                                  !available
+                                    ? "cursor-not-allowed opacity-50"
+                                    : cn("cursor-pointer", isActive ? "bg-primary/10" : "hover:bg-secondary/60")
                                 )}
                               >
                                 <span className={cn(
@@ -1043,6 +1051,13 @@ function SidebarContent({
                                   </p>
                                 </div>
                               </div>
+                              {!available && (
+                                <div className="pointer-events-none absolute inset-0 flex items-center justify-end rounded-lg pr-2">
+                                  <span className="rounded-full border border-border bg-background/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm">
+                                    Not available yet
+                                  </span>
+                                </div>
+                              )}
                             </li>
                           )
                         })}
@@ -1071,7 +1086,7 @@ function HistoryPanelContent({
   return (
     <>
       <div className="border-b border-border px-4 py-4">
-        <h2 className="text-sm font-semibold text-foreground">History</h2>
+        <h2 className="font-serif text-sm font-semibold text-foreground">History</h2>
         <p className="mt-1 text-xs text-muted-foreground">Past conversations from completed filings.</p>
       </div>
       <div className="flex-1 overflow-y-auto">
