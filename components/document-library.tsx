@@ -1800,7 +1800,16 @@ function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
 
   if (failed) return <p className="text-sm text-neutral-500">Couldn't render the SS-4 preview. Try downloading the PDF instead.</p>
   if (!url) return <p className="text-sm text-neutral-500">Preparing preview…</p>
-  return <iframe src={url} title={doc.title} className="h-full min-h-[75vh] w-full rounded-md border border-border" />
+  // The open-parameters fragment (#toolbar=0&...) is the browser PDF viewer's own convention for
+  // suppressing its toolbar/sidebar chrome — Chrome and Firefox both honor it, which is what gets
+  // this down to just the document instead of a full PDF-reader UI wrapped around it.
+  return (
+    <iframe
+      src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+      title={doc.title}
+      className="h-full min-h-[75vh] w-full rounded-md border border-border"
+    />
+  )
 }
 
 /** Downloads every selected (and downloadable) document at once, in whichever format the user
