@@ -1,13 +1,53 @@
 "use client"
 
+import { useId } from "react"
 import { Check, FileCheck2, Send, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function BotMessage({ children }: { children: React.ReactNode }) {
+/** Live "thinking" mark for TypingIndicator — the flask tilts side to side while the liquid
+ *  (clipped to the glass) sloshes with a larger, slightly delayed swing so it reads as the
+ *  liquid catching up to whichever side the glass just tilted toward. */
+function AnimatedBeaker() {
+  const clipId = useId()
+  const outline = "M14,5.4 L14,13 C14,13 6,20 5,27 C4,32 8,33.5 18,33.5 C28,33.5 32,32 31,27 C30,20 22,13 22,13 L22,5.4"
+  const liquid = "M6,26.5 C10,23.5 14,28 18,25 C22,22 26,27 30,25 L31,27 C32,32 28,33.5 18,33.5 C8,33.5 4,32 5,27 Z"
+  return (
+    <svg viewBox="0 0 36 36" className="h-9 w-9 shrink-0 text-[#6858ff] opacity-[0.62]" fill="none">
+      <g className="beaker-tilt-group">
+        <circle className="beaker-bubble" cx="15.5" cy="1.6" r="1.2" fill="currentColor" style={{ animationDelay: "0s" }} />
+        <circle className="beaker-bubble" cx="19.5" cy="0.6" r="0.8" fill="currentColor" style={{ animationDelay: "0.5s" }} />
+        <rect x="13" y="4.4" width="10" height="2" rx="1" fill="currentColor" />
+        <path d={outline} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+        <clipPath id={clipId}>
+          <path d={outline + " L22,13 L18,13 L14,13 Z"} />
+        </clipPath>
+        <g clipPath={`url(#${clipId})`}>
+          <g className="beaker-liquid-group">
+            <path d={liquid} fill="currentColor" />
+            <circle cx="16" cy="18" r="0.9" fill="currentColor" />
+            <circle cx="20.5" cy="21.5" r="1.4" fill="currentColor" />
+          </g>
+        </g>
+      </g>
+    </svg>
+  )
+}
+
+export function BotMessage({
+  children,
+  showIcon = true,
+}: {
+  children: React.ReactNode
+  showIcon?: boolean
+}) {
   return (
     <div className="flex animate-message-in items-start gap-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/beaker.png" alt="" className="mt-0.5 h-9 w-9 shrink-0 object-contain" />
+      {showIcon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/brand/beaker.png" alt="" className="mt-0.5 h-9 w-9 shrink-0 object-contain" />
+      ) : (
+        <div className="h-9 w-9 shrink-0" />
+      )}
       <div className="max-w-[92%] px-1 py-1 text-sm leading-relaxed text-foreground">
         {children}
       </div>
@@ -104,8 +144,7 @@ export function DraftedCard({
 export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-center gap-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/beaker.png" alt="" className="h-9 w-9 shrink-0 object-contain" />
+      <AnimatedBeaker />
       <div className="flex items-center gap-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
         <span className="animate-pulse text-sm text-muted-foreground">Thinking…</span>

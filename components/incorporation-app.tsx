@@ -1133,8 +1133,15 @@ export function IncorporationApp() {
             <div className="relative flex-1 overflow-hidden">
               <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl space-y-4">
-                  {messages.map((m) => {
-                    if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
+                  {messages.map((m, i) => {
+                    if (m.role === "bot") {
+                      const isLastInRun = messages[i + 1]?.role !== "bot" && !(i === messages.length - 1 && isTyping)
+                      return (
+                        <BotMessage key={m.id} showIcon={isLastInRun}>
+                          {m.text}
+                        </BotMessage>
+                      )
+                    }
                     if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
                     if (m.role === "system")
                       return (

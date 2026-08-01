@@ -158,6 +158,39 @@
   animation: dot-bounce 1.2s infinite ease-in-out both;
 }
 
+@keyframes beaker-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-9deg); }
+  75% { transform: rotate(9deg); }
+}
+
+.beaker-tilt-group {
+  transform-origin: 18px 34px;
+  animation: beaker-tilt 1.7s ease-in-out infinite;
+}
+
+@keyframes beaker-slosh {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-16deg); }
+  75% { transform: rotate(16deg); }
+}
+
+.beaker-liquid-group {
+  transform-origin: 18px 34px;
+  animation: beaker-slosh 1.7s ease-in-out infinite;
+  animation-delay: 0.09s;
+}
+
+@keyframes beaker-bubble-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-7px); opacity: 0; }
+}
+
+.beaker-bubble {
+  animation: beaker-bubble-rise 1.7s ease-out infinite;
+}
+
 @keyframes beam-travel {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
