@@ -1,41 +1,7 @@
 "use client"
 
-import { useId } from "react"
 import { Check, FileCheck2, Send, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-/** Live "thinking" mark for TypingIndicator — the flask tilts side to side while the liquid
- *  (clipped to the glass) sloshes with a larger, slightly delayed swing so it reads as the
- *  liquid catching up to whichever side the glass just tilted toward. */
-function AnimatedBeaker() {
-  const clipId = useId()
-  // A single closed loop (rim, both walls, both flares, rounded bottom) — one continuous shape
-  // so there's no separate rim/wall piece to visibly drift apart once the group rotates. Reused
-  // verbatim as the liquid's clip so the liquid can never be drawn outside the glass it's tracing.
-  const outline = "M14,6 L22,6 L22,13 C26,16 32,20 32,27 C32,32 26,34 18,34 C10,34 4,32 4,27 C4,20 10,16 14,13 Z"
-  // Deliberately oversized (runs off all four sides) so at no point in the slosh rotation does
-  // its own edge come into view — only the glass clip above ever bounds what's visible.
-  const liquid = "M-10,25 C0,21 10,29 18,25 C26,21 36,29 46,25 L46,50 L-10,50 Z"
-  return (
-    <svg viewBox="0 0 36 36" className="h-9 w-9 shrink-0 text-[#6858ff] opacity-[0.62]" fill="none">
-      <g className="beaker-tilt-group">
-        <circle className="beaker-bubble" cx="15.5" cy="1.6" r="1.2" fill="currentColor" style={{ animationDelay: "0s" }} />
-        <circle className="beaker-bubble" cx="19.5" cy="0.6" r="0.8" fill="currentColor" style={{ animationDelay: "0.5s" }} />
-        <clipPath id={clipId}>
-          <path d={outline} />
-        </clipPath>
-        <g clipPath={`url(#${clipId})`}>
-          <g className="beaker-liquid-group">
-            <path d={liquid} fill="currentColor" />
-            <circle cx="16" cy="18" r="0.9" fill="currentColor" />
-            <circle cx="20.5" cy="21.5" r="1.4" fill="currentColor" />
-          </g>
-        </g>
-        <path d={outline} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
-      </g>
-    </svg>
-  )
-}
 
 export function BotMessage({
   children,
@@ -148,7 +114,8 @@ export function DraftedCard({
 export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-center gap-3">
-      <AnimatedBeaker />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/beaker.png" alt="" className="beaker-tilt-group h-9 w-9 shrink-0 object-contain" />
       <div className="flex items-center gap-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
         <span className="animate-pulse text-sm text-muted-foreground">Thinking…</span>
