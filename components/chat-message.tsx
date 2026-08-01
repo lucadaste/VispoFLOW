@@ -114,8 +114,16 @@ export function DraftedCard({
 export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-center gap-3">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/brand/beaker.png" alt="" className="beaker-tilt-group h-9 w-9 shrink-0 object-contain" />
+      <div className="relative h-9 w-9 shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/brand/beaker-liquid.png"
+          alt=""
+          className="beaker-liquid-tilt absolute inset-0 h-9 w-9 object-contain [mask-image:url(/brand/beaker-mask.png)] [mask-repeat:no-repeat] [mask-size:contain] [-webkit-mask-image:url(/brand/beaker-mask.png)] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain]"
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/beaker-glass.png" alt="" className="beaker-tilt-group absolute inset-0 h-9 w-9 object-contain" />
+      </div>
       <div className="flex items-center gap-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
         <span className="animate-pulse text-sm text-muted-foreground">Thinking…</span>

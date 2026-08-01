@@ -160,13 +160,26 @@
 
 @keyframes beaker-tilt {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-9deg); }
-  75% { transform: rotate(9deg); }
+  25% { transform: rotate(-13deg); }
+  75% { transform: rotate(13deg); }
 }
 
 .beaker-tilt-group {
   transform-origin: 50% 92%;
   animation: beaker-tilt 1.7s ease-in-out infinite;
+}
+
+/* Mirrored, slightly wider swing than the glass itself — the liquid sloshes to the side that
+   just tilted down rather than moving in lockstep with the glass. */
+@keyframes beaker-liquid-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  75% { transform: rotate(-15deg); }
+}
+
+.beaker-liquid-tilt {
+  transform-origin: 50% 92%;
+  animation: beaker-liquid-tilt 1.7s ease-in-out infinite;
 }
 
 @keyframes beam-travel {
