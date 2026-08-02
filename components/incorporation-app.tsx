@@ -738,42 +738,53 @@ export function IncorporationApp() {
     ])
   }, [])
 
+  // Depth counter, not a boolean: playStep recurses into itself for autoAdvance steps, and the
+  // outer call's "in flight" window has to span the whole chain down to the step that finally
+  // lands on a real input — otherwise a mid-chain state (messages pushed, no active input yet)
+  // can get autosaved and, if the page is refreshed in that instant, restored frozen forever.
+  const playStepDepthRef = useRef(0)
+
   const playStep = useCallback(
     async (index: number) => {
       const step = STEPS[index]
       if (!step) return
-      setActiveStepIndex(index)
-      setActiveInput(null)
-      setActiveChatFields(null)
-      // A new step has no prior progress to preserve — always start it fresh, whichever mode
-      // renders it (see requestSetInputMode for the mid-step, cross-mode resume case).
-      setActiveStepValues(null)
+      playStepDepthRef.current++
+      try {
+        setActiveStepIndex(index)
+        setActiveInput(null)
+        setActiveChatFields(null)
+        // A new step has no prior progress to preserve — always start it fresh, whichever mode
+        // renders it (see requestSetInputMode for the mid-step, cross-mode resume case).
+        setActiveStepValues(null)
 
-      for (const msg of step.messages) {
-        await pushBot(msg)
-      }
+        for (const msg of step.messages) {
+          await pushBot(msg)
+        }
 
-      if (step.widget === "formed") {
-        setMessages((m) => [...m, { id: nextId(), role: "widget", widget: "formed" }])
-        await delay(400)
-      }
+        if (step.widget === "formed") {
+          setMessages((m) => [...m, { id: nextId(), role: "widget", widget: "formed" }])
+          await delay(400)
+        }
 
-      if (step.input && !step.autoAdvance) {
-        const decomposed = getChatFields(step.input, effectiveAnswersRef.current)
-        if (decomposed) setActiveStepValues(decomposed.defaults)
-        if (inputMode === "chat" && decomposed) {
-          setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0 })
-          if (!decomposed.skipFirstPrompt) {
-            await pushBot(chatFieldPrompt(decomposed.fields[0]))
+        if (step.input && !step.autoAdvance) {
+          const decomposed = getChatFields(step.input, effectiveAnswersRef.current)
+          if (decomposed) setActiveStepValues(decomposed.defaults)
+          if (inputMode === "chat" && decomposed) {
+            setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0 })
+            if (!decomposed.skipFirstPrompt) {
+              await pushBot(chatFieldPrompt(decomposed.fields[0]))
+            }
+          } else {
+            setActiveInput(step.input)
           }
-        } else {
-          setActiveInput(step.input)
+        } else if (step.autoAdvance) {
+          if (step.completes?.length) {
+            await animateDocs(step.completes)
+          }
+          await playStep(index + 1)
         }
-      } else if (step.autoAdvance) {
-        if (step.completes?.length) {
-          await animateDocs(step.completes)
-        }
-        await playStep(index + 1)
+      } finally {
+        playStepDepthRef.current--
       }
     },
     [pushBot, inputMode, animateDocs],
@@ -829,6 +840,10 @@ export function IncorporationApp() {
     // once with the pre-load empty state and clobber whatever was actually saved.
     if (!startedRef.current || !incorporationHydrated) return
     if (isSignedIn && !incorporationServerLoaded) return
+    // Don't snapshot mid-playStep: between steps there's a real window where messages have
+    // been pushed but activeInput/activeChatFields haven't been set yet, and persisting that
+    // would strand a refreshing user on a frozen, input-less screen (see playStepDepthRef).
+    if (playStepDepthRef.current > 0) return
     const snapshot: IncorporationPersisted = {
       messages,
       docStatuses,
