@@ -1022,8 +1022,20 @@ export function IncorporationApp() {
     startedRef.current = false
     idRef.current = 0
     setMessages([])
-    setDocStatuses({})
-    setDocCompletedAt({})
+    // Docs already sitting in the deleted bin keep their status/timestamp (and hiddenDocIds entry,
+    // untouched below) so they stay there for the rest of their normal 7-day window — a restart
+    // only wipes what's actually being redone, not a deletion from an unrelated My Docs action.
+    const stillHiddenIds = DOCUMENTS.filter((d) => hiddenDocIds[d.id]).map((d) => d.id)
+    setDocStatuses((s) => {
+      const next: Record<string, DocStatus> = {}
+      stillHiddenIds.forEach((id) => (next[id] = s[id]))
+      return next
+    })
+    setDocCompletedAt((at) => {
+      const next: Record<string, string> = {}
+      stillHiddenIds.forEach((id) => { if (at[id]) next[id] = at[id] })
+      return next
+    })
     setAnswers(initialAnswers)
     setActiveInput(null)
     setActiveChatFields(null)
@@ -1031,12 +1043,7 @@ export function IncorporationApp() {
     setActiveStepIndex(0)
     setIsTyping(false)
     setView("chat")
-    setHiddenDocIds((ids) => {
-      const next = { ...ids }
-      DOCUMENTS.forEach((d) => delete next[d.id])
-      return next
-    })
-    DOCUMENTS.forEach((d) => clearSignaturesForDoc(d.id))
+    DOCUMENTS.forEach((d) => { if (!hiddenDocIds[d.id]) clearSignaturesForDoc(d.id) })
     clearPersisted(STORAGE_KEYS.incorporation)
     if (isSignedIn) clearFromServer(STORAGE_KEYS.incorporation)
     requestAnimationFrame(() => {
