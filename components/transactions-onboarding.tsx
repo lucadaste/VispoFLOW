@@ -902,7 +902,7 @@ function SidebarContent({
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
                                   <div className="flex items-center gap-1">
-                                    <p className="text-[12px] font-medium text-foreground">
+                                    <p className="truncate text-[12px] font-medium text-foreground">
                                       {item.title}
                                     </p>
                                     <button
@@ -911,7 +911,7 @@ function SidebarContent({
                                         onInfoClick(item)
                                       }}
                                       aria-label={`What is ${item.title}?`}
-                                      className={infoButtonClass}
+                                      className={cn(infoButtonClass, "shrink-0")}
                                     >
                                       <Info className="h-3 w-3" />
                                     </button>
