@@ -114,9 +114,11 @@ export function ComplianceOnboarding({
     <div className="flex w-full flex-1 flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-2xl space-y-4">
-          {messages.map((m) =>
+          {messages.map((m, i) =>
             m.role === "bot" ? (
-              <BotMessage key={m.id}>{m.text}</BotMessage>
+              <BotMessage key={m.id} showIcon={messages[i + 1]?.role !== "bot"}>
+                {m.text}
+              </BotMessage>
             ) : (
               <UserMessage key={m.id}>{m.text}</UserMessage>
             ),

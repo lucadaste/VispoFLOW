@@ -54,8 +54,14 @@ export function ConversationViewer({
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-4">
-            {entry.messages.map((m) => {
-              if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
+            {entry.messages.map((m, i) => {
+              if (m.role === "bot") {
+                return (
+                  <BotMessage key={m.id} showIcon={entry.messages[i + 1]?.role !== "bot"}>
+                    {m.text}
+                  </BotMessage>
+                )
+              }
               if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
               if (m.role === "note") return (
                 <p key={m.id} className="text-xs text-muted-foreground">{m.text}</p>

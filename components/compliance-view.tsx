@@ -739,8 +739,15 @@ export function ComplianceView({
                   <span className="h-px flex-1 bg-border" />
                 </button>
               )}
-              {visibleMessages.map((m) => {
-                if (m.role === "bot") return <BotMessage key={m.id}>{m.text}</BotMessage>
+              {visibleMessages.map((m, i) => {
+                if (m.role === "bot") {
+                  const isLastInRun = visibleMessages[i + 1]?.role !== "bot" && !(i === visibleMessages.length - 1 && isTyping)
+                  return (
+                    <BotMessage key={m.id} showIcon={isLastInRun}>
+                      {m.text}
+                    </BotMessage>
+                  )
+                }
                 if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
                 if (m.role === "filing") {
                   if (completed[m.item.id]) return null

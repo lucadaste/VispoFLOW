@@ -169,12 +169,14 @@
   animation: beaker-tilt 1.7s ease-in-out infinite;
 }
 
-/* Mirrored, slightly wider swing than the glass itself — the liquid sloshes to the side that
-   just tilted down rather than moving in lockstep with the glass. */
+/* Applied inside a wrapper that already carries beaker-tilt, so this is a rotation *relative* to
+   the glass's current angle. 28 = 13 (glass amplitude) + 15 (how far past level the liquid should
+   end up) — net effect is the liquid mirrors the glass's tilt, just further, while staying bounded
+   by the wrapper's mask (which tracks the glass exactly, since it shares its animation). */
 @keyframes beaker-liquid-tilt {
   0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(15deg); }
-  75% { transform: rotate(-15deg); }
+  25% { transform: rotate(28deg); }
+  75% { transform: rotate(-28deg); }
 }
 
 .beaker-liquid-tilt {

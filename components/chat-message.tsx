@@ -115,12 +115,15 @@ export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-center gap-3">
       <div className="relative h-9 w-9 shrink-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/brand/beaker-liquid.png"
-          alt=""
-          className="beaker-liquid-tilt absolute inset-0 h-9 w-9 object-contain [mask-image:url(/brand/beaker-mask.png)] [mask-repeat:no-repeat] [mask-size:contain] [-webkit-mask-image:url(/brand/beaker-mask.png)] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain]"
-        />
+        {/* The mask lives on this wrapper, which shares the glass's own tilt animation, so the
+           clip boundary always matches wherever the glass currently is rotated to. The liquid
+           image inside then adds its own (larger, mirrored) rotation on top of that. */}
+        <div
+          className="beaker-tilt-group absolute inset-0 h-9 w-9 [mask-image:url(/brand/beaker-mask.png)] [mask-repeat:no-repeat] [mask-size:contain] [-webkit-mask-image:url(/brand/beaker-mask.png)] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain]"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/beaker-liquid.png" alt="" className="beaker-liquid-tilt absolute inset-0 h-9 w-9 object-contain" />
+        </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/beaker-glass.png" alt="" className="beaker-tilt-group absolute inset-0 h-9 w-9 object-contain" />
       </div>
