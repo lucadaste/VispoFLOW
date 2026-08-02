@@ -382,7 +382,6 @@ const ANNUAL_BOARD_CONSENT: ComplianceItem = {
     { name: "companyName", label: "Legal company name", question: "What's the company's legal name?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "effectiveDate", label: "Effective date of consent", question: "What's the effective date of this consent?", type: "date" },
     { name: "officers", label: "Officers appointed", question: "Which officers are being appointed?", type: "textarea" },
-    { name: "otherMatters", label: "Other matters approved", question: "Anything else being approved alongside this?", type: "textarea", optional: true },
     { name: "directors", label: "Directors signing this consent", question: "Which directors are signing this consent?", type: "textarea" },
   ],
 }
