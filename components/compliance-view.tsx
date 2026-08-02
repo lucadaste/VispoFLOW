@@ -231,12 +231,10 @@ export function ComplianceView({
 
   const applyState = useCallback((saved: CompliancePersisted) => {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-    // Don't restore filing forms the user opened but never completed — reopening one
-    // implicitly re-runs autofill, so it must only happen from an explicit click, not on load.
-    const restoredMessages = saved.messages.filter(
-      (m) => m.role !== "filing" || saved.completed[m.item.id]
-    )
-    setMessages(restoredMessages)
+    // A "filing" message's card reads its field values from `activeFiling.values` (restored
+    // below), not from re-running prefill — so keeping it here just resumes the in-progress form
+    // where the user left it, same as Chat mode already does for its own draft state.
+    setMessages(saved.messages)
     const restoredCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
@@ -708,6 +706,12 @@ export function ComplianceView({
   const hiddenMessageCount = chatBreakId != null ? messages.filter((m) => m.id <= chatBreakId).length : 0
   const visibleMessages = chatBreakId != null && !showEarlier ? messages.filter((m) => m.id > chatBreakId) : messages
 
+  // True while the footer is actually collecting a delegate's email address rather than the
+  // active field's own value — the field's own type (e.g. "ssn") must not drive the input's
+  // constraints in that case, or there'd be no way to type an email into it (see the input below).
+  const isDelegatingActiveField =
+    inputMode === "chat" && !!activeFiling && !!delegateRecipient(activeFiling.item.fields[activeFiling.fieldIndex], activeFiling.values)
+
   return (
     <div className="relative flex w-full flex-1 overflow-hidden">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -882,7 +886,7 @@ export function ComplianceView({
               <span className="hidden sm:inline">New chat</span>
             </button>
             <div className="flex flex-1 items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              {activeFiling && inputMode === "chat" && activeFiling.item.fields[activeFiling.fieldIndex].type === "address" ? (
+              {activeFiling && inputMode === "chat" && !isDelegatingActiveField && activeFiling.item.fields[activeFiling.fieldIndex].type === "address" ? (
                 <div className="flex-1">
                   <AddressAutocomplete
                     value={value}
@@ -897,23 +901,25 @@ export function ComplianceView({
                 <input
                   value={value}
                   inputMode={
-                    inputMode === "chat" && activeFiling?.item.fields[activeFiling.fieldIndex].type === "ssn" ? "numeric" : undefined
+                    inputMode === "chat" && !isDelegatingActiveField && activeFiling?.item.fields[activeFiling.fieldIndex].type === "ssn" ? "numeric" : undefined
                   }
-                  maxLength={inputMode === "chat" && activeFiling?.item.fields[activeFiling.fieldIndex].type === "ssn" ? 11 : undefined}
+                  maxLength={inputMode === "chat" && !isDelegatingActiveField && activeFiling?.item.fields[activeFiling.fieldIndex].type === "ssn" ? 11 : undefined}
                   onChange={(e) => {
                     const raw = e.target.value
-                    const activeType = inputMode === "chat" ? activeFiling?.item.fields[activeFiling.fieldIndex].type : undefined
+                    const activeType = inputMode === "chat" && !isDelegatingActiveField ? activeFiling?.item.fields[activeFiling.fieldIndex].type : undefined
                     if (activeType === "ssn") setValue(formatSsnInput(raw))
                     else setValue(activeType === "number" && !/[a-z]/i.test(raw) ? formatNumberInput(raw) : raw)
                   }}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder={
                     activeFiling && inputMode === "chat"
-                      ? activeFiling.item.fields[activeFiling.fieldIndex].optional
-                        ? "Type an answer, or press Enter to skip…"
-                        : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
-                          ? "Type the amount, or ask a question…"
-                          : "Type your answer, or ask a question…"
+                      ? isDelegatingActiveField
+                        ? "Their email address…"
+                        : activeFiling.item.fields[activeFiling.fieldIndex].optional
+                          ? "Type an answer, or press Enter to skip…"
+                          : activeFiling.item.fields[activeFiling.fieldIndex].type === "number"
+                            ? "Type the amount, or ask a question…"
+                            : "Type your answer, or ask a question…"
                       : "Feel free to ask any questions…"
                   }
                   className="flex-1 bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
@@ -1124,7 +1130,7 @@ function SidebarContent({
                             return onItemClick(item, group.title)
                           }
                           return (
-                            <li key={item.id} className="relative">
+                            <li key={item.id}>
                               <div
                                 role="button"
                                 tabIndex={available ? 0 : -1}
@@ -1151,7 +1157,7 @@ function SidebarContent({
                                 </span>
                                 <div className="min-w-0 flex-1 leading-tight">
                                   <div className="flex items-center gap-1">
-                                    <p className="text-[12px] font-medium text-foreground">
+                                    <p className="truncate text-[12px] font-medium text-foreground">
                                       {item.title}
                                     </p>
                                     <button
@@ -1160,7 +1166,7 @@ function SidebarContent({
                                         onInfoClick(item)
                                       }}
                                       aria-label={`What is ${item.title}?`}
-                                      className={infoButtonClass}
+                                      className={cn(infoButtonClass, "shrink-0")}
                                     >
                                       <Info className="h-3.5 w-3.5" />
                                     </button>
@@ -1173,14 +1179,12 @@ function SidebarContent({
                                     <span className="truncate">{viewable ? "View document" : item.deadline}</span>
                                   </p>
                                 </div>
-                              </div>
-                              {!available && (
-                                <div className="pointer-events-none absolute inset-0 flex items-center justify-end rounded-lg pr-2">
-                                  <span className="rounded-full border border-border bg-background/95 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm">
+                                {!available && (
+                                  <span className="mt-0.5 shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm">
                                     Not available yet
                                   </span>
-                                </div>
-                              )}
+                                )}
+                              </div>
                             </li>
                           )
                         })}

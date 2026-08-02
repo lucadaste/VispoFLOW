@@ -155,12 +155,10 @@ export function TransactionsOnboarding({
 
   const applyState = useCallback((saved: TransactionsPersisted) => {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
-    // Don't restore document forms the user opened but never completed — reopening one
-    // implicitly re-runs autofill, so it must only happen from an explicit click, not on load.
-    const restoredMessages = saved.messages.filter(
-      (m) => m.role !== "doc" || saved.completed[m.item.id]
-    )
-    setMessages(restoredMessages)
+    // A "doc" message's card reads its field values from `activeFiling.values` (restored below),
+    // not from re-running prefill — so keeping it here just resumes the in-progress form where
+    // the user left it, same as Chat mode already does for its own draft state.
+    setMessages(saved.messages)
     const restoredCategory = TRANSACTION_CATEGORIES.find((c) => c.id === saved.activeCategoryId) ?? null
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
@@ -169,11 +167,11 @@ export function TransactionsOnboarding({
     setHistory(saved.history ?? [])
     setInputMode(saved.inputMode ?? "chat")
     setHasStartedFlow(
-      restoredMessages.length > 1 || !!restoredCategory || Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0
+      saved.messages.length > 1 || !!restoredCategory || Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0
     )
     // Keep activeItemId restored (it always points at an incomplete item, since completion
-    // clears it) even though the in-progress form itself wasn't restored above — the sidebar
-    // still needs to know a filing is "open" so switching to a different one asks to confirm.
+    // clears it) — the sidebar needs to know a filing is "open" so switching to a different one
+    // asks to confirm, and the restored "doc" message above needs it to render as active.
     setActiveItemId(saved.activeItemId)
     // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
     // reload — restore them so the field-answer bubble stays interactive after a remount.
