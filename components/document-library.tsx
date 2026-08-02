@@ -12,6 +12,7 @@ import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
 import { buildEightyThreeBPdfBytes, type EightyThreeBSignature } from "@/lib/83b-document"
 import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
 import { stashSensitiveValues, restoreSensitiveValues, clearStashedSensitiveValues } from "@/lib/sensitive-session-store"
+import { saveSensitiveValueToServer, loadSensitiveValuesFromServer, purgeSensitiveValuesFromServer } from "@/lib/sensitive-server-store"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -90,10 +91,13 @@ export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   if (sensitiveNames.length === 0 || !doc.values) return doc
   const hasSensitiveValue = sensitiveNames.some((name) => doc.values![name])
   if (!hasSensitiveValue) return doc
-  // The real values still need to survive an ordinary page refresh in this same tab — see
-  // lib/sensitive-session-store.ts — so they're stashed there right before being wiped from the
-  // copy that's about to be written to localStorage/the server.
+  // The real values still need to survive an ordinary page refresh in this same tab (see
+  // lib/sensitive-session-store.ts) and, for a signed-in account, a return visit on a later day
+  // (see lib/sensitive-server-store.ts) — both are stashed right before the value is wiped from
+  // the copy that's about to be written to localStorage. The server call is a no-op failure (401)
+  // when signed out, so it's safe to call unconditionally rather than threading sign-in state in.
   stashSensitiveValues(doc.id, doc.values, sensitiveNames)
+  for (const name of sensitiveNames) if (doc.values[name]) saveSensitiveValueToServer(doc.id, name, doc.values[name])
   const values = { ...doc.values }
   for (const name of sensitiveNames) if (values[name]) values[name] = SENSITIVE_FIELD_PLACEHOLDER
   return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
@@ -101,7 +105,9 @@ export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
 
 /** Counterpart to redactSensitiveDocValues, called right after loading a persisted doc: restores
  *  whichever `sensitive` fields still have their real value stashed in this browser tab's
- *  sessionStorage, so a page refresh doesn't read as the value having been lost. */
+ *  sessionStorage, so a page refresh doesn't read as the value having been lost. Synchronous and
+ *  local-only — see mergeServerSensitiveValues below for the slower, account-scoped counterpart
+ *  that covers a return visit after this tab's sessionStorage is gone. */
 export function rehydrateSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   const sensitiveNames = findComplianceItem(doc.id)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
   if (sensitiveNames.length === 0 || !doc.values) return doc
@@ -110,11 +116,36 @@ export function rehydrateSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
 }
 
-/** Drops a doc's stashed sensitive values (see lib/sensitive-session-store.ts) — call when a filing
- *  is deleted or redone from scratch, so a later filing of the same id can't inherit a stale value. */
-export function clearStashedSensitiveDocValues(docId: string) {
+/** Whether this doc has any `sensitive` field at all — cheap gate so callers (the sign/download
+ *  purge, the server-merge fetch below) can skip the network round trip entirely for the vast
+ *  majority of documents that never had one. */
+export function docHasSensitiveFields(docId: string): boolean {
+  return (findComplianceItem(docId)?.fields.some((f) => f.sensitive)) ?? false
+}
+
+/** Account-scoped counterpart to rehydrateSensitiveDocValues: fetches whichever `sensitive` fields
+ *  are still redacted after the (synchronous, same-tab-only) sessionStorage pass above from this
+ *  signed-in account's encrypted server backup (see lib/sensitive-server-store.ts) — covers a
+ *  return visit on a later day or a different device. Async, so callers apply it as a follow-up
+ *  merge after the doc's already rendered from local state, not as a load-blocking step. Resolves
+ *  to `null` if there was nothing to fetch or nothing came back, so callers can skip a no-op
+ *  re-render. */
+export async function mergeServerSensitiveValues(doc: LibraryDoc): Promise<LibraryDoc | null> {
+  if (!docHasSensitiveFields(doc.id) || redactedSensitiveFieldLabels(doc).length === 0) return null
+  const fetched = await loadSensitiveValuesFromServer(doc.id)
+  if (Object.keys(fetched).length === 0) return null
+  const values = { ...doc.values, ...fetched }
+  return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
+}
+
+/** Purges a doc's stashed sensitive values, both the same-tab sessionStorage copy and the
+ *  account's encrypted server backup — call once its real value is no longer needed: the document
+ *  was signed or downloaded, or the filing was deleted/redone from scratch. */
+export function purgeSensitiveDocValues(docId: string) {
+  if (!docHasSensitiveFields(docId)) return
   const sensitiveNames = findComplianceItem(docId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
-  if (sensitiveNames.length > 0) clearStashedSensitiveValues(docId, sensitiveNames)
+  clearStashedSensitiveValues(docId, sensitiveNames)
+  purgeSensitiveValuesFromServer(docId)
 }
 
 /** Labels of this doc's `sensitive` fields (see redactSensitiveDocValues above) that currently hold
@@ -649,6 +680,9 @@ async function buildDoc(doc: LibraryDoc, format: DownloadFormat, answers: FlowAn
 async function downloadDoc(doc: LibraryDoc, format: DownloadFormat, answers: FlowAnswers) {
   const file = await buildDoc(doc, format, answers)
   if (file) triggerDownload(file.blob, file.filename)
+  // Downloading is "done with it" for a sensitive field's server-side backup (see
+  // purgeSensitiveDocValues) — a no-op for every doc that never had one.
+  if (file) purgeSensitiveDocValues(doc.id)
 }
 
 /** A single browser download naturally handles one file at a time; triggering several in a burst
@@ -658,6 +692,7 @@ async function downloadDoc(doc: LibraryDoc, format: DownloadFormat, answers: Flo
 async function downloadDocs(docs: LibraryDoc[], format: DownloadFormat, answers: FlowAnswers) {
   const built = (await Promise.all(docs.map((doc) => buildDoc(doc, format, answers)))).filter((f): f is BuiltFile => !!f)
   if (built.length === 0) return
+  for (const doc of docs) purgeSensitiveDocValues(doc.id)
   if (built.length === 1) {
     triggerDownload(built[0].blob, built[0].filename)
     return

@@ -223,19 +223,26 @@ export function Landing({
 
       {/* Chat area — scrollable, grows with messages */}
       <div ref={chatRef} className="flex-1 overflow-y-auto w-full max-w-2xl py-5 space-y-4">
-        <BotMessage showIcon={messages[0]?.role !== "assistant" && !(messages.length === 0 && isTyping)}>
-          Hi there — think of me as your legal co-pilot for getting a startup off the ground. I can help you incorporate as a Delaware C-Corp, stay on top of what comes after (EIN, 83(b), state filings), put together documents when you're raising money or granting equity, and keep everything signed and organized once it's done. Pick a section above, or just ask me a question to get your bearings.
-        </BotMessage>
-
-        {messages.map((m, i) =>
-          m.role === "assistant"
-            ? (
-              <BotMessage key={i} showIcon={messages[i + 1]?.role !== "assistant" && !(i === messages.length - 1 && isTyping)}>
-                {m.content}
+        {(() => {
+          const lastAssistantIndex = messages.reduce((last, mm, idx) => (mm.role === "assistant" ? idx : last), -1)
+          return (
+            <>
+              <BotMessage showIcon={lastAssistantIndex === -1 && !isTyping}>
+                Hi there — think of me as your legal co-pilot for getting a startup off the ground. I can help you incorporate as a Delaware C-Corp, stay on top of what comes after (EIN, 83(b), state filings), put together documents when you're raising money or granting equity, and keep everything signed and organized once it's done. Pick a section above, or just ask me a question to get your bearings.
               </BotMessage>
-            )
-            : <UserMessage key={i}>{m.content}</UserMessage>
-        )}
+
+              {messages.map((m, i) =>
+                m.role === "assistant"
+                  ? (
+                    <BotMessage key={i} showIcon={i === lastAssistantIndex && !isTyping}>
+                      {m.content}
+                    </BotMessage>
+                  )
+                  : <UserMessage key={i}>{m.content}</UserMessage>
+              )}
+            </>
+          )
+        })()}
 
         {isTyping && <TypingIndicator />}
       </div>

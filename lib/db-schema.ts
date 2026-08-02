@@ -73,3 +73,22 @@ export const infoRequests = pgTable("info_requests", {
 }, (table) => [
   index("info_requests_owner_idx").on(table.ownerId),
 ])
+
+/** Encrypted, account-scoped backup of a `sensitive` compliance field's real value (e.g. an
+ *  SSN/ITIN) — extends the sessionStorage-only handling in lib/sensitive-session-store.ts (same
+ *  browser tab only) to survive across days/devices for a signed-in account, without keeping the
+ *  value indefinitely: a row here is deleted the moment its document is signed or downloaded (see
+ *  app/api/sensitive-fields/route.ts and lib/sensitive-server-store.ts's callers), so at most it
+ *  outlives the gap between filling in a filing and finishing it. */
+export const sensitiveFieldValues = pgTable("sensitive_field_values", {
+  userId: text("user_id").notNull(),
+  /** the static catalog id (e.g. "ein", "83b") this value belongs to */
+  docId: text("doc_id").notNull(),
+  /** the ComplianceField.name this fulfills, e.g. "ssn" or "taxpayerTin" */
+  fieldName: text("field_name").notNull(),
+  /** AES-256-GCM ciphertext from lib/crypto.ts's encryptSensitive */
+  encryptedValue: text("encrypted_value").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.docId, table.fieldName] }),
+])

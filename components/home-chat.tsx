@@ -168,6 +168,8 @@ export function HomeChat({
     sendMessage(t)
   }
 
+  const lastAssistantIndex = messages.reduce((last, mm, idx) => (mm.role === "assistant" ? idx : last), -1)
+
   return (
     <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
@@ -176,7 +178,7 @@ export function HomeChat({
             m.role === "assistant" ? (
               <BotMessage
                 key={i}
-                showIcon={messages[i + 1]?.role !== "assistant" && !(i === messages.length - 1 && isTyping)}
+                showIcon={i === lastAssistantIndex && !isTyping}
               >
                 {m.content}
               </BotMessage>

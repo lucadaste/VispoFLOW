@@ -54,10 +54,12 @@ export function ConversationViewer({
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-4">
-            {entry.messages.map((m, i) => {
+            {(() => {
+              const lastBotIndex = entry.messages.reduce((last, mm, idx) => (mm.role === "bot" ? idx : last), -1)
+              return entry.messages.map((m, i) => {
               if (m.role === "bot") {
                 return (
-                  <BotMessage key={m.id} showIcon={entry.messages[i + 1]?.role !== "bot"}>
+                  <BotMessage key={m.id} showIcon={i === lastBotIndex}>
                     {m.text}
                   </BotMessage>
                 )
@@ -74,7 +76,8 @@ export function ConversationViewer({
                   onClick={onOpenDoc}
                 />
               )
-            })}
+              })
+            })()}
           </div>
         </div>
       </div>

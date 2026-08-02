@@ -25,11 +25,14 @@ import {
   withDocSignatures,
   redactSensitiveDocValues,
   rehydrateSensitiveDocValues,
+  mergeServerSensitiveValues,
+  docHasSensitiveFields,
   SENSITIVE_FIELD_PLACEHOLDER,
   type LibraryDoc,
   type DocSignature,
 } from "@/components/document-library"
 import { stashSensitiveValues, restoreSensitiveValues } from "@/lib/sensitive-session-store"
+import { saveSensitiveValueToServer, loadSensitiveValuesFromServer } from "@/lib/sensitive-server-store"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { formatNumberInput } from "@/lib/number-format"
@@ -134,6 +137,7 @@ function redactSensitiveValues(itemId: string, values: Record<string, string>): 
   const sensitiveNames = findComplianceItem(itemId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
   if (sensitiveNames.length === 0) return values
   stashSensitiveValues(itemId, values, sensitiveNames)
+  for (const name of sensitiveNames) if (values[name]) saveSensitiveValueToServer(itemId, name, values[name])
   const redacted = { ...values }
   for (const name of sensitiveNames) if (redacted[name]) redacted[name] = SENSITIVE_FIELD_PLACEHOLDER
   return redacted
@@ -239,7 +243,8 @@ export function ComplianceView({
     setCompleted(saved.completed)
     // See lib/sensitive-session-store.ts — restores any sensitive field still stashed in this
     // browser tab's sessionStorage, so a plain refresh doesn't read as the value being lost.
-    setDocs(Object.fromEntries(Object.entries(saved.docs ?? {}).map(([id, doc]) => [id, rehydrateSensitiveDocValues(doc)])))
+    const rehydratedDocs = Object.fromEntries(Object.entries(saved.docs ?? {}).map(([id, doc]) => [id, rehydrateSensitiveDocValues(doc)]))
+    setDocs(rehydratedDocs)
     setHistory(saved.history ?? [])
     setInputMode(saved.inputMode ?? "chat")
     // Restore activeItemId alongside activeFiling below — otherwise the sidebar has no way to
@@ -247,14 +252,34 @@ export function ComplianceView({
     setActiveItemId(saved.activeItemId)
     // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
     // reload — restore them so the flow keeps expecting the next field's answer.
+    const activeFilingSensitiveNames = saved.activeFiling?.item.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
     setActiveFiling(
       saved.activeFiling
-        ? { ...saved.activeFiling, values: restoreSensitiveValues(saved.activeFiling.item.id, saved.activeFiling.values, saved.activeFiling.item.fields.filter((f) => f.sensitive).map((f) => f.name)) }
+        ? { ...saved.activeFiling, values: restoreSensitiveValues(saved.activeFiling.item.id, saved.activeFiling.values, activeFilingSensitiveNames) }
         : null
     )
     setChatBreakId(saved.chatBreakId ?? null)
     setShowEarlier(false)
-  }, [])
+    // The sessionStorage rehydration above only covers this same browser tab — for a signed-in
+    // account, an async follow-up against the encrypted server backup (see
+    // lib/sensitive-server-store.ts) covers a return visit on a later day. See the identical
+    // pattern (and fuller explanation) in components/incorporation-app.tsx's applyLibraryState.
+    if (isSignedIn) {
+      for (const doc of Object.values(rehydratedDocs)) {
+        if (!docHasSensitiveFields(doc.id)) continue
+        mergeServerSensitiveValues(doc).then((merged) => {
+          if (merged) setDocs((docs) => ({ ...docs, [merged.id]: merged }))
+        })
+      }
+      if (saved.activeFiling && activeFilingSensitiveNames.length > 0) {
+        const itemId = saved.activeFiling.item.id
+        loadSensitiveValuesFromServer(itemId).then((fetched) => {
+          if (Object.keys(fetched).length === 0) return
+          setActiveFiling((f) => (f && f.item.id === itemId ? { ...f, values: { ...f.values, ...fetched } } : f))
+        })
+      }
+    }
+  }, [isSignedIn])
 
   const openPostIncorporation = useCallback(() => {
     const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
@@ -750,13 +775,13 @@ export function ComplianceView({
                   <span className="h-px flex-1 bg-border" />
                 </button>
               )}
-              {visibleMessages
-                .filter((m) => !(m.role === "filing" && completed[m.item.id]))
-                .map((m, i, arr) => {
+              {(() => {
+                const shown = visibleMessages.filter((m) => !(m.role === "filing" && completed[m.item.id]))
+                const lastBotIndex = shown.reduce((last, mm, idx) => (mm.role === "bot" ? idx : last), -1)
+                return shown.map((m, i) => {
                 if (m.role === "bot") {
-                  const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                   return (
-                    <BotMessage key={m.id} showIcon={isLastInRun}>
+                    <BotMessage key={m.id} showIcon={i === lastBotIndex && !isTyping}>
                       {m.text}
                     </BotMessage>
                   )
@@ -811,7 +836,8 @@ export function ComplianceView({
                   )
                 }
                 return null
-              })}
+                })
+              })()}
               {isTyping && <TypingIndicator />}
             </div>
           </div>

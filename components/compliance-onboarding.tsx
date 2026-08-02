@@ -110,13 +110,15 @@ export function ComplianceOnboarding({
     }
   }, [value, phase, answers, handleStart, pushBot, pushUser, onComplete])
 
+  const lastBotIndex = messages.reduce((last, mm, idx) => (mm.role === "bot" ? idx : last), -1)
+
   return (
     <div className="flex w-full flex-1 flex-col overflow-hidden">
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
         <div className="mx-auto max-w-2xl space-y-4">
           {messages.map((m, i) =>
             m.role === "bot" ? (
-              <BotMessage key={m.id} showIcon={messages[i + 1]?.role !== "bot"}>
+              <BotMessage key={m.id} showIcon={i === lastBotIndex}>
                 {m.text}
               </BotMessage>
             ) : (

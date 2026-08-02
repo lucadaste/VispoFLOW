@@ -14,7 +14,9 @@ import {
   withDocSignatures,
   redactSensitiveDocValues,
   rehydrateSensitiveDocValues,
-  clearStashedSensitiveDocValues,
+  mergeServerSensitiveValues,
+  purgeSensitiveDocValues,
+  docHasSensitiveFields,
   type LibraryDoc,
   type DocSignature,
   type PendingSignRequest,
@@ -284,11 +286,26 @@ export function IncorporationApp() {
         .map(([id]) => id),
     )
     for (const id of expiredIds) delete hiddenDocIds[id]
-    setComplianceDocs(saved.complianceDocs.filter((d) => !expiredIds.has(d.id)).map(rehydrateSensitiveDocValues))
+    const rehydrated = saved.complianceDocs.filter((d) => !expiredIds.has(d.id)).map(rehydrateSensitiveDocValues)
+    setComplianceDocs(rehydrated)
     setTransactionDocs(saved.transactionDocs.filter((d) => !expiredIds.has(d.id)))
     setHiddenDocIds(hiddenDocIds)
     setSignedDocs(normalizeSignedDocs(saved.signedDocs))
-  }, [])
+    // The sessionStorage rehydration above only covers this same browser tab — for a signed-in
+    // account, whichever sensitive fields are still redacted after that get a slower, async
+    // follow-up check against the account's encrypted server backup (see
+    // lib/sensitive-server-store.ts), so a doc filled in on an earlier day still shows correctly
+    // instead of needing to be refilled. Applied as a merge once each fetch resolves, rather than
+    // blocking the doc list on it.
+    if (isSignedIn) {
+      for (const doc of rehydrated) {
+        if (!docHasSensitiveFields(doc.id)) continue
+        mergeServerSensitiveValues(doc).then((merged) => {
+          if (merged) setComplianceDocs((docs) => docs.map((d) => (d.id === merged.id ? merged : d)))
+        })
+      }
+    }
+  }, [isSignedIn])
 
   // Restore the document vault (compliance/transaction docs) after mount
   useEffect(() => {
@@ -540,7 +557,7 @@ export function IncorporationApp() {
   const handleComplianceDocDeleted = useCallback((id: string) => {
     setComplianceDocs((docs) => docs.filter((d) => d.id !== id))
     clearSignaturesForDoc(id)
-    clearStashedSensitiveDocValues(id)
+    purgeSensitiveDocValues(id)
     setHiddenDocIds((ids) => {
       if (!ids[id]) return ids
       const next = { ...ids }
@@ -611,6 +628,9 @@ export function IncorporationApp() {
         ...docs,
         [doc.id]: [...(docs[doc.id] ?? []).filter((s) => s.slotId !== slotId), newSig],
       }))
+      // Signing is "done with it" for a sensitive field's server-side backup, same as downloading
+      // (see purgeSensitiveDocValues) — a no-op for every doc that never had one.
+      purgeSensitiveDocValues(doc.id)
     },
     [profile.signerName, profile.roles, profile.companyAddress, profile.email, effectiveAnswers],
   )
@@ -1185,13 +1205,13 @@ export function IncorporationApp() {
             <div className="relative flex-1 overflow-hidden">
               <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl space-y-4">
-                  {messages
-                    .filter((m) => !(m.role === "docDrafted" && !DOCUMENTS.find((d) => d.id === m.docId)))
-                    .map((m, i, arr) => {
+                  {(() => {
+                    const shown = messages.filter((m) => !(m.role === "docDrafted" && !DOCUMENTS.find((d) => d.id === m.docId)))
+                    const lastBotIndex = shown.reduce((last, mm, idx) => (mm.role === "bot" ? idx : last), -1)
+                    return shown.map((m, i) => {
                     if (m.role === "bot") {
-                      const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                       return (
-                        <BotMessage key={m.id} showIcon={isLastInRun}>
+                        <BotMessage key={m.id} showIcon={i === lastBotIndex && !isTyping}>
                           {m.text}
                         </BotMessage>
                       )
@@ -1221,7 +1241,8 @@ export function IncorporationApp() {
                     if (m.role === "note")
                       return <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
                     return null
-                  })}
+                    })
+                  })()}
                   {isTyping && <TypingIndicator />}
                   {!isTyping && activeInput && isInlineCardInput(activeInput) && (
                     <ChatInput

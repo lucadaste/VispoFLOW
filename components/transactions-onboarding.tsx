@@ -579,13 +579,13 @@ export function TransactionsOnboarding({
                   <span className="h-px flex-1 bg-border" />
                 </button>
               )}
-              {visibleMessages
-                .filter((m) => !(m.role === "doc" && completed[m.item.id]))
-                .map((m, i, arr) => {
+              {(() => {
+                const shown = visibleMessages.filter((m) => !(m.role === "doc" && completed[m.item.id]))
+                const lastBotIndex = shown.reduce((last, mm, idx) => (mm.role === "bot" ? idx : last), -1)
+                return shown.map((m, i) => {
                 if (m.role === "bot") {
-                  const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                   return (
-                    <BotMessage key={m.id} showIcon={isLastInRun}>
+                    <BotMessage key={m.id} showIcon={i === lastBotIndex && !isTyping}>
                       {m.text}
                     </BotMessage>
                   )
@@ -633,7 +633,8 @@ export function TransactionsOnboarding({
                   />
                 )
                 return null
-              })}
+                })
+              })()}
               {!hasStartedFlow && (
                 <div className="flex flex-wrap gap-2 pt-2">
                   {TRANSACTION_CATEGORIES.map((cat) => (
