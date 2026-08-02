@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, History as HistoryIcon, FileCheck2, Trash2, MessageSquarePlus } from "lucide-react"
+import { Send, Check, Circle, ShieldCheck, CalendarClock, Info, History as HistoryIcon, FileCheck2, Trash2, MessageSquarePlus, HelpCircle } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { BotMessage, UserMessage, TypingIndicator, DraftedCard } from "@/components/chat-message"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -739,9 +739,11 @@ export function ComplianceView({
                   <span className="h-px flex-1 bg-border" />
                 </button>
               )}
-              {visibleMessages.map((m, i) => {
+              {visibleMessages
+                .filter((m) => !(m.role === "filing" && completed[m.item.id]))
+                .map((m, i, arr) => {
                 if (m.role === "bot") {
-                  const isLastInRun = visibleMessages[i + 1]?.role !== "bot" && !(i === visibleMessages.length - 1 && isTyping)
+                  const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                   return (
                     <BotMessage key={m.id} showIcon={isLastInRun}>
                       {m.text}
@@ -750,7 +752,6 @@ export function ComplianceView({
                 }
                 if (m.role === "user") return <UserMessage key={m.id}>{m.text}</UserMessage>
                 if (m.role === "filing") {
-                  if (completed[m.item.id]) return null
                   return (
                     <FilingFormCard
                       key={m.id}
@@ -1325,6 +1326,14 @@ function FilingFormCard({
             <label className="mb-1.5 flex items-center gap-1 text-sm font-medium text-foreground">
               {f.label}
               {!f.optional && <span className="text-destructive">*</span>}
+              {f.tooltip && (
+                <span className="group/tip relative flex items-center">
+                  <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
+                  <span className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 w-72 rounded-md border border-border bg-popover px-2.5 py-2 text-xs font-normal leading-snug text-popover-foreground opacity-0 shadow-md transition-opacity duration-150 group-hover/tip:opacity-100">
+                    {f.tooltip}
+                  </span>
+                </span>
+              )}
             </label>
             {delegateTo && fulfilled ? (
               <p className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5 text-sm text-muted-foreground">

@@ -114,19 +114,25 @@ export function DraftedCard({
 export function TypingIndicator() {
   return (
     <div className="flex animate-message-in items-center gap-3">
-      <div className="relative h-9 w-9 shrink-0">
-        {/* The mask lives on this wrapper, which shares the glass's own tilt animation, so the
-           clip boundary always matches wherever the glass currently is rotated to. The liquid
-           image inside then adds its own (larger, mirrored) rotation on top of that. */}
-        <div
-          className="beaker-tilt-group absolute inset-0 h-9 w-9 [mask-image:url(/brand/beaker-mask.png)] [mask-repeat:no-repeat] [mask-size:contain] [-webkit-mask-image:url(/brand/beaker-mask.png)] [-webkit-mask-repeat:no-repeat] [-webkit-mask-size:contain]"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/beaker-liquid.png" alt="" className="beaker-liquid-tilt absolute inset-0 h-9 w-9 object-contain" />
-        </div>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/beaker-glass.png" alt="" className="beaker-tilt-group absolute inset-0 h-9 w-9 object-contain" />
-      </div>
+      {/* SVG rather than layered HTML/CSS: the mask and the liquid's extra rotation are both
+         nested *inside* the same tilt-group as the glass, so they're locked to its current
+         angle by construction (plain nested transforms) instead of two separately-animated
+         elements that have to stay in sync via matching CSS animations. */}
+      <svg viewBox="0 0 36 36" className="h-9 w-9 shrink-0">
+        <defs>
+          <mask id="beaker-liquid-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="36" height="36">
+            <image href="/brand/beaker-mask.png" x="0" y="0" width="36" height="36" />
+          </mask>
+        </defs>
+        <g className="beaker-tilt-group">
+          <g mask="url(#beaker-liquid-mask)">
+            <g className="beaker-liquid-tilt">
+              <image href="/brand/beaker-liquid.png" x="0" y="0" width="36" height="36" />
+            </g>
+          </g>
+          <image href="/brand/beaker-glass.png" x="0" y="0" width="36" height="36" />
+        </g>
+      </svg>
       <div className="flex items-center gap-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
         <span className="animate-pulse text-sm text-muted-foreground">Thinking…</span>

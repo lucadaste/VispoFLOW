@@ -579,9 +579,11 @@ export function TransactionsOnboarding({
                   <span className="h-px flex-1 bg-border" />
                 </button>
               )}
-              {visibleMessages.map((m, i) => {
+              {visibleMessages
+                .filter((m) => !(m.role === "doc" && completed[m.item.id]))
+                .map((m, i, arr) => {
                 if (m.role === "bot") {
-                  const isLastInRun = visibleMessages[i + 1]?.role !== "bot" && !(i === visibleMessages.length - 1 && isTyping)
+                  const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                   return (
                     <BotMessage key={m.id} showIcon={isLastInRun}>
                       {m.text}
@@ -593,7 +595,6 @@ export function TransactionsOnboarding({
                   <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
                 )
                 if (m.role === "doc") {
-                  if (completed[m.item.id]) return null
                   return (
                     <TransactionFormCard
                       key={m.id}

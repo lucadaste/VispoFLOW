@@ -808,7 +808,10 @@ export function IncorporationApp() {
     startedRef.current = true
 
     const saved = loadPersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation)
-    if (saved && saved.messages.length > 0) {
+    // A snapshot with messages but no active input/chatFields is a stuck mid-step state —
+    // legacy corrupted data, or some future crash mid-playStep — not a resumable one.
+    // Treat it the same as "nothing saved" and start fresh rather than restoring it frozen.
+    if (saved && saved.messages.length > 0 && (saved.activeInput || saved.activeChatFields)) {
       applyIncorporationState(saved)
       setIncorporationHydrated(true)
       return
@@ -824,7 +827,10 @@ export function IncorporationApp() {
     if (!isSignedIn || incorporationSyncedRef.current) return
     incorporationSyncedRef.current = true
     loadFromServer<IncorporationPersisted>(STORAGE_KEYS.incorporation).then((saved) => {
-      if (saved && saved.messages.length > 0) {
+      // Same corrupted-snapshot check as the local restore above — a stuck cloud copy
+      // shouldn't override whatever the local effect already resolved to (a valid resume
+      // or its own fresh playStep(0)).
+      if (saved && saved.messages.length > 0 && (saved.activeInput || saved.activeChatFields)) {
         startedRef.current = true
         applyIncorporationState(saved)
       }
@@ -1176,9 +1182,11 @@ export function IncorporationApp() {
             <div className="relative flex-1 overflow-hidden">
               <div ref={scrollRef} className="h-full overflow-y-auto px-4 py-8 sm:px-8 lg:px-12">
                 <div className="mx-auto max-w-2xl space-y-4">
-                  {messages.map((m, i) => {
+                  {messages
+                    .filter((m) => !(m.role === "docDrafted" && !DOCUMENTS.find((d) => d.id === m.docId)))
+                    .map((m, i, arr) => {
                     if (m.role === "bot") {
-                      const isLastInRun = messages[i + 1]?.role !== "bot" && !(i === messages.length - 1 && isTyping)
+                      const isLastInRun = arr[i + 1]?.role !== "bot" && !(i === arr.length - 1 && isTyping)
                       return (
                         <BotMessage key={m.id} showIcon={isLastInRun}>
                           {m.text}
