@@ -9,6 +9,7 @@ import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
 import { findComplianceItem, type FlowAnswers } from "@/lib/flow"
 import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
+import { buildEightyThreeBPdfBytes, type EightyThreeBSignature } from "@/lib/83b-document"
 import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
@@ -297,8 +298,20 @@ async function buildEinPdf(doc: LibraryDoc): Promise<BuiltFile> {
   return { blob: new Blob([bytes as BlobPart], { type: "application/pdf" }), filename: `${doc.title}.pdf` }
 }
 
+/** The 83(b) filing's one signature — same default "officer" slot convention as einSignature above. */
+function eightyThreeBSignature(doc: LibraryDoc): EightyThreeBSignature | undefined {
+  const sig = doc.signatures?.find((s) => s.slotId === "officer")
+  return sig ? { dataUrl: sig.signatureDataUrl, signerName: sig.signerName, signedAt: sig.signedAt } : undefined
+}
+
+async function buildEightyThreeBPdf(doc: LibraryDoc): Promise<BuiltFile> {
+  const bytes = await buildEightyThreeBPdfBytes(doc.values ?? {}, eightyThreeBSignature(doc))
+  return { blob: new Blob([bytes as BlobPart], { type: "application/pdf" }), filename: `${doc.title}.pdf` }
+}
+
 async function buildPdf(doc: LibraryDoc, answers: FlowAnswers): Promise<BuiltFile> {
   if (doc.id === "ein") return buildEinPdf(doc)
+  if (doc.id === "83b") return buildEightyThreeBPdf(doc)
 
   const { jsPDF } = await import("jspdf")
   const pdf = new jsPDF({ unit: "pt", format: "letter" })
@@ -1419,6 +1432,7 @@ function DownloadDocumentPopoverContent({
 /** A small, real (not simulated) preview of the document's own text, clipped to the tile. */
 function MiniPreview({ doc, answers }: { doc: LibraryDoc; answers: FlowAnswers }) {
   if (doc.id === "ein") return <Ss4MiniPreview doc={doc} />
+  if (doc.id === "83b") return <Form15620MiniPreview doc={doc} />
   if (!doc.content) {
     return (
       <div className="flex h-full items-center justify-center bg-white">
@@ -1840,6 +1854,72 @@ function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
   // The open-parameters fragment (#toolbar=0&...) is the browser PDF viewer's own convention for
   // suppressing its toolbar/sidebar chrome — Chrome and Firefox both honor it, which is what gets
   // this down to just the document instead of a full PDF-reader UI wrapped around it.
+  return (
+    <iframe
+      src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+      title={doc.title}
+      className="h-full min-h-[75vh] w-full rounded-md border border-border"
+    />
+  )
+}
+
+/** Builds (and keeps up to date) the actual filled Form 15620 PDF as a blob URL — same pattern as
+ *  useEinPdfUrl above, shared by the full detail-panel preview and the Doc Library tile thumbnail. */
+function use83bPdfUrl(doc: LibraryDoc): { url: string | null; failed: boolean } {
+  const [url, setUrl] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let objectUrl: string | null = null
+    let cancelled = false
+    setUrl(null)
+    setFailed(false)
+    buildEightyThreeBPdfBytes(doc.values ?? {}, eightyThreeBSignature(doc))
+      .then((bytes) => {
+        if (cancelled) return
+        objectUrl = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/pdf" }))
+        setUrl(objectUrl)
+      })
+      .catch(() => !cancelled && setFailed(true))
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+    // See useEinPdfUrl's identical comment on why doc.signatures?.length, not doc.signatures itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc.id, doc.values, doc.signatures?.length])
+
+  return { url, failed }
+}
+
+/** The 83(b) filing's tile thumbnail — same treatment as Ss4MiniPreview above. */
+function Form15620MiniPreview({ doc }: { doc: LibraryDoc }) {
+  const { url } = use83bPdfUrl(doc)
+  if (!url) {
+    return (
+      <div className="flex h-full items-center justify-center bg-white">
+        <FileText className="h-7 w-7 text-neutral-300" />
+      </div>
+    )
+  }
+  return (
+    <div className="pointer-events-none h-full overflow-hidden bg-white">
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title={doc.title}
+        tabIndex={-1}
+        className="h-full w-full border-0"
+      />
+    </div>
+  )
+}
+
+/** The 83(b) filing's detail-panel body — same treatment as Ss4PdfPreview above. */
+function Form15620PdfPreview({ doc }: { doc: LibraryDoc }) {
+  const { url, failed } = use83bPdfUrl(doc)
+
+  if (failed) return <p className="text-sm text-neutral-500">Couldn't render the Form 15620 preview. Try downloading the PDF instead.</p>
+  if (!url) return <p className="text-sm text-neutral-500">Preparing preview…</p>
   return (
     <iframe
       src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
@@ -2299,6 +2379,8 @@ export function DocumentViewer({
         <div className="flex-1 overflow-y-auto bg-white px-6 py-6">
           {doc.id === "ein" ? (
             <Ss4PdfPreview doc={doc} />
+          ) : doc.id === "83b" ? (
+            <Form15620PdfPreview doc={doc} />
           ) : doc.content ? (
             <DocumentBody doc={doc} answers={answers} />
           ) : (
