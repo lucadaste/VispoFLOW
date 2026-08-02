@@ -129,6 +129,11 @@ export type ComplianceField = {
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
   hint?: string
+  /** Plain-language explainer shown behind a hover "?" icon next to the label, for fields whose
+   *  legal/form terminology (e.g. "restrictions on the property") isn't self-explanatory to
+   *  someone without a lawyer. Unlike `hint`, this stays hidden until hovered rather than always
+   *  showing as subtext. */
+  tooltip?: string
   optional?: boolean
   /** Opts this field into the Compliance Center's cross-filing prefill fallback (see
    *  components/compliance-view.tsx's `prefillValue`) — filled in from another completed, not-
@@ -223,7 +228,7 @@ const EIGHTY_THREE_B: ComplianceItem = {
     { name: "grantDate", label: "Date property was transferred (Box 3)", question: "What date was the stock granted or purchased?", type: "date", prefillKey: "vestingStartDate", hint: "The election must be filed within 30 days of this date." },
     { name: "shares", label: "Number of shares purchased (Boxes 2, 6b, 7b)", type: "number", question: "How many shares were purchased?", prefillKey: "founderShares", placeholder: "e.g. 4,000,000" },
     { name: "pricePerShare", label: "Price paid per share, in USD (Boxes 6a, 7a)", type: "number", question: "What price per share was paid? This is normally also the shares' fair market value at grant.", placeholder: "e.g. 0.0001" },
-    { name: "vestingSchedule", label: "Restrictions on the property (Box 5)", question: "What vesting schedule or restrictions apply to these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff" },
+    { name: "vestingSchedule", label: "Restrictions on the property (Box 5)", question: "What vesting schedule or restrictions apply to these shares?", type: "textarea", placeholder: "e.g. 4-year vesting, 1-year cliff", tooltip: "This means any condition that could cause you to forfeit the shares or that limits your ability to sell or transfer them — most commonly a vesting schedule (e.g., shares vest over 4 years with a 1-year cliff) or a company right to repurchase unvested shares if you leave. Describe the schedule and any forfeiture/repurchase terms from your grant agreement or stock purchase agreement." },
     { name: "companyAddress", label: "Company's address, for Box 9 (optional)", question: "What's the company's principal address? This is optional — Box 9 isn't required to make a valid election.", type: "address", prefillKey: "corpAddress", optional: true },
     { name: "companyEin", label: "Company's EIN, if issued yet, for Box 9 (optional)", question: "Has the company's EIN been issued yet? If so, what is it?", optional: true },
   ],
