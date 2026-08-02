@@ -581,7 +581,7 @@ export function ComplianceView({
       const { item, groupTitle, fieldIndex, values } = activeFiling!
       const field = item.fields[fieldIndex]
       ;(async () => {
-        await pushBotTyped(field.hint ?? item.explainer ?? item.description)
+        await pushBotTyped(field.tooltip ?? field.hint ?? item.explainer ?? item.description)
         // The choice bubble for this field (if any) is still live from before — don't duplicate it.
         await promptField(item, groupTitle, fieldIndex, values, false)
       })()
