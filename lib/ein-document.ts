@@ -10,6 +10,7 @@
 
 import { PDFDocument, PDFFont, PDFName, StandardFonts, rgb } from "pdf-lib"
 import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
+import { forceBlackText } from "@/lib/pdf-form-fill"
 
 export type EinSignature = { dataUrl: string; signerName: string; signedAt: string }
 
@@ -157,6 +158,7 @@ export async function buildEinPdfBytes(values: Record<string, string>, signature
     if (!value) return
     try {
       const field = form.getTextField(name)
+      forceBlackText(field)
       if (fontSize !== undefined) field.setFontSize(fontSize)
       field.setText(value)
     } catch {

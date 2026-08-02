@@ -9,6 +9,7 @@
 
 import { PDFDocument, PDFName } from "pdf-lib"
 import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
+import { forceBlackText } from "@/lib/pdf-form-fill"
 
 export type EightyThreeBSignature = { dataUrl: string; signerName: string; signedAt: string }
 
@@ -43,10 +44,15 @@ const FIELD = {
   dateSigned: `${P}.dateSigned[0]`,
 } as const
 
-/** Splits an address collected as one free-text field (see lib/ein-document.ts's identical
- *  first-comma convention) into the separate street / city / state / ZIP boxes this form uses. */
+/** Splits an address collected as one free-text field into the separate street / city / state / ZIP
+ *  boxes this form uses. The field's own placeholder ("Street, City, State, ZIP") invites a 4-part
+ *  comma-separated address, but a state and ZIP typed together as one segment ("CA 94901") is just as
+ *  common, so everything after the city is rejoined and re-split on whitespace instead of assuming a
+ *  fixed segment count — otherwise a 4th comma segment (the ZIP) silently gets dropped. */
 function splitAddress(address: string): { street: string; city: string; state: string; zip: string } {
-  const [street = "", city = "", stateZip = ""] = address.split(",").map((p) => p.trim())
+  const segments = address.split(",").map((p) => p.trim())
+  const [street = "", city = ""] = segments
+  const stateZip = segments.slice(2).join(" ").trim()
   const match = stateZip.match(/^(.*\S)\s+(\S+)$/)
   return { street, city, state: match ? match[1] : stateZip, zip: match ? match[2] : "" }
 }
@@ -91,7 +97,9 @@ export async function buildEightyThreeBPdfBytes(values: Record<string, string>, 
   const setText = (name: string, value: string | undefined) => {
     if (!value) return
     try {
-      form.getTextField(name).setText(value)
+      const field = form.getTextField(name)
+      forceBlackText(field)
+      field.setText(value)
     } catch {
       // A future IRS revision may rename/remove a field — skip rather than fail the whole document.
     }
