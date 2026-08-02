@@ -159,7 +159,7 @@
 }
 
 @keyframes beaker-tilt {
-  0%, 100% { transform: rotate(0deg); }
+  0%, 50%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(-13deg); }
   75% { transform: rotate(13deg); }
 }
@@ -169,19 +169,21 @@
   animation: beaker-tilt 1.7s ease-in-out infinite;
 }
 
-/* Applied inside a wrapper that already carries beaker-tilt, so this is a rotation *relative* to
-   the glass's current angle. 28 = 13 (glass amplitude) + 15 (how far past level the liquid should
-   end up) — net effect is the liquid mirrors the glass's tilt, just further, while staying bounded
-   by the wrapper's mask (which tracks the glass exactly, since it shares its animation). */
-@keyframes beaker-liquid-tilt {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(28deg); }
-  75% { transform: rotate(-28deg); }
+/* Same rotation values as beaker-tilt, at the same transform-origin, so the liquid tilts as one
+   rigid piece with the glass — zero relative motion, so it can't drift outside it. The only extra
+   movement is scaleY dipping below 1, which only ever shrinks the liquid toward this same bottom
+   anchor (never grows past its resting size), so it can't extend past the artwork's own bounds. */
+@keyframes beaker-liquid-pulse {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  25% { transform: rotate(-13deg) scaleY(0.92); }
+  50% { transform: rotate(0deg) scaleY(1); }
+  75% { transform: rotate(13deg) scaleY(0.92); }
+  100% { transform: rotate(0deg) scaleY(1); }
 }
 
-.beaker-liquid-tilt {
+.beaker-liquid-pulse {
   transform-origin: 50% 92%;
-  animation: beaker-liquid-tilt 1.7s ease-in-out infinite;
+  animation: beaker-liquid-pulse 1.7s ease-in-out infinite;
 }
 
 @keyframes beam-travel {
