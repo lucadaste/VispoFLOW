@@ -94,6 +94,18 @@ export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
 }
 
+/** Labels of this doc's `sensitive` fields (see redactSensitiveDocValues above) that currently hold
+ *  the redacted placeholder rather than a real value — i.e. were filled in during an earlier session
+ *  and never re-entered in this one. The exact-form PDF previews (SS-4, Form 15620) leave these
+ *  fields' boxes blank rather than writing the placeholder sentence into them, which otherwise looks
+ *  like the value was simply never captured; surfacing the label here is what tells the account
+ *  holder that's not the case. */
+function redactedSensitiveFieldLabels(doc: LibraryDoc): string[] {
+  const sensitiveFields = findComplianceItem(doc.id)?.fields.filter((f) => f.sensitive) ?? []
+  if (!doc.values) return []
+  return sensitiveFields.filter((f) => doc.values![f.name] === SENSITIVE_FIELD_PLACEHOLDER).map((f) => f.label)
+}
+
 type SavedSignature = { signatureDataUrl: string; signerName: string; roles?: string[] }
 type SignPayload = { signatureDataUrl: string; signerName: string; roles?: string[]; slotId?: string; slotLabel?: string }
 type SendToSignPayload = {
@@ -1855,11 +1867,30 @@ function Ss4PdfPreview({ doc }: { doc: LibraryDoc }) {
   // suppressing its toolbar/sidebar chrome — Chrome and Firefox both honor it, which is what gets
   // this down to just the document instead of a full PDF-reader UI wrapped around it.
   return (
-    <iframe
-      src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-      title={doc.title}
-      className="h-full min-h-[75vh] w-full rounded-md border border-border"
-    />
+    <div className="flex h-full min-h-[75vh] flex-col gap-2">
+      <RedactedFieldNotice doc={doc} />
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title={doc.title}
+        className="min-h-0 flex-1 rounded-md border border-border"
+      />
+    </div>
+  )
+}
+
+/** Shown above the SS-4/Form 15620 preview when one of its `sensitive` fields (see
+ *  redactedSensitiveFieldLabels above) is currently blank because it was never re-entered in this
+ *  session — otherwise a blank SSN box on an otherwise-filled government form reads as data loss
+ *  rather than the privacy-by-design behavior it actually is. */
+function RedactedFieldNotice({ doc }: { doc: LibraryDoc }) {
+  const labels = redactedSensitiveFieldLabels(doc)
+  if (labels.length === 0) return null
+  return (
+    <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+      {labels.join(", ")} {labels.length === 1 ? "isn't" : "aren't"} saved between sessions for privacy, so{" "}
+      {labels.length === 1 ? "it's" : "they're"} left blank below. Reopen this filing from the Compliance Center to re-enter{" "}
+      {labels.length === 1 ? "it" : "them"} before filing or downloading.
+    </p>
   )
 }
 
@@ -1921,11 +1952,14 @@ function Form15620PdfPreview({ doc }: { doc: LibraryDoc }) {
   if (failed) return <p className="text-sm text-neutral-500">Couldn't render the Form 15620 preview. Try downloading the PDF instead.</p>
   if (!url) return <p className="text-sm text-neutral-500">Preparing preview…</p>
   return (
-    <iframe
-      src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-      title={doc.title}
-      className="h-full min-h-[75vh] w-full rounded-md border border-border"
-    />
+    <div className="flex h-full min-h-[75vh] flex-col gap-2">
+      <RedactedFieldNotice doc={doc} />
+      <iframe
+        src={`${url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+        title={doc.title}
+        className="min-h-0 flex-1 rounded-md border border-border"
+      />
+    </div>
   )
 }
 
