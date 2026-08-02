@@ -13,6 +13,8 @@ import {
   DocumentViewer,
   withDocSignatures,
   redactSensitiveDocValues,
+  rehydrateSensitiveDocValues,
+  clearStashedSensitiveDocValues,
   type LibraryDoc,
   type DocSignature,
   type PendingSignRequest,
@@ -282,7 +284,7 @@ export function IncorporationApp() {
         .map(([id]) => id),
     )
     for (const id of expiredIds) delete hiddenDocIds[id]
-    setComplianceDocs(saved.complianceDocs.filter((d) => !expiredIds.has(d.id)))
+    setComplianceDocs(saved.complianceDocs.filter((d) => !expiredIds.has(d.id)).map(rehydrateSensitiveDocValues))
     setTransactionDocs(saved.transactionDocs.filter((d) => !expiredIds.has(d.id)))
     setHiddenDocIds(hiddenDocIds)
     setSignedDocs(normalizeSignedDocs(saved.signedDocs))
@@ -538,6 +540,7 @@ export function IncorporationApp() {
   const handleComplianceDocDeleted = useCallback((id: string) => {
     setComplianceDocs((docs) => docs.filter((d) => d.id !== id))
     clearSignaturesForDoc(id)
+    clearStashedSensitiveDocValues(id)
     setHiddenDocIds((ids) => {
       if (!ids[id]) return ids
       const next = { ...ids }

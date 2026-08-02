@@ -11,6 +11,7 @@ import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
 import { buildEightyThreeBPdfBytes, type EightyThreeBSignature } from "@/lib/83b-document"
 import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
+import { stashSensitiveValues, restoreSensitiveValues, clearStashedSensitiveValues } from "@/lib/sensitive-session-store"
 import { SignaturePad } from "@/components/signature-pad"
 import { ConfirmModal } from "@/components/confirm-modal"
 
@@ -89,17 +90,39 @@ export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   if (sensitiveNames.length === 0 || !doc.values) return doc
   const hasSensitiveValue = sensitiveNames.some((name) => doc.values![name])
   if (!hasSensitiveValue) return doc
+  // The real values still need to survive an ordinary page refresh in this same tab — see
+  // lib/sensitive-session-store.ts — so they're stashed there right before being wiped from the
+  // copy that's about to be written to localStorage/the server.
+  stashSensitiveValues(doc.id, doc.values, sensitiveNames)
   const values = { ...doc.values }
   for (const name of sensitiveNames) if (values[name]) values[name] = SENSITIVE_FIELD_PLACEHOLDER
   return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
 }
 
+/** Counterpart to redactSensitiveDocValues, called right after loading a persisted doc: restores
+ *  whichever `sensitive` fields still have their real value stashed in this browser tab's
+ *  sessionStorage, so a page refresh doesn't read as the value having been lost. */
+export function rehydrateSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
+  const sensitiveNames = findComplianceItem(doc.id)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
+  if (sensitiveNames.length === 0 || !doc.values) return doc
+  const values = restoreSensitiveValues(doc.id, doc.values, sensitiveNames)
+  if (values === doc.values) return doc
+  return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }
+}
+
+/** Drops a doc's stashed sensitive values (see lib/sensitive-session-store.ts) — call when a filing
+ *  is deleted or redone from scratch, so a later filing of the same id can't inherit a stale value. */
+export function clearStashedSensitiveDocValues(docId: string) {
+  const sensitiveNames = findComplianceItem(docId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
+  if (sensitiveNames.length > 0) clearStashedSensitiveValues(docId, sensitiveNames)
+}
+
 /** Labels of this doc's `sensitive` fields (see redactSensitiveDocValues above) that currently hold
- *  the redacted placeholder rather than a real value — i.e. were filled in during an earlier session
- *  and never re-entered in this one. The exact-form PDF previews (SS-4, Form 15620) leave these
- *  fields' boxes blank rather than writing the placeholder sentence into them, which otherwise looks
- *  like the value was simply never captured; surfacing the label here is what tells the account
- *  holder that's not the case. */
+ *  the redacted placeholder rather than a real value — i.e. were filled in during an earlier browser
+ *  tab (or an earlier visit whose sessionStorage stash already expired) and never re-entered in this
+ *  one. The exact-form PDF previews (SS-4, Form 15620) leave these fields' boxes blank rather than
+ *  writing the placeholder sentence into them, which otherwise looks like the value was simply never
+ *  captured; surfacing the label here is what tells the account holder that's not the case. */
 function redactedSensitiveFieldLabels(doc: LibraryDoc): string[] {
   const sensitiveFields = findComplianceItem(doc.id)?.fields.filter((f) => f.sensitive) ?? []
   if (!doc.values) return []

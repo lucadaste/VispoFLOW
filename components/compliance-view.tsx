@@ -24,10 +24,12 @@ import {
   DocumentViewer,
   withDocSignatures,
   redactSensitiveDocValues,
+  rehydrateSensitiveDocValues,
   SENSITIVE_FIELD_PLACEHOLDER,
   type LibraryDoc,
   type DocSignature,
 } from "@/components/document-library"
+import { stashSensitiveValues, restoreSensitiveValues } from "@/lib/sensitive-session-store"
 import { InfoModal, infoButtonClass } from "@/components/info-modal"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { formatNumberInput } from "@/lib/number-format"
@@ -122,13 +124,16 @@ function prefillValue(answers: FlowAnswers, docs: Record<string, LibraryDoc>, fi
 }
 
 // Fields marked `sensitive` in lib/flow.ts (e.g. an SSN/ITIN on the EIN or 83(b) filing) must
-// never reach localStorage or the server — only the live in-memory state used to render/download
-// the doc during this session. Called right at the persistence boundary (see the snapshot effect
-// below and redactSensitiveDocValues in document-library.tsx for the completed-doc counterpart)
-// so the on-screen doc still shows the real value; only the saved copy gets the placeholder.
+// never reach localStorage or the server as their real value — only the live in-memory state used
+// to render/download the doc during this session. Called right at the persistence boundary (see the
+// snapshot effect below and redactSensitiveDocValues in document-library.tsx for the completed-doc
+// counterpart) so the on-screen doc still shows the real value; only the saved copy gets the
+// placeholder. The real value is stashed to sessionStorage first (see lib/sensitive-session-store.ts)
+// so an ordinary page refresh — still this same browser tab — can restore it via applyState below.
 function redactSensitiveValues(itemId: string, values: Record<string, string>): Record<string, string> {
   const sensitiveNames = findComplianceItem(itemId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
   if (sensitiveNames.length === 0) return values
+  stashSensitiveValues(itemId, values, sensitiveNames)
   const redacted = { ...values }
   for (const name of sensitiveNames) if (redacted[name]) redacted[name] = SENSITIVE_FIELD_PLACEHOLDER
   return redacted
@@ -232,7 +237,9 @@ export function ComplianceView({
     setActiveCategory(restoredCategory)
     setExpandedCategoryId(restoredCategory?.id ?? null)
     setCompleted(saved.completed)
-    setDocs(saved.docs ?? {})
+    // See lib/sensitive-session-store.ts — restores any sensitive field still stashed in this
+    // browser tab's sessionStorage, so a plain refresh doesn't read as the value being lost.
+    setDocs(Object.fromEntries(Object.entries(saved.docs ?? {}).map(([id, doc]) => [id, rehydrateSensitiveDocValues(doc)])))
     setHistory(saved.history ?? [])
     setInputMode(saved.inputMode ?? "chat")
     // Restore activeItemId alongside activeFiling below — otherwise the sidebar has no way to
@@ -240,7 +247,11 @@ export function ComplianceView({
     setActiveItemId(saved.activeItemId)
     // Chat-mode filings, unlike form-mode ones, have no separate draft state to lose on
     // reload — restore them so the flow keeps expecting the next field's answer.
-    setActiveFiling(saved.activeFiling ?? null)
+    setActiveFiling(
+      saved.activeFiling
+        ? { ...saved.activeFiling, values: restoreSensitiveValues(saved.activeFiling.item.id, saved.activeFiling.values, saved.activeFiling.item.fields.filter((f) => f.sensitive).map((f) => f.name)) }
+        : null
+    )
     setChatBreakId(saved.chatBreakId ?? null)
     setShowEarlier(false)
   }, [])
