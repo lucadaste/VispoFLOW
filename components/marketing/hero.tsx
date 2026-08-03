@@ -26,9 +26,15 @@ export function Hero() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-10">
           <div className="max-w-xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent-foreground">
-              AI-guided startup legal studio
-            </span>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-accent-foreground">
+                AI-guided startup legal studio
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-3.5 py-1.5 text-xs font-medium text-muted-foreground">
+                <Scale className="h-3.5 w-3.5 text-primary" />
+                Developed by Silicon Valley lawyers
+              </span>
+            </div>
 
             <h1 className="mt-6 text-balance text-4xl font-semibold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem]">
               Incorporate, stay compliant, and document every deal — guided step by step.
@@ -55,11 +61,6 @@ export function Hero() {
               >
                 See how it works
               </a>
-            </div>
-
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
-              <Scale className="h-3.5 w-3.5 text-primary" />
-              Developed by Silicon Valley lawyers
             </div>
 
             <ul className="mt-9 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
