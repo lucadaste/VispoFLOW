@@ -1238,7 +1238,7 @@ export function IncorporationApp() {
                     if (m.role === "widget" && m.widget === "formed")
                       return <FormedCard key={m.id} answers={effectiveAnswers} />
                     if (m.role === "note")
-                      return <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
+                      return <p key={`${m.id}-${m.text}`} className="animate-note-whoosh text-xs">{m.text}</p>
                     return null
                     })
                   })()}

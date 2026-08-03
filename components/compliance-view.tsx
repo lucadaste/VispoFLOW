@@ -882,7 +882,7 @@ export function ComplianceView({
                   />
                 )
                 if (m.role === "note") return (
-                  <p key={m.id} className="animate-message-in text-xs text-muted-foreground">{m.text}</p>
+                  <p key={`${m.id}-${m.text}`} className="animate-note-whoosh text-xs">{m.text}</p>
                 )
                 if (m.role === "docDrafted") {
                   const doc = docs[m.item.id]
