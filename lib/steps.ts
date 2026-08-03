@@ -44,7 +44,7 @@ export const STEPS: Step[] = [
   },
   {
     id: "incorporator",
-    messages: ["Great — what is your name and address? You'll be the incorporator who signs the initial filing."],
+    messages: ["Great — I'll need to collect a few more things to make you the legal incorporator who signs the initial filing."],
     input: { kind: "incorporator" },
   },
   {
