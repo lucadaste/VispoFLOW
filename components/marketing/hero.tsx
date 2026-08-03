@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowRight, FileCheck2, Send } from "lucide-react"
+import { ArrowRight, FileCheck2, Scale, Send } from "lucide-react"
 
 const CHECKLIST = [
   "Delaware C-Corp formation",
@@ -55,6 +55,11 @@ export function Hero() {
               >
                 See how it works
               </a>
+            </div>
+
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-sm">
+              <Scale className="h-3.5 w-3.5 text-primary" />
+              Developed by Silicon Valley lawyers
             </div>
 
             <ul className="mt-9 grid grid-cols-2 gap-x-6 gap-y-2.5 text-sm text-muted-foreground">
