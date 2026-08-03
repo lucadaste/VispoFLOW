@@ -1396,6 +1396,7 @@ export function IncorporationApp() {
           title="Delete and restart your incorporation?"
           description="All incorporation documents share one guided flow, so there's no way to redo just this one — this restarts the whole flow from the beginning and removes any incorporation documents you've generated so far from My Docs."
           confirmLabel="Delete & restart"
+          danger
           onConfirm={() => {
             setIncorporationRestartConfirm(false)
             restartFormation()

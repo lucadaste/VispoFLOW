@@ -949,6 +949,7 @@ export function DocumentLibrary({
           title={`Delete ${selected.size} document${selected.size === 1 ? "" : "s"}?`}
           description="These documents will be moved to the deleted list for each section, where you can restore them later if needed."
           confirmLabel="Delete"
+          danger
           onConfirm={handleBulkDelete}
           onCancel={() => setConfirmingBulkDelete(false)}
         />

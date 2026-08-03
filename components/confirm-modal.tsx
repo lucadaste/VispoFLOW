@@ -2,11 +2,13 @@
 
 /** Shared "are you sure?" dialog: Cancel plus a single confirming action. */
 export function ConfirmModal({
-  title, description, confirmLabel = "Confirm", onConfirm, onCancel,
+  title, description, confirmLabel = "Confirm", danger = false, onConfirm, onCancel,
 }: {
   title: string
   description: string
   confirmLabel?: string
+  /** Use for irreversible/destructive actions (deleting, abandoning progress) to visually signal the stakes. */
+  danger?: boolean
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -25,7 +27,11 @@ export function ConfirmModal({
           </button>
           <button
             onClick={onConfirm}
-            className="rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className={
+              danger
+                ? "rounded-lg border border-destructive/50 bg-destructive/10 px-3.5 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
+                : "rounded-lg bg-primary px-3.5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            }
           >
             {confirmLabel}
           </button>

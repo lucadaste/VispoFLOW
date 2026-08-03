@@ -757,6 +757,7 @@ export function TransactionsOnboarding({
           title="Delete and restart this document?"
           description={`"${redoConfirm.item.title}" has already been completed. This will delete your saved answers and ask the questions again from the start.`}
           confirmLabel="Delete & restart"
+          danger
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
@@ -806,6 +807,7 @@ export function TransactionsOnboarding({
               : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart document" : "Abandon & switch"}
+          danger
           onConfirm={() => {
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)

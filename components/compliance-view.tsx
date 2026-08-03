@@ -1027,6 +1027,7 @@ export function ComplianceView({
           title="Delete and restart this filing?"
           description={`"${redoConfirm.item.title}" has already been completed. This will delete your saved answers and ask the questions again from the start.`}
           confirmLabel="Delete & restart"
+          danger
           onConfirm={() => {
             const { item, groupTitle } = redoConfirm
             setRedoConfirm(null)
@@ -1076,6 +1077,7 @@ export function ComplianceView({
               : `You're partway through "${switchConfirm.fromItem.title}". Starting "${switchConfirm.item.title}" now will abandon your progress on it.`
           }
           confirmLabel={switchConfirm.mode === "restart" ? "Restart filing" : "Abandon & switch"}
+          danger
           onConfirm={() => {
             const { item, groupTitle } = switchConfirm
             setSwitchConfirm(null)
@@ -1089,6 +1091,7 @@ export function ComplianceView({
           title="Abandon the filing you're currently working on?"
           description={`You're partway through "${allItems.find((i) => i.id === activeItemId)?.title ?? "this filing"}". Starting a new chat now will abandon your progress on it.`}
           confirmLabel="Abandon & start new chat"
+          danger
           onConfirm={() => {
             setNewChatAbandonConfirm(false)
             setActiveItemId(null)
