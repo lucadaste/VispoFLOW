@@ -8,6 +8,8 @@
  *  tab, cleared the moment the tab actually closes, and never sent anywhere — a refresh can restore
  *  it, but closing the tab (or signing in on another device) still can't recover it. */
 
+import { SENSITIVE_FIELD_PLACEHOLDER } from "@/lib/sensitive-field"
+
 const STORAGE_KEY = "vispo-sensitive-fields"
 
 function readAll(): Record<string, string> {
@@ -35,7 +37,10 @@ export function stashSensitiveValues(docId: string, values: Record<string, strin
   const all = readAll()
   let changed = false
   for (const name of sensitiveNames) {
-    if (!values[name]) continue
+    // A value still holding the redacted placeholder (e.g. the real one hasn't been merged back
+    // in yet from the server) is not a real value to stash — doing so would overwrite whatever
+    // real value is already stashed here with the placeholder text itself.
+    if (!values[name] || values[name] === SENSITIVE_FIELD_PLACEHOLDER) continue
     const k = sessionKey(docId, name)
     if (all[k] !== values[name]) {
       all[k] = values[name]

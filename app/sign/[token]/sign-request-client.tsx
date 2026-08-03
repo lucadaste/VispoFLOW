@@ -36,6 +36,7 @@ export function SignRequestClient({
 }) {
   const [signed, setSigned] = useState(alreadySigned)
   const [signedByName, setSignedByName] = useState(signerName ?? "")
+  const [signedOnDate, setSignedOnDate] = useState(signedAt)
   const [consented, setConsented] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,7 +66,9 @@ export function SignRequestClient({
         const body = await res.json().catch(() => ({}))
         throw new Error(body.error ?? "Something went wrong")
       }
+      const body = await res.json().catch(() => ({}))
       setSignedByName(name)
+      setSignedOnDate(body.signedAt ?? new Date().toISOString())
       setSigned(true)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong")
@@ -96,7 +99,7 @@ export function SignRequestClient({
             <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
             <span>
               Signed by {signedByName}
-              {signedAt ? ` on ${formatSignedDate(signedAt)}` : ""}. You're all set.
+              {signedOnDate ? ` on ${formatSignedDate(signedOnDate)}` : ""}. You're all set.
             </span>
           </div>
         ) : (

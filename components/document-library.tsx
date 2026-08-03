@@ -97,7 +97,10 @@ export function redactSensitiveDocValues(doc: LibraryDoc): LibraryDoc {
   // the copy that's about to be written to localStorage. The server call is a no-op failure (401)
   // when signed out, so it's safe to call unconditionally rather than threading sign-in state in.
   stashSensitiveValues(doc.id, doc.values, sensitiveNames)
-  for (const name of sensitiveNames) if (doc.values[name]) saveSensitiveValueToServer(doc.id, name, doc.values[name])
+  // Skip a field still holding the placeholder (e.g. the real value hasn't been merged back in yet
+  // from the server) — saving it would overwrite the actual backup with the placeholder text itself.
+  for (const name of sensitiveNames)
+    if (doc.values[name] && doc.values[name] !== SENSITIVE_FIELD_PLACEHOLDER) saveSensitiveValueToServer(doc.id, name, doc.values[name])
   const values = { ...doc.values }
   for (const name of sensitiveNames) if (values[name]) values[name] = SENSITIVE_FIELD_PLACEHOLDER
   return { ...doc, values, content: renderComplianceDocument(doc.id, values) ?? doc.content }

@@ -647,7 +647,7 @@ function AllocationsInput({
 
 function VestingInput({ onSubmit }: { onSubmit: SubmitFn }) {
   const [choice, setChoice] = useState<"default" | "earlier">("default")
-  const [date, setDate] = useState("2026-01-01")
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   const submit = () => {
     if (choice === "default") {

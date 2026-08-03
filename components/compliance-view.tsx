@@ -74,6 +74,18 @@ type ActiveFiling = {
   pendingDelegations?: PendingDelegation[]
 }
 
+/** A pending emailed invite for a single delegated field — mirrors the identical type in
+ *  incorporation-app.tsx. That component's own copy of a completed doc gets the real value merged
+ *  in once the invite is fulfilled, but this component's `docs` (what the sidebar/DocumentViewer
+ *  here actually render) is a separate, independently-restored copy that never heard about it —
+ *  so it needs its own poll + merge, below, to stay in sync. */
+type InfoRequest = {
+  id: string
+  docId: string
+  fieldName: string
+  status: "sent" | "viewed" | "fulfilled"
+}
+
 const inputClass =
   "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-ring focus:ring-2 focus:ring-ring/20"
 
@@ -137,7 +149,10 @@ function redactSensitiveValues(itemId: string, values: Record<string, string>): 
   const sensitiveNames = findComplianceItem(itemId)?.fields.filter((f) => f.sensitive).map((f) => f.name) ?? []
   if (sensitiveNames.length === 0) return values
   stashSensitiveValues(itemId, values, sensitiveNames)
-  for (const name of sensitiveNames) if (values[name]) saveSensitiveValueToServer(itemId, name, values[name])
+  // Skip a field still holding the placeholder (e.g. the real value hasn't been merged back in yet
+  // from the server) — saving it would overwrite the actual backup with the placeholder text itself.
+  for (const name of sensitiveNames)
+    if (values[name] && values[name] !== SENSITIVE_FIELD_PLACEHOLDER) saveSensitiveValueToServer(itemId, name, values[name])
   const redacted = { ...values }
   for (const name of sensitiveNames) if (redacted[name]) redacted[name] = SENSITIVE_FIELD_PLACEHOLDER
   return redacted
@@ -195,6 +210,7 @@ export function ComplianceView({
   const [newChatAbandonConfirm, setNewChatAbandonConfirm] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [value, setValue] = useState("")
+  const [infoRequests, setInfoRequests] = useState<InfoRequest[]>([])
   // Messages before this id are collapsed behind "Show earlier messages" (see startNewChat) —
   // nothing is ever deleted, this only affects what's rendered by default.
   const [chatBreakId, setChatBreakId] = useState<number | null>(null)
@@ -377,6 +393,46 @@ export function ComplianceView({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
+
+  // Same polling pattern as incorporation-app.tsx's own copy — see the `InfoRequest` doc comment
+  // above for why this component needs an independent poll rather than relying on that one.
+  useEffect(() => {
+    if (!isSignedIn) return
+    const refresh = () =>
+      fetch("/api/info-requests")
+        .then((r) => r.json())
+        .then((data) => setInfoRequests(data.requests ?? []))
+        .catch(() => {})
+    refresh()
+    const interval = setInterval(refresh, 5000)
+    return () => clearInterval(interval)
+  }, [isSignedIn])
+
+  // Once a delegated field is fulfilled, pull the real value in and bake it into this component's
+  // own copy of the doc — see components/incorporation-app.tsx's identical effect for the fuller
+  // explanation of the reveal endpoint and the awaitingThirdParty matching/clearing.
+  useEffect(() => {
+    for (const req of infoRequests) {
+      if (req.status !== "fulfilled") continue
+      const doc = docs[req.docId]
+      if (!doc || doc.awaitingThirdParty?.fieldName !== req.fieldName) continue
+      fetch(`/api/info-requests/${req.id}/reveal`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data: { value?: string } | null) => {
+          if (!data?.value) return
+          setDocs((docs) => {
+            const d = docs[req.docId]
+            if (!d || d.awaitingThirdParty?.fieldName !== req.fieldName) return docs
+            const values = { ...d.values, [req.fieldName]: data.value! }
+            return {
+              ...docs,
+              [req.docId]: { ...d, values, content: renderComplianceDocument(d.id, values) ?? d.content, awaitingThirdParty: undefined },
+            }
+          })
+        })
+        .catch(() => {})
+    }
+  }, [infoRequests, docs])
 
   const selectCategory = useCallback((cat: ComplianceCategory) => {
     pushUser(cat.label)
@@ -945,7 +1001,11 @@ export function ComplianceView({
       {infoItem && (
         <InfoModal
           title={infoItem.title}
-          description={infoItem.explainer ?? infoItem.description}
+          description={
+            hasComplianceTemplate(infoItem.id)
+              ? (infoItem.explainer ?? infoItem.description)
+              : `${infoItem.explainer ?? infoItem.description} This filing isn't available in Vispo yet — we're still building out the template for it. Check back soon, or handle it with a lawyer in the meantime.`
+          }
           onClose={() => setInfoItem(null)}
         />
       )}
@@ -1180,7 +1240,10 @@ function SidebarContent({
                                   </p>
                                 </div>
                                 {!available && (
-                                  <span className="mt-0.5 shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm">
+                                  <span
+                                    title="This filing isn't available in Vispo yet — we're still building out the template for it."
+                                    className="mt-0.5 shrink-0 rounded-full border border-border bg-background px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground shadow-sm"
+                                  >
                                     Not available yet
                                   </span>
                                 )}

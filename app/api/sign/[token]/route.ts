@@ -46,6 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   }
 
   const signerIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null
+  const signedAt = new Date()
 
   await db
     .update(signatureRequests)
@@ -55,9 +56,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
       signatureDataUrl,
       fields: Object.keys(submittedFields).length ? submittedFields : null,
       signerIp,
-      signedAt: new Date(),
+      signedAt,
     })
     .where(eq(signatureRequests.token, token))
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, signedAt: signedAt.toISOString() })
 }
