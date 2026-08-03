@@ -773,7 +773,7 @@ export function DocumentLibrary({
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
-  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
   /** Withdraws an outstanding "sent to sign" request that's no longer wanted. */
   onCancelSignRequest?: (requestId: string) => void
@@ -1009,7 +1009,7 @@ function DocSection({
   onDelete: (doc: LibraryDoc) => void
   onRestore: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
-  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   savedSignature: SavedSignature | null
   pendingSignRequests: Record<string, PendingSignRequest[]>
   selectMode: boolean
@@ -1237,30 +1237,36 @@ function SendToSignPopoverContent({
 }: {
   doc: LibraryDoc
   answers: FlowAnswers
-  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   onDone: () => void
 }) {
   const slots = availableSlotsFor(doc, answers)
   const [slotId, setSlotId] = useState<string | null>(null)
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
+  const [status, setStatus] = useState<"idle" | "sending" | "error">("idle")
 
   if (slots.length === 0) return null
   const selectedSlot = slots.find((s) => s.id === slotId) ?? slots[0]
 
-  const send = () => {
+  const send = async () => {
     if (!email.trim()) return
     const requiredFields =
       selectedSlot.kind === "officer" ? findBlankFieldLabels(doc.content ?? "", selectedSlot.headerPattern) : undefined
-    onSendToSign(doc, {
-      recipientEmail: email.trim(),
-      recipientName: selectedSlot.matchName ?? (name.trim() || undefined),
-      slotId: selectedSlot.id,
-      slotLabel: selectedSlot.label,
-      lockedName: selectedSlot.matchName,
-      requiredFields: requiredFields?.length ? requiredFields : undefined,
-    })
-    onDone()
+    setStatus("sending")
+    try {
+      await onSendToSign(doc, {
+        recipientEmail: email.trim(),
+        recipientName: selectedSlot.matchName ?? (name.trim() || undefined),
+        slotId: selectedSlot.id,
+        slotLabel: selectedSlot.label,
+        lockedName: selectedSlot.matchName,
+        requiredFields: requiredFields?.length ? requiredFields : undefined,
+      })
+      onDone()
+    } catch {
+      setStatus("error")
+    }
   }
 
   return (
@@ -1299,12 +1305,15 @@ function SendToSignPopoverContent({
           className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs text-foreground outline-none focus:border-primary"
         />
       )}
+      {status === "error" && (
+        <p className="text-xs text-destructive">Couldn't send the invite — check your connection and try again.</p>
+      )}
       <button
         onClick={send}
-        disabled={!email.trim()}
+        disabled={!email.trim() || status === "sending"}
         className="w-full rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-40"
       >
-        Send signing link
+        {status === "sending" ? "Sending…" : status === "error" ? "Retry" : "Send signing link"}
       </button>
     </div>
   )
@@ -1318,7 +1327,7 @@ function SendToSignButton({
 }: {
   doc: LibraryDoc
   answers: FlowAnswers
-  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   variant?: "icon" | "full"
 }) {
   const slots = availableSlotsFor(doc, answers)
@@ -1558,7 +1567,7 @@ function DocTileMenu({
   answers: FlowAnswers
   onDelete: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
-  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   savedSignature: SavedSignature | null
 }) {
   type Mode = "menu" | "sign" | "send" | "email" | "download" | "delete-confirm"
@@ -1718,7 +1727,7 @@ function DocTile({
   onView: (doc: LibraryDoc) => void
   onDelete: (doc: LibraryDoc) => void
   onSign: (doc: LibraryDoc, signature: SignPayload) => void
-  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   savedSignature: SavedSignature | null
   pendingSignRequests?: PendingSignRequest[]
   selectMode: boolean
@@ -2339,7 +2348,7 @@ export function DocumentViewer({
   answers: FlowAnswers
   onClose: () => void
   onSign?: (doc: LibraryDoc, signature: SignPayload) => void
-  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void
+  onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
   /** Present only when opened from the Document Library itself — soft-deletes (hides,
    *  restorable) the doc, distinct from onDeleteRestart's "wipe answers and start over". */
   onDelete?: (doc: LibraryDoc) => void

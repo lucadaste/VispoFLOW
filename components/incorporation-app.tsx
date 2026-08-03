@@ -475,10 +475,9 @@ export function IncorporationApp() {
           requiredFields: payload.requiredFields,
         }),
       })
-      if (res.ok) {
-        const { request } = await res.json()
-        setSignRequests((reqs) => [...reqs, request])
-      }
+      if (!res.ok) throw new Error(`Failed to send signing invite (${res.status})`)
+      const { request } = await res.json()
+      setSignRequests((reqs) => [...reqs, request])
     },
     [effectiveAnswers.companyName],
   )
