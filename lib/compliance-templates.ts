@@ -167,7 +167,7 @@ Date prepared: ${today()}
 This designation is filed as part of the Statement and Designation by Foreign Corporation (Form S&DC-S/N) submitted to the California Secretary of State, and appoints the agent named below to accept service of process on behalf of ${v.companyName} in California.
 
 4. California agent for service of process
-Name: VISPO.AI Inc.
+Name: Vispo.ai, Inc.
 
 Note: because the designated agent is itself a corporation authorized to act as agent for service of process in California, only its name is required on the form (Item 4c) — no street address is listed (Items 4a/4b are left blank).
 
@@ -207,7 +207,7 @@ Secretary of State entity number: ${v.caEntityNumber || "N/A"}
       Address: ${v.principalAddress}
 
 5. Service of process
-Registered corporate agent's name: VISPO.AI Inc.
+Registered corporate agent's name: Vispo.ai, Inc.
 
 6. Type of business
 Describe the type of business or services of the corporation: ${v.businessDescription}

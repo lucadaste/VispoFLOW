@@ -696,7 +696,7 @@ The parties agree as follows:
 
 11. No Conflicts. Advisor represents that Advisor's compliance with the terms of this Agreement and provision of Services hereunder will not violate any duty which Advisor may have to any other person or entity (such as a present or former employer), including obligations concerning providing services to others, confidentiality of proprietary information and assignment of inventions, ideas, patents or copyrights, and Advisor agrees that Advisor will not do anything in the performance of Services hereunder that would violate any such duty. In addition, Advisor agrees that, during the term of this Agreement, prior to performing any services for or otherwise participating in a company developing or commercializing new software, services, methods, devices, or other technology that may be competitive with the Company, Advisor shall first notify the Company in writing. It is understood that in such event, the Company will review whether Advisor's activities are consistent with Advisor continuing to provide Services to the Company.
 
-12. Miscellaneous. Any term of this Agreement may be amended or waived only with the written consent of the parties. This Agreement, including any exhibits hereto, constitutes the sole agreement of the parties and supersedes all oral negotiations and prior writings with respect to the subject matter hereof. Any notice required or permitted by this Agreement shall be in writing and shall be deemed sufficient when delivered personally or by overnight courier or sent by e-mail, or 48 hours after being deposited in the U.S. mail as certified or registered mail with postage prepaid, addressed to the party to be notified at such party's address as set forth on the signature page herein, or as subsequently modified by written notice. The validity, interpretation, construction and performance of this Agreement shall be governed by the laws of the state of California, without giving effect to the principles of conflict of laws. This Agreement may be executed in counterparts, each of which shall be deemed an original, but all of which together will constitute one and the same instrument.
+12. Miscellaneous. Any term of this Agreement may be amended or waived only with the written consent of the parties. This Agreement, including any exhibits hereto, constitutes the sole agreement of the parties and supersedes all oral negotiations and prior writings with respect to the subject matter hereof. Any notice required or permitted by this Agreement shall be in writing and shall be deemed sufficient when delivered personally or by overnight courier or sent by e-mail, or 48 hours after being deposited in the U.S. mail as certified or registered mail with postage prepaid, addressed to the party to be notified at such party's address as set forth on the signature page herein, or as subsequently modified by written notice. The validity, interpretation, construction and performance of this Agreement shall be governed by the laws of the state of ${v.governingLaw}, without giving effect to the principles of conflict of laws. This Agreement may be executed in counterparts, each of which shall be deemed an original, but all of which together will constitute one and the same instrument.
 
 [Signature Page Follows]
 
@@ -827,7 +827,7 @@ As a condition of becoming retained (or Consultant's consulting relationship bei
 
 18. Miscellaneous.
 
-(a) Governing Law. The validity, interpretation, construction and performance of this Agreement, and all acts and transactions pursuant hereto and the rights and obligations of the parties hereto shall be governed, construed and interpreted in accordance with the laws of the state of California without giving effect to principles of conflicts of law.
+(a) Governing Law. The validity, interpretation, construction and performance of this Agreement, and all acts and transactions pursuant hereto and the rights and obligations of the parties hereto shall be governed, construed and interpreted in accordance with the laws of the state of ${v.governingLaw} without giving effect to principles of conflicts of law.
 
 (b) Entire Agreement. This Agreement sets forth the entire agreement and understanding of the parties relating to the subject matter herein and supersedes all prior or contemporaneous discussions, understandings and agreements, whether oral or written, between them relating to the subject matter hereof.
 
@@ -1026,7 +1026,7 @@ At-Will Employment. Employment with the Company is for no specific period of tim
 
 Withholdings. All forms of compensation paid to you as an employee of the Company shall be less all applicable withholdings.
 
-This letter supersedes and replaces any prior understandings or agreements, whether oral, written or implied, between you and the Company regarding the matters described in this letter. This letter will be governed by the laws of California, without regard to its conflict of law provisions.
+This letter supersedes and replaces any prior understandings or agreements, whether oral, written or implied, between you and the Company regarding the matters described in this letter. This letter will be governed by the laws of ${v.governingLaw}, without regard to its conflict of law provisions.
 
 Sincerely,
 
@@ -1194,7 +1194,7 @@ Customer agrees that nothing contained in this Agreement shall be construed as g
 
 7. Termination. This Agreement will terminate as provided in Exhibit A, or sooner if either party provides written notice of termination to the other party. All parties' obligations survive termination.
 
-8. General. Customer may not assign or transfer any rights or obligations under this Agreement without the prior written consent of Company. This Agreement constitutes the entire Agreement between the parties relating to this subject matter and supersedes all prior or simultaneous representations, discussions, negotiations, and Agreements, whether written or oral. If any provision of this Agreement is held invalid or unenforceable by a court of competent jurisdiction, such provision will be construed so as to be enforceable to the maximum extent permissible by law, and the remaining provisions of the Agreement will remain in full force and effect. The waiver of any breach or default will not constitute a waiver of any other right hereunder or of any subsequent breach or default. All notices required or permitted under this Agreement must be in writing and in each instance will be deemed given upon receipt. This Agreement shall be governed by and construed in accordance with the laws of California. In the event of a dispute, the prevailing party shall be entitled to attorneys' fees and costs. Customer hereby agrees that breach of this Agreement will cause Company irreparable damage for which recovery of damages would be inadequate, and that Company shall therefore be entitled to obtain timely injunctive relief under this Agreement, as well as such further relief as may be granted by a court of competent jurisdiction.
+8. General. Customer may not assign or transfer any rights or obligations under this Agreement without the prior written consent of Company. This Agreement constitutes the entire Agreement between the parties relating to this subject matter and supersedes all prior or simultaneous representations, discussions, negotiations, and Agreements, whether written or oral. If any provision of this Agreement is held invalid or unenforceable by a court of competent jurisdiction, such provision will be construed so as to be enforceable to the maximum extent permissible by law, and the remaining provisions of the Agreement will remain in full force and effect. The waiver of any breach or default will not constitute a waiver of any other right hereunder or of any subsequent breach or default. All notices required or permitted under this Agreement must be in writing and in each instance will be deemed given upon receipt. This Agreement shall be governed by and construed in accordance with the laws of ${v.governingLaw}. In the event of a dispute, the prevailing party shall be entitled to attorneys' fees and costs. Customer hereby agrees that breach of this Agreement will cause Company irreparable damage for which recovery of damages would be inadequate, and that Company shall therefore be entitled to obtain timely injunctive relief under this Agreement, as well as such further relief as may be granted by a court of competent jurisdiction.
 
 This Agreement may be signed in one or more counterparts, in writing or via PDF or Docusign. This Agreement shall be effective as of the date first written above.
 
@@ -1398,13 +1398,13 @@ Any dispute or claim relating in any way to your use of any Company Services, or
 
 There is no judge or jury in arbitration, and court review of an arbitration award is limited. However, an arbitrator can award on an individual basis the same damages and relief as a court (including injunctive and declaratory relief or statutory damages), and must follow this User Agreement as a court would.
 
-The arbitration, once initiated, will be conducted by the American Arbitration Association (AAA) under its rules, including the AAA's Supplementary Procedures for Consumer-Related Disputes. The AAA's rules are available at www.adr.org or by calling 1-800-778-7879. Payment of all filing, administration, and arbitrator fees will be governed by the AAA's rules. The parties may choose to have the arbitration conducted by telephone, based on written submissions, or in person in San Francisco County or at another mutually agreed location.
+The arbitration, once initiated, will be conducted by the American Arbitration Association (AAA) under its rules, including the AAA's Supplementary Procedures for Consumer-Related Disputes. The AAA's rules are available at www.adr.org or by calling 1-800-778-7879. Payment of all filing, administration, and arbitrator fees will be governed by the AAA's rules. The parties may choose to have the arbitration conducted by telephone, based on written submissions, or in person in ${v.governingLaw} or at another mutually agreed location.
 
 Both you and Company agree that any dispute resolution proceedings will be conducted only on an individual basis and not in a class, consolidated, or representative action. If for any reason a claim proceeds in court rather than in arbitration we waive any right to a jury trial. We also both agree that you or we may bring suit in court to enjoin infringement or other misuse of intellectual property rights.
 
 GOVERNING LAW AND JURISDICTION
 
-The User Agreement and Privacy Policy shall be governed and construed in accordance with the laws of the State of California, without regard to its conflict of law provisions. Federal Court in San Francisco, California shall have exclusive jurisdiction with respect to any issue arising from or under the use of the website or Services.
+The User Agreement and Privacy Policy shall be governed and construed in accordance with the laws of the State of ${v.governingLaw}, without regard to its conflict of law provisions. Federal Court located in ${v.governingLaw} shall have exclusive jurisdiction with respect to any issue arising from or under the use of the website or Services.
 
 NO USE BY MINORS
 
@@ -1494,7 +1494,7 @@ Each party agrees to defend, indemnify and hold harmless the other, its affiliat
 
 16. PUBLICITY: Agent shall not use Company's or its licensors' name, logo, proprietary indicia, trade name, trademarks, or service marks or refer to Company in any media release, listing on a website, presentation, public announcement, or public disclosure relating to this Agreement, its subject matter or any part thereof without the written consent of Company, which consent may be granted or withheld in Company's sole discretion. Company shall not be deemed to have granted Agent a license to, or any rights in, any of the foregoing by entering into this Agreement.
 
-17. APPLICABLE LAW/JURISDICTION: The Agreement and all matters and/or issues collateral thereto shall be governed by the laws of the State of California, without regard to its conflict laws of principles. Any controversies or disputes arising out of or relating to this Agreement shall be resolved exclusively in either the state or federal courts located in California, and each party hereby consents to the personal jurisdiction of such courts over it.
+17. APPLICABLE LAW/JURISDICTION: The Agreement and all matters and/or issues collateral thereto shall be governed by the laws of the State of ${v.governingLaw}, without regard to its conflict laws of principles. Any controversies or disputes arising out of or relating to this Agreement shall be resolved exclusively in either the state or federal courts located in ${v.governingLaw}, and each party hereby consents to the personal jurisdiction of such courts over it.
 
 18. ENTIRE AGREEMENT; MODIFICATION: This Agreement sets forth the entire understanding of the parties, and supersedes and merges any and all prior agreements and discussions between the parties relating to the subject matter contained herein. No modification, amendment or waiver of any of the provisions of this Agreement shall be effective unless contained in writing specifically referring to this Agreement and signed by each of the parties hereto.
 
@@ -1545,7 +1545,7 @@ ${v.compensationTerms}`
 function distributionAgreement(v: Record<string, string>): string {
   return `Distribution Agreement
 
-This Distribution Agreement (the "Agreement") is entered into and made effective as of ${formatDate(v.date)} (the "Effective Date") by and between ${v.companyName} ("Company"), and ${v.distributorName}, a corporation organized under the laws of the State of Delaware (hereinafter the "Distributor").
+This Distribution Agreement (the "Agreement") is entered into and made effective as of ${formatDate(v.date)} (the "Effective Date") by and between ${v.companyName} ("Company"), and ${v.distributorName}, a corporation organized under the laws of the State of ${v.distributorStateOfIncorporation} (hereinafter the "Distributor").
 
 Company and the Distributor agree as follows:
 
@@ -1689,7 +1689,7 @@ The Distributor may not assign, transfer or subcontract any rights or obligation
 
 15. Dispute Resolution; Governing Law:
 
-15.1 Governing Law. This Agreement will be governed by, interpreted and construed, and performance hereunder will be determined in accordance with the law of the State of California, without regard to its conflicts of law principles.
+15.1 Governing Law. This Agreement will be governed by, interpreted and construed, and performance hereunder will be determined in accordance with the law of the State of ${v.governingLaw}, without regard to its conflicts of law principles.
 
 15.1 Negotiation and Mediation. Notice of any dispute or claim arising hereunder will be provided in accordance with the notice provisions below. Company and Distributor will make good faith efforts to amicably resolve any dispute arising hereunder via direct negotiation between authorized representatives of each party. In the event that such representatives are unable to resolve the dispute, or in the event that sixty (60) days have passed since the initial written notice of the dispute and the matter continues to be unresolved, either party may request confidential mediation of the dispute through a mediator experienced in commercial mediation selected by each party (or his or her designee).
 
@@ -1919,7 +1919,7 @@ NOW, THEREFORE, in consideration of the mutual promises and covenants set forth 
 
 17. General.
 
-(a) Governing Law and Jurisdiction. This Agreement is governed and interpreted in accordance with the laws of the State of California without reference to conflicts of laws principles and excluding the United Nations Convention on Contracts for the Sale of Goods. The parties consent to the exclusive jurisdiction of, and venue in, San Francisco County, California.
+(a) Governing Law and Jurisdiction. This Agreement is governed and interpreted in accordance with the laws of the State of ${v.governingLaw} without reference to conflicts of laws principles and excluding the United Nations Convention on Contracts for the Sale of Goods. The parties consent to the exclusive jurisdiction of, and venue in, the state and federal courts located in ${v.governingLaw}.
 
 (b) Legal Compliance. Reseller shall at all times perform its obligations hereunder in compliance in all material respects with all applicable federal, state, and local laws and regulations of all applicable domestic jurisdictions, and in such a manner as not to cause Company to be in violation of any applicable laws or regulations including, without limitation, any applicable requirements of any federal, state, and local authority relating to the collection, dissemination, transfer, storage and use of data, specifically including, without limitation, the privacy and security of confidential, personal, sensitive or other protected data.
 
@@ -2089,7 +2089,7 @@ The parties agree that the releases in this Agreement do not apply to claims whi
 
 7. The parties agree that this Agreement and the subject matter thereof shall remain confidential. Neither party shall disparage each other in any manner or form with respect to the subject matter of this Agreement. In the event of a breach of any of the provisions of this Agreement, the breaching party agrees to indemnify and hold harmless all the non-breaching parties from any and all damages, losses, liabilities, costs and expenses arising out of or relating to such breach.
 
-8. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by California law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in San Francisco, California.
+8. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by ${v.governingLaw} law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in ${v.governingLaw}.
 
 9. If any provision of this Agreement is found invalid by any court having jurisdiction, the remainder of this Agreement shall be fully valid and enforceable. The parties understand this is a binding, legal agreement. In the event of a dispute, the prevailing party shall be entitled to reasonable attorneys' fees and costs. This Agreement may be signed via facsimile or PDF in multiple counterparts, each of which shall be equally valid.
 
@@ -2162,7 +2162,7 @@ The parties agree that the releases in this Agreement do not apply to claims whi
 
 8. The parties agree that this Agreement and the subject matter thereof shall remain confidential. Neither party shall disparage each other in any manner or form with respect to the subject matter of this Agreement. In the event of a breach of any of the provisions of this Agreement, the breaching party agrees to indemnify and hold harmless all the non-breaching parties from any and all damages, losses, liabilities, costs and expenses arising out of or relating to such breach.
 
-9. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by California law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in San Francisco, California.
+9. This Agreement is the complete agreement between the parties concerning the subject matter referenced above. No modification of this Agreement is valid unless in writing signed by all parties. This Agreement is governed by ${v.governingLaw} law (except to the extent its conflict of laws principles would apply the law of a different jurisdiction), is entered into and performed entirely in ${v.governingLaw}.
 
 10. If any provision of this Agreement is found invalid by any court having jurisdiction, the remainder of this Agreement shall be fully valid and enforceable. The parties understand this is a binding, legal agreement. In the event of a dispute, the prevailing party shall be entitled to reasonable attorneys' fees and costs. This Agreement may be signed via facsimile or PDF in multiple counterparts, each of which shall be equally valid.
 
@@ -2436,7 +2436,7 @@ NOW, THEREFORE, in consideration of the mutual covenants and agreements hereinaf
 
 11.4. Severability. If any term or provision of this Agreement is invalid, illegal, or unenforceable in any jurisdiction, such invalidity, illegality, or unenforceability will not affect any other term or provision of this Agreement or invalidate or render unenforceable such term or provision in any other jurisdiction.
 
-11.5. Governing Law. This Agreement, including all exhibits, schedules, attachments, and appendices attached to this Agreement and thereto, and all matters arising out of or relating to this Agreement, are governed by, and construed in accordance with, the laws of Delaware, without regard to the conflict of laws provisions thereof to the extent such principles or rules would require or permit the application of the laws of any jurisdiction other than those of Delaware.
+11.5. Governing Law. This Agreement, including all exhibits, schedules, attachments, and appendices attached to this Agreement and thereto, and all matters arising out of or relating to this Agreement, are governed by, and construed in accordance with, the laws of ${v.governingLaw}, without regard to the conflict of laws provisions thereof to the extent such principles or rules would require or permit the application of the laws of any jurisdiction other than those of ${v.governingLaw}.
 
 11.6. Waiver. Except as otherwise set forth in this Agreement, no failure to exercise, or delay in exercising, any rights, remedy, power, or privilege arising from this Agreement will operate or be construed as a waiver thereof, nor will any single or partial exercise of any right, remedy, power or privilege hereunder preclude any other or further exercise thereof or the exercise of any other right, remedy, power or privilege.
 
