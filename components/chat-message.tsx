@@ -124,6 +124,17 @@ export function TypingIndicator() {
         <img src="/brand/beaker-glass.png" alt="" className="beaker-tilt-group absolute inset-0 h-9 w-9 object-contain" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/beaker-liquid.png" alt="" className="beaker-liquid-pulse absolute inset-0 h-9 w-9 object-contain" />
+        {/* Retraces the exact spots beaker-glass.png used to draw its static bubble dots (now
+           erased so they can move): 5 staggered instances of one keyframe rise through those
+           same 5 points, so the top one fades out at the top just as another fades in at the
+           bottom — a continuous chain rather than a single dot hopping around. */}
+        <div className="beaker-bubbles absolute inset-0 h-9 w-9">
+          <span className="beaker-bubble" style={{ animationDelay: "0s" }} />
+          <span className="beaker-bubble" style={{ animationDelay: "-0.8s" }} />
+          <span className="beaker-bubble" style={{ animationDelay: "-1.6s" }} />
+          <span className="beaker-bubble" style={{ animationDelay: "-2.4s" }} />
+          <span className="beaker-bubble" style={{ animationDelay: "-3.2s" }} />
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
