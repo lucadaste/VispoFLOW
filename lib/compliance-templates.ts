@@ -66,9 +66,12 @@ Date: ${today()}`
 function eightyThreeB(v: Record<string, string>): string {
   const shares = num(v.shares)
   const pricePerShare = num(v.pricePerShare)
-  // A founder's purchase price is normally also the shares' fair market value at grant,
-  // so Box 6 (FMV) and Box 7 (amount paid) use the same per-share price, and Box 8 is $0.
-  const fmvTotal = shares * pricePerShare
+  // Box 6 (FMV) and Box 7 (amount paid) are collected as separate fields — see
+  // lib/flow.ts's EIGHTY_THREE_B fields — rather than assuming they're equal, since
+  // that's only true for the common case (a founder buying stock at incorporation),
+  // not every 83(b) election.
+  const fairMarketValuePerShare = num(v.fairMarketValuePerShare)
+  const fmvTotal = shares * fairMarketValuePerShare
   const paidTotal = shares * pricePerShare
   const grossIncome = fmvTotal - paidTotal
 
@@ -97,7 +100,7 @@ Calendar year ${v.grantDate ? new Date(`${v.grantDate}T00:00:00`).getFullYear() 
 ${v.vestingSchedule}
 
 6. The total fair market value of the property at the time of transfer is
-   a. Value per share: $${perShare(pricePerShare)}
+   a. Value per share: $${perShare(fairMarketValuePerShare)}
    b. Quantity: ${shares.toLocaleString()}
    c. Total fair market value: $${money(fmvTotal)}
 

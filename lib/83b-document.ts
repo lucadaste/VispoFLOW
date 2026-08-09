@@ -119,10 +119,12 @@ export async function buildEightyThreeBPdfBytes(values: Record<string, string>, 
 
   const shares = num(values.shares)
   const pricePerShare = num(values.pricePerShare)
-  // A founder's purchase price is normally also the shares' fair market value at grant (see
-  // lib/compliance-templates.ts's identical eightyThreeB() judgment call), so Box 6 (FMV) and Box 7
-  // (amount paid) use the same per-share price, and Box 8 is $0.
-  const fmvTotal = shares * pricePerShare
+  // Box 6 (FMV) and Box 7 (amount paid) are collected as separate fields — see
+  // lib/flow.ts's EIGHTY_THREE_B fields and lib/compliance-templates.ts's identical
+  // eightyThreeB() — rather than assuming they're equal, since that's only true for the
+  // common case (a founder buying stock at incorporation), not every 83(b) election.
+  const fairMarketValuePerShare = num(values.fairMarketValuePerShare)
+  const fmvTotal = shares * fairMarketValuePerShare
   const paidTotal = shares * pricePerShare
   const grossIncome = fmvTotal - paidTotal
 
@@ -131,7 +133,7 @@ export async function buildEightyThreeBPdfBytes(values: Record<string, string>, 
   setText(FIELD.taxableYear, values.grantDate ? `Calendar year ${new Date(`${values.grantDate}T00:00:00`).getFullYear()}` : undefined)
   setText(FIELD.restrictions, values.vestingSchedule)
 
-  setText(FIELD.fmvPerItem, values.pricePerShare ? `$${perShare(pricePerShare)}` : undefined)
+  setText(FIELD.fmvPerItem, values.fairMarketValuePerShare ? `$${perShare(fairMarketValuePerShare)}` : undefined)
   setText(FIELD.fmvQuantity, values.shares ? shares.toLocaleString() : undefined)
   setText(FIELD.fmvTotal, values.shares ? `$${money(fmvTotal)}` : undefined)
 
