@@ -126,6 +126,11 @@ export function TransactionsOnboarding({
   const scrollRef = useRef<HTMLDivElement>(null)
   const idRef = useRef(0)
   const startedRef = useRef(false)
+  // Ids of the current field's still-unanswered chat widgets (its prompt bubble, plus a
+  // fieldChoices bubble if any) — lets a switch to Questionnaire mode retract them instead of
+  // leaving them stacked above the form card asking the same question (see reinitFilingForMode).
+  const liveFieldPromptIdsRef = useRef<number[]>([])
+  const messagesRef = useRef<ChatMsg[]>([])
 
   const pushBot = useCallback((text: string) => {
     setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
@@ -149,9 +154,15 @@ export function TransactionsOnboarding({
     setIsTyping(true)
     await delay(typingTime(text))
     setIsTyping(false)
-    setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
+    const id = ++idRef.current
+    setMessages((m) => [...m, { id, role: "bot", text }])
     await delay(150)
+    return id
   }, [])
+
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
 
   const applyState = useCallback((saved: TransactionsPersisted) => {
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
@@ -279,9 +290,22 @@ export function TransactionsOnboarding({
   // it is just hitting Enter.
   const promptField = useCallback(async (item: TransactionItem, groupTitle: string, fieldIndex: number, addChoices = true) => {
     const field = item.fields[fieldIndex]
-    await pushBotTyped(fieldPrompt(field))
+    const promptId = await pushBotTyped(fieldPrompt(field))
+    const liveIds = [promptId]
+    // If a choices bubble for this field is already live (a question detour re-asked the same
+    // field with addChoices=false), keep tracking that existing one rather than adding a new one.
+    const existingChoicesId = () =>
+      messagesRef.current.find((m) => m.role === "fieldChoices" && m.item.id === item.id && m.fieldIndex === fieldIndex)?.id
     if (field.type === "select") {
-      if (addChoices) setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+      if (addChoices) {
+        const choicesId = ++idRef.current
+        setMessages((m) => [...m, { id: choicesId, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        liveIds.push(choicesId)
+      } else {
+        const existing = existingChoicesId()
+        if (existing != null) liveIds.push(existing)
+      }
+      liveFieldPromptIdsRef.current = liveIds
       return
     }
     if (field.type === "date") {
@@ -289,13 +313,20 @@ export function TransactionsOnboarding({
       if (prefilled) {
         setValue(prefilled)
       } else if (addChoices) {
-        setMessages((m) => [...m, { id: ++idRef.current, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        const choicesId = ++idRef.current
+        setMessages((m) => [...m, { id: choicesId, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        liveIds.push(choicesId)
+      } else {
+        const existing = existingChoicesId()
+        if (existing != null) liveIds.push(existing)
       }
     }
+    liveFieldPromptIdsRef.current = liveIds
   }, [pushBotTyped, prefill])
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     setMessages([])
+    liveFieldPromptIdsRef.current = []
     pushUser(item.title)
     setActiveItemId(item.id)
     setMobileOpen(false)
@@ -447,10 +478,22 @@ export function TransactionsOnboarding({
   // losing what's already been answered — mirrors incorporation-app.tsx's `reinitStepForMode`.
   // Questionnaire mode shows the full form card (creating it the first time, pre-filled with
   // whatever chat has collected so far); chat mode resumes at the first still-empty field.
+  // The note is pushed from in here, between retracting the old mode's stale widget and adding
+  // the new mode's — not from requestSetInputMode — so that if nothing else happened in between
+  // (the retracted widget was never answered), pushNote sees its own note as still the trailing
+  // message and replaces it in place instead of stacking a second one right below it.
   const reinitFilingForMode = useCallback((mode: "chat" | "form") => {
     if (!activeFiling) return
     const { item, groupTitle, values } = activeFiling
+    const note = `Switched from ${modeLabel(inputMode)} mode to ${modeLabel(mode)} mode.`
     if (mode === "form") {
+      // The still-unanswered chat prompt (and its choices bubble, if any) for the current field
+      // is being replaced by the form card below — retract it so the same question doesn't show
+      // twice.
+      const staleIds = liveFieldPromptIdsRef.current
+      liveFieldPromptIdsRef.current = []
+      if (staleIds.length) setMessages((m) => m.filter((msg) => !staleIds.includes(msg.id)))
+      pushNote(note)
       setMessages((m) =>
         m.some((msg) => msg.role === "doc" && msg.item.id === item.id)
           ? m
@@ -458,6 +501,10 @@ export function TransactionsOnboarding({
       )
       return
     }
+    // Switching to chat: the form card is being replaced by the guided chat prompt below, so
+    // retract it too — it'll be re-added if the user switches back to Questionnaire again.
+    setMessages((m) => m.filter((msg) => !(msg.role === "doc" && msg.item.id === item.id)))
+    pushNote(note)
     const nextEmpty = item.fields.findIndex((f) => !f.optional && !values[f.name]?.trim())
     const fieldIndex = nextEmpty === -1 ? item.fields.length - 1 : nextEmpty
     setActiveFiling({ item, groupTitle, fieldIndex, values })
@@ -466,18 +513,24 @@ export function TransactionsOnboarding({
     // between). If anything else has happened since (a field got filled via the form, etc.), the
     // question needs to be shown again even if its exact text appeared earlier for a different
     // field-visit — otherwise the chat view can look stuck on a stale question after a switch.
-    const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
-    if (lastBotText !== fieldPrompt(item.fields[fieldIndex])) promptField(item, groupTitle, fieldIndex)
-  }, [activeFiling, promptField, messages])
+    const lastBotMessage = [...messages].reverse().find((m) => m.role === "bot")
+    if (lastBotMessage?.text !== fieldPrompt(item.fields[fieldIndex])) {
+      promptField(item, groupTitle, fieldIndex)
+    } else {
+      const existingChoices = messages.find(
+        (m) => m.role === "fieldChoices" && m.item.id === item.id && m.fieldIndex === fieldIndex
+      )
+      liveFieldPromptIdsRef.current = existingChoices ? [lastBotMessage.id, existingChoices.id] : [lastBotMessage.id]
+    }
+  }, [activeFiling, promptField, messages, pushNote, inputMode])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same document open — nothing is lost,
   // so this just swaps which mode renders the current question (see reinitFilingForMode).
   const requestSetInputMode = useCallback((target: "chat" | "form") => {
     if (target === inputMode) return
     setInputMode(target)
-    pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
     reinitFilingForMode(target)
-  }, [inputMode, pushNote, reinitFilingForMode])
+  }, [inputMode, reinitFilingForMode])
 
   const openDoc = useCallback((doc: LibraryDoc, item: TransactionItem, groupTitle: string) => {
     setViewingDoc({ doc: withDocSignatures(doc, signedDocs?.[doc.id] ?? [], answers), item, groupTitle })

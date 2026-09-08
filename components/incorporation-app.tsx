@@ -683,6 +683,10 @@ export function IncorporationApp() {
 
   const idRef = useRef(0)
   const startedRef = useRef(false)
+  // Id of the chat-mode field prompt that hasn't been answered yet, if any — lets a switch to
+  // Questionnaire mode retract that bubble instead of leaving it stacked above the form card
+  // asking the same question (see reinitStepForMode).
+  const livePromptIdRef = useRef<number | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
   answersRef.current = answers
@@ -696,8 +700,10 @@ export function IncorporationApp() {
     setIsTyping(true)
     await delay(typingTime(resolved))
     setIsTyping(false)
-    setMessages((m) => [...m, { id: nextId(), role: "bot", text: resolved }])
+    const id = nextId()
+    setMessages((m) => [...m, { id, role: "bot", text: resolved }])
     await delay(260)
+    return id
   }, [resolveMessage])
 
   const pushUser = useCallback((text: string) => {
@@ -778,6 +784,7 @@ export function IncorporationApp() {
         // A new step has no prior progress to preserve — always start it fresh, whichever mode
         // renders it (see requestSetInputMode for the mid-step, cross-mode resume case).
         setActiveStepValues(null)
+        livePromptIdRef.current = null
 
         for (const msg of step.messages) {
           await pushBot(msg)
@@ -794,7 +801,7 @@ export function IncorporationApp() {
           if (inputMode === "chat" && decomposed) {
             setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex: 0 })
             if (!decomposed.skipFirstPrompt) {
-              await pushBot(chatFieldPrompt(decomposed.fields[0]))
+              livePromptIdRef.current = await pushBot(chatFieldPrompt(decomposed.fields[0]))
             }
           } else {
             setActiveInput(step.input)
@@ -823,6 +830,12 @@ export function IncorporationApp() {
     setActiveChatFields(saved.activeChatFields ?? null)
     setActiveStepValues(saved.activeStepValues ?? null)
     setInputMode(saved.inputMode ?? "chat")
+    // Whenever chat fields are mid-question, the persisted transcript's last bot message is that
+    // field's prompt (see livePromptIdRef) — restore the pointer so a later mode switch can still
+    // retract it correctly instead of leaving it stranded.
+    livePromptIdRef.current = saved.activeChatFields
+      ? [...saved.messages].reverse().find((m) => m.role === "bot")?.id ?? null
+      : null
   }, [])
 
   useEffect(() => {
@@ -979,9 +992,10 @@ export function IncorporationApp() {
       const nextIndex = fieldIndex + 1
       if (nextIndex < fields.length) {
         setActiveChatFields({ input, fields, fieldIndex: nextIndex })
-        await pushBot(chatFieldPrompt(fields[nextIndex]))
+        livePromptIdRef.current = await pushBot(chatFieldPrompt(fields[nextIndex]))
       } else {
         setActiveChatFields(null)
+        livePromptIdRef.current = null
         const { patch, note } = assembleChatAnswers(input, nextValues, answersRef.current)
         if (note) await pushBot(note)
         await handleSubmit("", patch)
@@ -1001,7 +1015,7 @@ export function IncorporationApp() {
       pushUser(val)
       ;(async () => {
         await pushBot(field.hint ?? "Happy to help — once you're ready, just answer the question above and we'll continue.")
-        await pushBot(chatFieldPrompt(field))
+        livePromptIdRef.current = await pushBot(chatFieldPrompt(field))
       })()
       return
     }
@@ -1021,27 +1035,43 @@ export function IncorporationApp() {
   // mid-step, as opposed to `playStep`, which is only for advancing to a new step. Both modes
   // read/write the same activeStepValues, so this never discards progress — it just picks up
   // at the equivalent point (mirrors compliance-view.tsx's reinitFilingForMode).
+  // The note is pushed from in here, between retracting the old mode's stale prompt and setting
+  // up the new mode's widget — not from requestSetInputMode — so that if nothing else happened in
+  // between (the retracted prompt was never answered), pushNote sees its own note as still the
+  // trailing message and replaces it in place instead of stacking a second one right below it.
   const reinitStepForMode = useCallback((mode: "chat" | "form") => {
     const step = STEPS[activeStepIndex]
+    const note = `Switched from ${modeLabel(inputMode)} mode to ${modeLabel(mode)} mode.`
     if (!step?.input || step.autoAdvance) {
       setActiveInput(null)
       setActiveChatFields(null)
+      pushNote(note)
       return
     }
     const decomposed = getChatFields(step.input, effectiveAnswersRef.current)
     if (!decomposed) {
       setActiveChatFields(null)
       setActiveInput(step.input)
+      pushNote(note)
       return
     }
     const currentValues = activeStepValues ?? decomposed.defaults
     setActiveStepValues(currentValues)
     if (mode === "form") {
       setActiveChatFields(null)
+      // The still-unanswered chat prompt for this field is being replaced by the form card
+      // below — retract it so the same question doesn't show twice (see livePromptIdRef).
+      if (livePromptIdRef.current != null) {
+        const staleId = livePromptIdRef.current
+        setMessages((m) => m.filter((msg) => msg.id !== staleId))
+        livePromptIdRef.current = null
+      }
+      pushNote(note)
       setActiveInput(step.input)
       return
     }
     setActiveInput(null)
+    pushNote(note)
     // Resume at the first still-empty required field rather than restarting at 0 — whatever was
     // answered already (in either mode) stays answered. Only push the prompt if it's not already
     // the most recent bot message, so repeated toggling with nothing else happening in between
@@ -1050,16 +1080,19 @@ export function IncorporationApp() {
     const fieldIndex = nextEmpty === -1 ? decomposed.fields.length - 1 : nextEmpty
     setActiveChatFields({ input: step.input, fields: decomposed.fields, fieldIndex })
     const prompt = chatFieldPrompt(decomposed.fields[fieldIndex])
-    const lastBotText = [...messages].reverse().find((m) => m.role === "bot")?.text
-    if (lastBotText !== prompt) pushBot(prompt)
-  }, [activeStepIndex, activeStepValues, pushBot, messages])
+    const lastBotMessage = [...messages].reverse().find((m) => m.role === "bot")
+    if (lastBotMessage?.text !== prompt) {
+      pushBot(prompt).then((id) => { livePromptIdRef.current = id })
+    } else {
+      livePromptIdRef.current = lastBotMessage.id
+    }
+  }, [activeStepIndex, activeStepValues, pushBot, messages, pushNote, inputMode])
 
   const requestSetInputMode = useCallback((target: "chat" | "form") => {
     if (target === inputMode) return
     setInputMode(target)
-    pushNote(`Switched from ${modeLabel(inputMode)} mode to ${modeLabel(target)} mode.`)
     reinitStepForMode(target)
-  }, [inputMode, pushNote, reinitStepForMode])
+  }, [inputMode, reinitStepForMode])
 
   const restartFormation = () => {
     startedRef.current = false
