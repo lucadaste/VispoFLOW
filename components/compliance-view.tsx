@@ -273,6 +273,7 @@ export function ComplianceView({
   signedDocs,
   onItemComplete,
   onItemDeleted,
+  onSoftDeleteDoc,
   startExpanded = false,
   onGoToLibrary,
 }: {
@@ -280,6 +281,9 @@ export function ComplianceView({
   signedDocs?: Record<string, DocSignature[]>
   onItemComplete?: (doc: LibraryDoc) => void
   onItemDeleted?: (id: string) => void
+  /** Soft-deletes a completed filing's doc (restorable from the Document Library) without
+   *  restarting the questions — the counterpart to onItemDeleted's "delete & restart". */
+  onSoftDeleteDoc?: (doc: LibraryDoc) => void
   startExpanded?: boolean
   onGoToLibrary?: () => void
 }) {
@@ -299,6 +303,7 @@ export function ComplianceView({
   const [historyOpen, setHistoryOpen] = useState(false)
   const [viewingDoc, setViewingDoc] = useState<{ doc: LibraryDoc; item: ComplianceItem; groupTitle: string } | null>(null)
   const [redoConfirm, setRedoConfirm] = useState<{ item: ComplianceItem; groupTitle: string } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ item: ComplianceItem; groupTitle: string; doc: LibraryDoc } | null>(null)
   const [switchConfirm, setSwitchConfirm] = useState<
     | { mode: "restart"; item: ComplianceItem; groupTitle: string }
     | { mode: "abandon"; fromItem: ComplianceItem; item: ComplianceItem; groupTitle: string }
@@ -1205,6 +1210,11 @@ export function ComplianceView({
             setViewingDoc(null)
             setRedoConfirm({ item, groupTitle })
           }}
+          onDelete={onSoftDeleteDoc ? () => {
+            const { doc, item, groupTitle } = viewingDoc
+            setViewingDoc(null)
+            setDeleteConfirm({ item, groupTitle, doc })
+          } : undefined}
         />
       )}
       {redoConfirm && (
@@ -1229,6 +1239,28 @@ export function ComplianceView({
             openItem(item, groupTitle)
           }}
           onCancel={() => setRedoConfirm(null)}
+        />
+      )}
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Delete this filing?"
+          description={`"${deleteConfirm.item.title}" will be removed from your Document Library. You can restore it any time from the library's deleted items — this won't restart the questions.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => {
+            const { item, doc } = deleteConfirm
+            setDeleteConfirm(null)
+            setCompleted((c) => {
+              const { [item.id]: _removed, ...rest } = c
+              return rest
+            })
+            setDocs((d) => {
+              const { [item.id]: _removed, ...rest } = d
+              return rest
+            })
+            onSoftDeleteDoc?.(doc)
+          }}
+          onCancel={() => setDeleteConfirm(null)}
         />
       )}
       {viewingConversation && (

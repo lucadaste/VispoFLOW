@@ -2353,8 +2353,9 @@ export function DocumentViewer({
   onClose: () => void
   onSign?: (doc: LibraryDoc, signature: SignPayload) => void
   onSendToSign?: (doc: LibraryDoc, payload: SendToSignPayload) => void | Promise<void>
-  /** Present only when opened from the Document Library itself — soft-deletes (hides,
-   *  restorable) the doc, distinct from onDeleteRestart's "wipe answers and start over". */
+  /** Soft-deletes (hides, restorable) the doc, distinct from onDeleteRestart's "wipe answers and
+   *  start over". From the Library it's in the "⋮" menu; from a flow's sidebar (alongside
+   *  onDeleteRestart) it's a "Delete" pill and the confirm is handled by the caller. */
   onDelete?: (doc: LibraryDoc) => void
   /** Removes one collected signature so that slot can be signed again — a "redo". */
   onRemoveSignature?: (doc: LibraryDoc, slotId: string) => void
@@ -2374,6 +2375,9 @@ export function DocumentViewer({
   const canSign = doc.content ? selfSignableSlotsFor(doc, answers).length > 0 : false
   const canSendToDelaware = readyToSendToDelaware(doc) && !!onSendToDelaware
   const canConfirmFiled = doc.id === "coi" && doc.pending && !!onConfirmFiled
+  // When opened from a flow's sidebar, "Delete" shows as its own pill next to "Delete & restart",
+  // so keep it out of the "⋮" menu there to avoid offering the same action twice.
+  const menuOnDelete = onDeleteRestart ? undefined : onDelete
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -2424,6 +2428,15 @@ export function DocumentViewer({
                     View in Document Library
                   </button>
                 )}
+                {onDeleteRestart && onDelete && (
+                  <button
+                    onClick={() => onDelete(doc)}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:border-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </button>
+                )}
                 {onDeleteRestart && (
                   <button
                     onClick={onDeleteRestart}
@@ -2445,7 +2458,7 @@ export function DocumentViewer({
             )}
             {canSendToDelaware && <SendToDelawareButton doc={doc} onSendToDelaware={onSendToDelaware!} />}
             {canConfirmFiled && <ConfirmFiledButton doc={doc} onConfirmFiled={onConfirmFiled!} />}
-            {(doc.content || onDelete) && <DocViewerMoreMenu doc={doc} answers={answers} onDelete={onDelete} />}
+            {(doc.content || menuOnDelete) && <DocViewerMoreMenu doc={doc} answers={answers} onDelete={menuOnDelete} />}
             <div className="mx-1 h-5 w-px bg-border" />
             <button
               onClick={onClose}

@@ -1395,6 +1395,7 @@ export function IncorporationApp() {
             signedDocs={signedDocs}
             onItemComplete={handleComplianceDocComplete}
             onItemDeleted={handleComplianceDocDeleted}
+            onSoftDeleteDoc={handleDeleteLibraryDoc}
             startExpanded={complianceFromFlow}
             onGoToLibrary={() => handlePhaseClick("documents")}
           />
@@ -1407,6 +1408,7 @@ export function IncorporationApp() {
             signedDocs={signedDocs}
             onDocumentReady={handleTransactionDocReady}
             onItemDeleted={handleTransactionDocDeleted}
+            onSoftDeleteDoc={handleDeleteLibraryDoc}
             onGoToLibrary={() => handlePhaseClick("documents")}
           />
         </SignedOutGate>
