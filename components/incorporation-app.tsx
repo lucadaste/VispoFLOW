@@ -135,6 +135,19 @@ type IncorporationPersisted = {
   inputMode?: "chat" | "form"
 }
 
+/** Whether a persisted snapshot is safe to restore as-is. A snapshot with messages but no active
+ *  input/chatFields is normally a stuck mid-step artifact (legacy corrupted data, or a crash
+ *  mid-playStep) — restoring it would strand the user on an input-less screen, so we start fresh
+ *  instead. The exception is a snapshot that already reached the final step: finishing the flow
+ *  legitimately clears activeInput on the way to the Compliance Center, and discarding that
+ *  snapshot would restart at playStep(0) and let the empty fresh state overwrite the completed
+ *  one (and the Doc Library's incorporation docs with it). */
+function isResumableSnapshot(saved: IncorporationPersisted): boolean {
+  if (saved.messages.length === 0) return false
+  if (saved.activeInput || saved.activeChatFields) return true
+  return saved.activeStepIndex >= STEPS.length - 1
+}
+
 type SignRequest = {
   id: string
   docId: string
@@ -826,7 +839,15 @@ export function IncorporationApp() {
     setDocCompletedAt(saved.docCompletedAt ?? {})
     setAnswers({ ...initialAnswers, ...saved.answers })
     setActiveStepIndex(saved.activeStepIndex)
-    setActiveInput(saved.activeInput)
+    // A final-step snapshot saved before the terminal input was kept live (see the compliance
+    // hand-off in handleSubmit) has activeInput null — restore the step's own input so the user
+    // lands back on the "Continue to Compliance Center" button rather than an input-less screen.
+    const finalStep = STEPS[STEPS.length - 1]
+    setActiveInput(
+      !saved.activeInput && !saved.activeChatFields && saved.activeStepIndex >= STEPS.length - 1
+        ? finalStep.input ?? null
+        : saved.activeInput,
+    )
     setActiveChatFields(saved.activeChatFields ?? null)
     setActiveStepValues(saved.activeStepValues ?? null)
     setInputMode(saved.inputMode ?? "chat")
@@ -843,10 +864,7 @@ export function IncorporationApp() {
     startedRef.current = true
 
     const saved = loadPersisted<IncorporationPersisted>(STORAGE_KEYS.incorporation)
-    // A snapshot with messages but no active input/chatFields is a stuck mid-step state —
-    // legacy corrupted data, or some future crash mid-playStep — not a resumable one.
-    // Treat it the same as "nothing saved" and start fresh rather than restoring it frozen.
-    if (saved && saved.messages.length > 0 && (saved.activeInput || saved.activeChatFields)) {
+    if (saved && isResumableSnapshot(saved)) {
       applyIncorporationState(saved)
       setIncorporationHydrated(true)
       return
@@ -865,7 +883,7 @@ export function IncorporationApp() {
       // Same corrupted-snapshot check as the local restore above — a stuck cloud copy
       // shouldn't override whatever the local effect already resolved to (a valid resume
       // or its own fresh playStep(0)).
-      if (saved && saved.messages.length > 0 && (saved.activeInput || saved.activeChatFields)) {
+      if (saved && isResumableSnapshot(saved)) {
         startedRef.current = true
         applyIncorporationState(saved)
       }
@@ -968,6 +986,12 @@ export function IncorporationApp() {
         }
         await pushBot("Now let's head to the Compliance Center to complete the regulatory filings required for your incorporation.")
         await delay(300)
+        // Keep the terminal step's input live rather than leaving it null (handleSubmit cleared it
+        // at the top). The persisted snapshot is only treated as resumable when it carries an
+        // activeInput/activeChatFields — without this, a reload after finishing the flow trips the
+        // self-heal guard, restarts at playStep(0), and the fresh state overwrites the completed
+        // one both locally and on the server (taking the Doc Library's incorporation docs with it).
+        setActiveInput(step.input)
         setComplianceFromFlow(true)
         setView("compliance")
         return
