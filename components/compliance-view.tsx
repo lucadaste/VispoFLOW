@@ -179,6 +179,41 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
   return kept
 }
 
+// The exact question chat mode asks for a field — also reused to build the Questionnaire-mode
+// History replay below, so both modes archive the same wording.
+const fieldPrompt = (f: ComplianceField) => {
+  const optionalHint = f.optional ? " (optional)" : ""
+  return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}`
+}
+
+// A Questionnaire-mode filing collects every answer in the form card, so its live transcript has
+// no question/answer exchange for archiveMessages to keep — History would show only that the
+// filing happened, not what was entered. Rebuild a chat-style replay from the finished field
+// values so both modes archive the user's actual responses. Sensitive answers are masked exactly
+// as chat mode masks them (see submitFieldAnswer); a delegated field shows who it was routed to.
+function synthesizeFilingConversation(
+  item: ComplianceItem,
+  values: Record<string, string>,
+  makeId: () => number,
+): ConversationMessage[] {
+  const out: ConversationMessage[] = []
+  for (const field of item.fields) {
+    const raw = (values[field.name] ?? "").trim()
+    if (!raw && !field.optional) continue
+    const delegated = DELEGATED_PLACEHOLDER_RE.exec(raw)
+    const answer = !raw
+      ? "Skipped"
+      : delegated
+        ? `To be entered directly by ${delegated[1]}`
+        : field.sensitive
+          ? "•".repeat(raw.length)
+          : raw
+    out.push({ id: makeId(), role: "bot", text: fieldPrompt(field) })
+    out.push({ id: makeId(), role: "user", text: answer })
+  }
+  return out
+}
+
 // The chat transcript is otherwise append-only and persisted forever — a regular user ends up
 // scrolling through weeks of old exchanges (and carrying them in localStorage + the Neon
 // backup). On load we drop anything older than this window; completed filings, drafted docs,
@@ -198,7 +233,10 @@ const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 //    "New Chat" (id <= chatBreakId), which the user has effectively already dismissed;
 //  - a `pinned` message (the post-incorporation welcome) is always kept.
 // If pruning empties the transcript it's replaced with a single fresh greeting so the pane
-// isn't blank. Every other field of `saved` (completed, docs, history, …) is preserved.
+// isn't blank — and any still-open (never-completed) filing is dropped along with it, since its
+// entire question/answer context is now gone: leaving `activeFiling`/`activeItemId` set would let
+// a later mode toggle or delegate-email silently resurrect a filing the user last touched weeks
+// ago and can no longer see. Every other field of `saved` (completed, docs, history, …) is preserved.
 function applyChatRetention(saved: CompliancePersisted, firstName?: string | null): CompliancePersisted {
   const now = Date.now()
   const cutoff = now - CHAT_RETENTION_MS
@@ -219,7 +257,7 @@ function applyChatRetention(saved: CompliancePersisted, firstName?: string | nul
         ? `Hi ${firstName}! Pick an item from Compliance Documents to continue, or ask me anything.`
         : "Pick an item from Compliance Documents to continue, or ask me anything.",
     }
-    return { ...saved, messages: [greeting], chatBreakId: null }
+    return { ...saved, messages: [greeting], chatBreakId: null, activeFiling: null, activeItemId: null }
   }
   if (kept.length === saved.messages.length && kept.every((m, i) => m === saved.messages[i])) return saved
 
@@ -554,11 +592,6 @@ export function ComplianceView({
     setExpandedCategoryId((id) => (id === cat.id ? null : cat.id))
   }, [])
 
-  const fieldPrompt = (f: ComplianceField) => {
-    const optionalHint = f.optional ? " (optional)" : ""
-    return `${f.question ?? f.label}${optionalHint}${f.hint ? ` — ${f.hint}` : ""}`
-  }
-
   // Whether `name` is (loosely) the account holder themself, vs. e.g. a co-founder named on a
   // `delegatable` field — compared against the same value that field already defaults to via its
   // own `prefillKey`, so this matches the app's existing notion of "you" rather than introducing
@@ -641,13 +674,23 @@ export function ComplianceView({
     const lastUserMsg: ChatMsg | null = lastUserText != null ? { ...newMsg(), role: "user", text: lastUserText } : null
     const docDraftedMsg: ChatMsg = { ...newMsg(), role: "docDrafted", item, groupTitle }
     const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
+    // Chat mode already threaded every question and answer through `messages`, so archive that as
+    // the replay. Questionnaire mode has no such exchange to keep — reconstruct one from the
+    // finished field values so History still shows the user's responses, not just the drafted doc.
+    const entryMessages: ConversationMessage[] =
+      inputMode === "form"
+        ? [
+            ...synthesizeFilingConversation(item, values, () => newMsg().id),
+            { id: docDraftedMsg.id, role: "docDrafted", groupTitle, title: item.title },
+          ]
+        : archiveMessages([...messages, ...trailingMessages])
     const entry: ConversationEntry = {
       id: item.id,
       itemId: item.id,
       title: item.title,
       groupTitle,
       completedAt,
-      messages: archiveMessages([...messages, ...trailingMessages]),
+      messages: entryMessages,
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -662,7 +705,7 @@ export function ComplianceView({
       { ...newMsg(), role: "bot", text: "Select another filing from the right to continue, or ask me anything." },
     ])
     onItemComplete?.(doc)
-  }, [messages, newMsg, onItemComplete])
+  }, [messages, newMsg, onItemComplete, inputMode])
 
   const openItem = useCallback((item: ComplianceItem, groupTitle: string) => {
     setMessages([])

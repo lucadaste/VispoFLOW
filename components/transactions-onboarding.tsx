@@ -85,6 +85,30 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
   return kept
 }
 
+// The exact question chat mode asks for a field — also reused to build the Questionnaire-mode
+// History replay below, so both modes archive the same wording.
+const fieldPrompt = (f: TransactionField) =>
+  `${f.question ?? f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
+
+// A Questionnaire-mode document collects every answer in the form card, so its live transcript
+// has no question/answer exchange for archiveMessages to keep — History would show only that the
+// document was prepared, not what was entered. Rebuild a chat-style replay from the finished
+// field values so both modes archive the user's actual responses.
+function synthesizeFilingConversation(
+  item: TransactionItem,
+  values: Record<string, string>,
+  makeId: () => number,
+): ConversationMessage[] {
+  const out: ConversationMessage[] = []
+  for (const field of item.fields) {
+    const raw = (values[field.name] ?? "").trim()
+    if (!raw && !field.optional) continue
+    out.push({ id: makeId(), role: "bot", text: fieldPrompt(field) })
+    out.push({ id: makeId(), role: "user", text: raw || "Skipped" })
+  }
+  return out
+}
+
 // The chat transcript is otherwise append-only and persisted forever — a regular user ends up
 // scrolling through weeks of old exchanges (and carrying them in localStorage + the Neon
 // backup). On load we drop anything older than this window; prepared documents, progress, and
@@ -103,7 +127,10 @@ const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 //    its retention clock starts on this load — except one already collapsed behind an earlier
 //    "New Chat" (id <= chatBreakId), which the user has effectively already dismissed.
 // If pruning empties the transcript it's replaced with a single fresh greeting so the pane
-// isn't blank. Every other field of `saved` (completed, docs, history, …) is preserved.
+// isn't blank — and any still-open (never-completed) document is dropped along with it, since its
+// entire question/answer context is now gone: leaving `activeFiling`/`activeItemId` set would let
+// a later mode toggle silently resurrect a document the user last touched weeks ago and can no
+// longer see. Every other field of `saved` (completed, docs, history, …) is preserved.
 function applyChatRetention(saved: TransactionsPersisted, firstName?: string | null): TransactionsPersisted {
   const now = Date.now()
   const cutoff = now - CHAT_RETENTION_MS
@@ -122,7 +149,7 @@ function applyChatRetention(saved: TransactionsPersisted, firstName?: string | n
         ? `Hi ${firstName}! What kind of transaction document do you need today?`
         : "Hi! What kind of transaction document do you need today?",
     }
-    return { ...saved, messages: [greeting], chatBreakId: null }
+    return { ...saved, messages: [greeting], chatBreakId: null, activeFiling: null, activeItemId: null }
   }
   if (kept.length === saved.messages.length && kept.every((m, i) => m === saved.messages[i])) return saved
 
@@ -345,9 +372,6 @@ export function TransactionsOnboarding({
     setExpandedCategoryId((id) => (id === cat.id ? null : cat.id))
   }, [])
 
-  const fieldPrompt = (f: TransactionField) =>
-    `${f.question ?? f.label}${f.optional ? " (optional)" : ""}${f.hint ? ` — ${f.hint}` : ""}`
-
   const modeLabel = (m: "chat" | "form") => (m === "chat" ? "Chat" : "Questionnaire")
 
   // Prefills a field from the company's formation answers first (e.g. company name), then falls
@@ -447,13 +471,23 @@ export function TransactionsOnboarding({
     const lastUserMsg: ChatMsg | null = lastUserText != null ? { ...newMsg(), role: "user", text: lastUserText } : null
     const docDraftedMsg: ChatMsg = { ...newMsg(), role: "docDrafted", item, groupTitle }
     const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
+    // Chat mode already threaded every question and answer through `messages`, so archive that as
+    // the replay. Questionnaire mode has no such exchange to keep — reconstruct one from the
+    // finished field values so History still shows the user's responses, not just the drafted doc.
+    const entryMessages: ConversationMessage[] =
+      inputMode === "form"
+        ? [
+            ...synthesizeFilingConversation(item, values, () => newMsg().id),
+            { id: docDraftedMsg.id, role: "docDrafted", groupTitle, title: item.title },
+          ]
+        : archiveMessages([...messages, ...trailingMessages])
     const entry: ConversationEntry = {
       id: item.id,
       itemId: item.id,
       title: item.title,
       groupTitle,
       completedAt,
-      messages: archiveMessages([...messages, ...trailingMessages]),
+      messages: entryMessages,
     }
     setCompleted((c) => ({ ...c, [item.id]: true }))
     setDocs((d) => ({ ...d, [item.id]: doc }))
@@ -469,7 +503,7 @@ export function TransactionsOnboarding({
       { ...newMsg(), role: "bot", text: "Select another document from the right to continue, or ask me anything." },
     ])
     onDocumentReady?.(doc)
-  }, [messages, newMsg, onDocumentReady, answers.directors, answers.officers])
+  }, [messages, newMsg, onDocumentReady, answers.directors, answers.officers, inputMode])
 
   const handleFieldSubmit = useCallback((raw: string) => {
     if (!activeFiling || inputMode !== "chat") return
