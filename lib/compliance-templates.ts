@@ -44,7 +44,8 @@ Line 10 — Reason for applying: ${v.reason}
 Line 11 — Date business started or acquired: ${v.incorporationDate}
 Line 12 — Closing month of accounting year: ${v.closingMonth}
 Line 13 — Highest number of employees expected in next 12 months: ${v.employeesExpected}
-Lines 16-17 — Principal line of business: ${v.principalActivity}
+Line 16 — Principal business activity: ${v.principalActivityCategory || "Other"}
+Line 17 — Specific line of business: ${v.principalActivity}
 Line 18 — Has the applicant entity ever applied for and received an EIN before? ${
     v.previousEin ? `Yes — Previous EIN: ${v.previousEin}` : "No"
   }

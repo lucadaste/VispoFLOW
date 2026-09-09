@@ -48,7 +48,22 @@ const CHECKBOX = {
     "Banking purpose": `${P}.c1_4[8]`,
     Other: `${P}.c1_4[7]`,
   } as Record<string, string>,
-  activityOther: `${P}.c1_6[11]`,
+  // Line 16 — principal business activity. One box only; index → category derived from each
+  // checkbox widget's position on the published form (there's no field-name reference).
+  activity: {
+    "Construction": `${P}.c1_6[2]`,
+    "Real estate": `${P}.c1_6[8]`,
+    "Rental & leasing": `${P}.c1_6[3]`,
+    "Manufacturing": `${P}.c1_6[9]`,
+    "Transportation & warehousing": `${P}.c1_6[4]`,
+    "Finance & insurance": `${P}.c1_6[10]`,
+    "Health care & social assistance": `${P}.c1_6[0]`,
+    "Accommodation & food service": `${P}.c1_6[5]`,
+    "Wholesale — agent/broker": `${P}.c1_6[1]`,
+    "Wholesale — other": `${P}.c1_6[6]`,
+    "Retail": `${P}.c1_6[7]`,
+    Other: `${P}.c1_6[11]`,
+  } as Record<string, string>,
   previousEinYes: `${P}.c1_7[0]`,
   previousEinNo: `${P}.c1_7[1]`,
 } as const
@@ -203,12 +218,12 @@ export async function buildEinPdfBytes(values: Record<string, string>, signature
   setText(FIELD.employeesHousehold, "0")
   setText(FIELD.employeesOther, values.employeesExpected || "0")
 
-  // Line 16 has no field in the flow's own data model for which of the IRS's 12 fixed categories
-  // the business falls under, so — same judgment call the plain-text renderer already made by
-  // combining lines 16–17 — this always checks "Other (specify)" and writes the collected
-  // free-text principal-activity description into its blank.
-  check(CHECKBOX.activityOther)
-  setText(FIELD.principalActivityOtherSpecify, values.principalActivity, 7)
+  // Line 16 — check the one category the account holder picked; fall back to "Other" for a
+  // missing or unrecognized value. The specify blank is filled only when the box is "Other".
+  // Line 17 always gets the specific free-text description.
+  const activityBox = CHECKBOX.activity[values.principalActivityCategory ?? ""] ?? CHECKBOX.activity.Other
+  check(activityBox)
+  if (activityBox === CHECKBOX.activity.Other) setText(FIELD.principalActivityOtherSpecify, values.principalActivity, 7)
   setText(FIELD.merchandiseLine, values.principalActivity)
 
   if (values.previousEin) {
