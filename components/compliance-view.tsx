@@ -49,6 +49,8 @@ type CompliancePersisted = {
   activeFiling?: ActiveFiling | null
   history?: ConversationEntry[]
   chatBreakId?: number | null
+  /** Wall-clock time of the last save — see SESSION_RESUME_MS. Absent on pre-existing saves. */
+  savedAt?: number
 }
 
 // `ts` is the wall-clock creation time, used to age stale scrollback out of the persisted
@@ -182,6 +184,12 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
 // backup). On load we drop anything older than this window; completed filings, drafted docs,
 // progress, and History entries are all stored separately and untouched.
 const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+
+// If the last save was more than this ago, don't drop the user back into whatever filing they
+// left half-finished — reopen from the opening greeting instead. Completed filings, drafted
+// docs, progress, and History still carry over; only the in-progress flow (open filing, active
+// category, chat transcript) is reset.
+const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 
 // Prunes stale scrollback from a restored transcript:
 //  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
@@ -403,6 +411,29 @@ export function ComplianceView({
       openPostIncorporation()
       return
     }
+
+    // Left alone for more than a day — reopen from the opening greeting rather than resuming a
+    // half-finished filing. Completed items, docs, History, and progress still carry over.
+    if (savedRaw.savedAt != null && Date.now() - savedRaw.savedAt > SESSION_RESUME_MS) {
+      const name = user?.firstName
+      let nextId = 0
+      const now = Date.now()
+      const freshMessages: ChatMsg[] = [
+        { id: ++nextId, ts: now, role: "bot", text: name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started." },
+        { id: ++nextId, ts: now, role: "categories" },
+      ]
+      applyState({
+        ...saved,
+        messages: freshMessages,
+        activeCategoryId: null,
+        activeItemId: null,
+        activeFiling: null,
+        inputMode: "chat",
+        chatBreakId: null,
+      })
+      return
+    }
+
     applyState(saved)
   }, [applyState, startExpanded, user, openPostIncorporation])
 
@@ -462,6 +493,7 @@ export function ComplianceView({
         ? { ...activeFiling, values: redactSensitiveValues(activeFiling.item.id, activeFiling.values) }
         : activeFiling,
       chatBreakId,
+      savedAt: Date.now(),
     }
     savePersisted<CompliancePersisted>(STORAGE_KEYS.compliance, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.compliance, snapshot)

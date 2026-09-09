@@ -37,6 +37,8 @@ type TransactionsPersisted = {
   activeFiling?: ActiveFiling | null
   history?: ConversationEntry[]
   chatBreakId?: number | null
+  /** Wall-clock time of the last save — see SESSION_RESUME_MS. Absent on pre-existing saves. */
+  savedAt?: number
 }
 
 // `ts` is the wall-clock creation time, used to age stale scrollback out of the persisted
@@ -88,6 +90,12 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
 // backup). On load we drop anything older than this window; prepared documents, progress, and
 // History entries are all stored separately and untouched.
 const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+
+// If the last save was more than this ago, don't drop the user back into whatever filing they
+// left half-finished — reopen from the starting prompt instead. Completed docs, progress, and
+// History are still restored; only the in-progress flow (open filing, active category, chat
+// transcript) is reset.
+const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 
 // Prunes stale scrollback from a restored transcript:
 //  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
@@ -217,6 +225,35 @@ export function TransactionsOnboarding({
     // Age old scrollback out of the transcript before restoring it (prepared docs, History,
     // and progress are all left intact).
     const saved = applyChatRetention(savedRaw, user?.firstName)
+    const name = user?.firstName
+
+    // Left alone for more than a day — reopen from the starting prompt rather than resuming a
+    // half-finished filing. Completed docs, History, and progress still carry over.
+    if (savedRaw.savedAt != null && Date.now() - savedRaw.savedAt > SESSION_RESUME_MS) {
+      idRef.current = 0
+      setMessages([
+        {
+          ...newMsg(),
+          role: "bot",
+          text: name
+            ? `Hi ${name}, what kind of transaction document do you need today?`
+            : "Hi! What kind of transaction document do you need today?",
+        },
+      ])
+      setActiveCategory(null)
+      setExpandedCategoryId(null)
+      setCompleted(saved.completed)
+      setDocs(saved.docs ?? {})
+      setHistory(saved.history ?? [])
+      setInputMode("chat")
+      setHasStartedFlow(Object.keys(saved.completed).length > 0 || Object.keys(saved.docs ?? {}).length > 0)
+      setActiveItemId(null)
+      setActiveFiling(null)
+      setChatBreakId(null)
+      setShowEarlier(false)
+      return
+    }
+
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
     // A "doc" message's card reads its field values from `activeFiling.values` (restored below),
     // not from re-running prefill — so keeping it here just resumes the in-progress form where
@@ -241,7 +278,7 @@ export function TransactionsOnboarding({
     setActiveFiling(saved.activeFiling ?? null)
     setChatBreakId(saved.chatBreakId ?? null)
     setShowEarlier(false)
-  }, [user])
+  }, [user, newMsg])
 
   useEffect(() => {
     if (startedRef.current) return
@@ -286,6 +323,7 @@ export function TransactionsOnboarding({
       inputMode,
       activeFiling,
       chatBreakId,
+      savedAt: Date.now(),
     }
     savePersisted<TransactionsPersisted>(STORAGE_KEYS.transactions, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.transactions, snapshot)
