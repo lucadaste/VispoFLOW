@@ -51,14 +51,20 @@ type CompliancePersisted = {
   chatBreakId?: number | null
 }
 
-type ChatMsg =
-  | { id: number; role: "bot"; text: string }
-  | { id: number; role: "user"; text: string }
-  | { id: number; role: "filing"; item: ComplianceItem; groupTitle: string }
-  | { id: number; role: "categories" }
-  | { id: number; role: "fieldChoices"; item: ComplianceItem; groupTitle: string; fieldIndex: number }
-  | { id: number; role: "note"; text: string }
-  | { id: number; role: "docDrafted"; item: ComplianceItem; groupTitle: string }
+// `ts` is the wall-clock creation time, used to age stale scrollback out of the persisted
+// transcript on load (see CHAT_RETENTION_MS / applyChatRetention). It's optional only so that
+// a transcript restored from a backup written before this field existed still type-checks —
+// those messages are treated as already expired. `pinned` messages (the post-incorporation
+// welcome) are never aged out.
+type ChatMsg = { id: number; ts?: number; pinned?: true } & (
+  | { role: "bot"; text: string }
+  | { role: "user"; text: string }
+  | { role: "filing"; item: ComplianceItem; groupTitle: string }
+  | { role: "categories" }
+  | { role: "fieldChoices"; item: ComplianceItem; groupTitle: string; fieldIndex: number }
+  | { role: "note"; text: string }
+  | { role: "docDrafted"; item: ComplianceItem; groupTitle: string }
+)
 
 type PendingDelegation = { fieldName: string; fieldLabel: string; recipientName: string }
 
@@ -171,6 +177,51 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
   return kept
 }
 
+// The chat transcript is otherwise append-only and persisted forever — a regular user ends up
+// scrolling through weeks of old exchanges (and carrying them in localStorage + the Neon
+// backup). On load we drop anything older than this window; completed filings, drafted docs,
+// progress, and History entries are all stored separately and untouched.
+const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+
+// Prunes stale scrollback from a restored transcript:
+//  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
+//  - a message with no `ts` (written before this field existed) is kept but stamped `now`, so
+//    its retention clock starts on this load — except one already collapsed behind an earlier
+//    "New Chat" (id <= chatBreakId), which the user has effectively already dismissed;
+//  - a `pinned` message (the post-incorporation welcome) is always kept.
+// If pruning empties the transcript it's replaced with a single fresh greeting so the pane
+// isn't blank. Every other field of `saved` (completed, docs, history, …) is preserved.
+function applyChatRetention(saved: CompliancePersisted, firstName?: string | null): CompliancePersisted {
+  const now = Date.now()
+  const cutoff = now - CHAT_RETENTION_MS
+  const breakId = saved.chatBreakId ?? -1
+  const expired = (m: ChatMsg) => (m.ts != null ? m.ts < cutoff : m.id <= breakId)
+
+  const kept = saved.messages
+    .filter((m) => m.pinned || !expired(m))
+    .map((m) => (m.ts == null ? { ...m, ts: now } : m))
+
+  if (kept.length === 0) {
+    const maxId = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+    const greeting: ChatMsg = {
+      id: maxId + 1,
+      ts: now,
+      role: "bot",
+      text: firstName
+        ? `Hi ${firstName}! Pick an item from Compliance Documents to continue, or ask me anything.`
+        : "Pick an item from Compliance Documents to continue, or ask me anything.",
+    }
+    return { ...saved, messages: [greeting], chatBreakId: null }
+  }
+  if (kept.length === saved.messages.length && kept.every((m, i) => m === saved.messages[i])) return saved
+
+  // A break marker pointing into the removed range no longer separates anything real.
+  const firstUnpinned = kept.find((m) => !m.pinned)
+  const chatBreakId =
+    saved.chatBreakId != null && (!firstUnpinned || saved.chatBreakId < firstUnpinned.id) ? null : saved.chatBreakId
+  return { ...saved, messages: kept, chatBreakId }
+}
+
 export function ComplianceView({
   answers,
   signedDocs,
@@ -224,9 +275,15 @@ export function ComplianceView({
   const liveFieldPromptIdsRef = useRef<number[]>([])
   const messagesRef = useRef<ChatMsg[]>([])
 
-  const pushBot = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
-  }, [])
+  // Every message gets a fresh id and creation timestamp — the `ts` is what lets
+  // applyChatRetention age old scrollback out of the persisted transcript on load.
+  const newMsg = useCallback(() => ({ id: ++idRef.current, ts: Date.now() }), [])
+
+  // `pinned` marks a message that applyChatRetention must never age out — used for the
+  // post-incorporation welcome, which is orienting context rather than scrollback.
+  const pushBot = useCallback((text: string, pinned = false) => {
+    setMessages((m) => [...m, { ...newMsg(), role: "bot" as const, text, ...(pinned ? { pinned: true as const } : {}) }])
+  }, [newMsg])
 
   // Repeated mode toggling with nothing else happening in between (see requestSetInputMode)
   // shouldn't stack up a growing list of these — replace the trailing note in place instead.
@@ -234,23 +291,23 @@ export function ComplianceView({
     setMessages((m) => {
       const last = m[m.length - 1]
       if (last?.role === "note") return [...m.slice(0, -1), { ...last, text }]
-      return [...m, { id: ++idRef.current, role: "note", text }]
+      return [...m, { ...newMsg(), role: "note", text }]
     })
-  }, [])
+  }, [newMsg])
 
   const pushUser = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
-  }, [])
+    setMessages((m) => [...m, { ...newMsg(), role: "user", text }])
+  }, [newMsg])
 
   const pushBotTyped = useCallback(async (text: string) => {
     setIsTyping(true)
     await delay(typingTime(text))
     setIsTyping(false)
-    const id = ++idRef.current
-    setMessages((m) => [...m, { id, role: "bot", text }])
+    const msg = newMsg()
+    setMessages((m) => [...m, { ...msg, role: "bot", text }])
     await delay(150)
-    return id
-  }, [])
+    return msg.id
+  }, [newMsg])
 
   useEffect(() => {
     messagesRef.current = messages
@@ -319,22 +376,30 @@ export function ComplianceView({
   // (e.g. via the nav bar's always-enabled Compliance pill) left a stale generic-greeting
   // session saved. Progress data (completed items, docs, etc.) from that prior session is
   // still preserved; only the chat transcript is replaced.
-  const restoreCompliance = useCallback((saved: CompliancePersisted) => {
+  const restoreCompliance = useCallback((savedRaw: CompliancePersisted) => {
+    // Age old scrollback out of the transcript before restoring it (completed items, docs,
+    // History, and progress are all left intact).
+    const saved = applyChatRetention(savedRaw, user?.firstName)
     if (startExpanded) {
       const name = user?.firstName
       const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
       let nextId = 0
+      const now = Date.now()
       const freshMessages: ChatMsg[] = [
         {
           id: ++nextId,
+          ts: now,
+          pinned: true,
           role: "bot",
           text: name
             ? `Hi ${name}, let's get your post-incorporation compliance started.`
             : "Hi! Let's get your post-incorporation compliance started.",
         },
       ]
-      if (initialCategory) freshMessages.push({ id: ++nextId, role: "bot", text: initialCategory.chatResponse })
-      applyState({ ...saved, messages: freshMessages })
+      if (initialCategory) freshMessages.push({ id: ++nextId, ts: now, pinned: true, role: "bot", text: initialCategory.chatResponse })
+      // The welcome is the whole transcript here — a stale break marker from a prior compliance
+      // session must not collapse it behind "Show earlier messages".
+      applyState({ ...saved, messages: freshMessages, chatBreakId: null })
       openPostIncorporation()
       return
     }
@@ -357,17 +422,18 @@ export function ComplianceView({
       pushBot(
         name
           ? `Hi ${name}, let's get your post-incorporation compliance started.`
-          : "Hi! Let's get your post-incorporation compliance started."
+          : "Hi! Let's get your post-incorporation compliance started.",
+        true,
       )
       const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
-      if (initialCategory) pushBot(initialCategory.chatResponse)
+      if (initialCategory) pushBot(initialCategory.chatResponse, true)
       openPostIncorporation()
       return
     }
 
     pushBot(name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started.")
-    setMessages((m) => [...m, { id: ++idRef.current, role: "categories" }])
-  }, [pushBot, user, restoreCompliance, startExpanded, openPostIncorporation])
+    setMessages((m) => [...m, { ...newMsg(), role: "categories" }])
+  }, [pushBot, newMsg, user, restoreCompliance, startExpanded, openPostIncorporation])
 
   // Once signed in, the account's cloud copy (if any) takes over from the local one
   const syncedRef = useRef(false)
@@ -510,9 +576,9 @@ export function ComplianceView({
     const prefilled = prefillValue(answers, docs, field)
     if (field.type === "select" || (field.type === "date" && !prefilled)) {
       if (addChoices) {
-        const choicesId = ++idRef.current
-        setMessages((m) => [...m, { id: choicesId, role: "fieldChoices", item, groupTitle, fieldIndex }])
-        liveIds.push(choicesId)
+        const choices = newMsg()
+        setMessages((m) => [...m, { ...choices, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        liveIds.push(choices.id)
       } else {
         const existing = messagesRef.current.find(
           (m) => m.role === "fieldChoices" && m.item.id === item.id && m.fieldIndex === fieldIndex
@@ -523,7 +589,7 @@ export function ComplianceView({
       setValue(prefilled)
     }
     liveFieldPromptIdsRef.current = liveIds
-  }, [pushBotTyped, answers, docs])
+  }, [pushBotTyped, newMsg, answers, docs])
 
   const handleFilingComplete = useCallback((item: ComplianceItem, groupTitle: string, values: Record<string, string>, pendingDelegations?: PendingDelegation[], lastUserText?: string) => {
     const completedAt = new Date().toISOString()
@@ -540,8 +606,8 @@ export function ComplianceView({
     // the caller reaches this synchronously right after calling pushUser for it, so that
     // setMessages update hasn't landed in this callback's `messages` closure yet. Appending it
     // here, atomically with the drafted-card message, keeps it from being dropped from history.
-    const lastUserMsg: ChatMsg | null = lastUserText != null ? { id: ++idRef.current, role: "user", text: lastUserText } : null
-    const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const lastUserMsg: ChatMsg | null = lastUserText != null ? { ...newMsg(), role: "user", text: lastUserText } : null
+    const docDraftedMsg: ChatMsg = { ...newMsg(), role: "docDrafted", item, groupTitle }
     const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
     const entry: ConversationEntry = {
       id: item.id,
@@ -561,10 +627,10 @@ export function ComplianceView({
     setMessages((m) => [
       ...m,
       ...trailingMessages,
-      { id: ++idRef.current, role: "bot", text: "Select another filing from the right to continue, or ask me anything." },
+      { ...newMsg(), role: "bot", text: "Select another filing from the right to continue, or ask me anything." },
     ])
     onItemComplete?.(doc)
-  }, [messages, onItemComplete])
+  }, [messages, newMsg, onItemComplete])
 
   const openItem = useCallback((item: ComplianceItem, groupTitle: string) => {
     setMessages([])
@@ -583,9 +649,9 @@ export function ComplianceView({
       })()
     } else {
       pushBot(`Let's complete the ${item.title} filing. Fill out the form below — feel free to ask me any questions as you go.`)
-      setMessages((m) => [...m, { id: ++idRef.current, role: "filing", item, groupTitle }])
+      setMessages((m) => [...m, { ...newMsg(), role: "filing", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode, prefill])
+  }, [pushBot, pushUser, pushBotTyped, promptField, newMsg, inputMode, prefill])
 
   // Advances an in-progress filing to `nextIndex`, prompting for it (or finishing the filing) —
   // shared by the normal per-field path and the delegated-field-invite path below, which reach
@@ -731,7 +797,7 @@ export function ComplianceView({
       setMessages((m) =>
         m.some((msg) => msg.role === "filing" && msg.item.id === item.id)
           ? m
-          : [...m, { id: ++idRef.current, role: "filing", item, groupTitle }]
+          : [...m, { ...newMsg(), role: "filing", item, groupTitle }]
       )
       return
     }
@@ -756,7 +822,7 @@ export function ComplianceView({
       )
       liveFieldPromptIdsRef.current = existingChoices ? [lastBotMessage.id, existingChoices.id] : [lastBotMessage.id]
     }
-  }, [activeFiling, promptField, messages, pushNote, inputMode])
+  }, [activeFiling, promptField, messages, pushNote, newMsg, inputMode])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same filing open — nothing is lost,
   // so this just swaps which mode renders the current question (see reinitFilingForMode).

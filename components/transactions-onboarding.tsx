@@ -39,13 +39,18 @@ type TransactionsPersisted = {
   chatBreakId?: number | null
 }
 
-type ChatMsg =
-  | { id: number; role: "bot"; text: string }
-  | { id: number; role: "user"; text: string }
-  | { id: number; role: "doc"; item: TransactionItem; groupTitle: string }
-  | { id: number; role: "note"; text: string }
-  | { id: number; role: "docDrafted"; item: TransactionItem; groupTitle: string }
-  | { id: number; role: "fieldChoices"; item: TransactionItem; groupTitle: string; fieldIndex: number }
+// `ts` is the wall-clock creation time, used to age stale scrollback out of the persisted
+// transcript on load (see CHAT_RETENTION_MS / applyChatRetention). It's optional only so that
+// a transcript restored from a backup written before this field existed still type-checks —
+// those messages start their retention clock on that first load instead.
+type ChatMsg = { id: number; ts?: number } & (
+  | { role: "bot"; text: string }
+  | { role: "user"; text: string }
+  | { role: "doc"; item: TransactionItem; groupTitle: string }
+  | { role: "note"; text: string }
+  | { role: "docDrafted"; item: TransactionItem; groupTitle: string }
+  | { role: "fieldChoices"; item: TransactionItem; groupTitle: string; fieldIndex: number }
+)
 
 type ActiveFiling = {
   item: TransactionItem
@@ -76,6 +81,46 @@ function archiveMessages(messages: ChatMsg[]): ConversationMessage[] {
     else if (m.role === "docDrafted") kept.push({ id: m.id, role: "docDrafted", groupTitle: m.groupTitle, title: m.item.title })
   }
   return kept
+}
+
+// The chat transcript is otherwise append-only and persisted forever — a regular user ends up
+// scrolling through weeks of old exchanges (and carrying them in localStorage + the Neon
+// backup). On load we drop anything older than this window; prepared documents, progress, and
+// History entries are all stored separately and untouched.
+const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
+
+// Prunes stale scrollback from a restored transcript:
+//  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
+//  - a message with no `ts` (written before this field existed) is kept but stamped `now`, so
+//    its retention clock starts on this load — except one already collapsed behind an earlier
+//    "New Chat" (id <= chatBreakId), which the user has effectively already dismissed.
+// If pruning empties the transcript it's replaced with a single fresh greeting so the pane
+// isn't blank. Every other field of `saved` (completed, docs, history, …) is preserved.
+function applyChatRetention(saved: TransactionsPersisted, firstName?: string | null): TransactionsPersisted {
+  const now = Date.now()
+  const cutoff = now - CHAT_RETENTION_MS
+  const breakId = saved.chatBreakId ?? -1
+  const expired = (m: ChatMsg) => (m.ts != null ? m.ts < cutoff : m.id <= breakId)
+
+  const kept = saved.messages.filter((m) => !expired(m)).map((m) => (m.ts == null ? { ...m, ts: now } : m))
+
+  if (kept.length === 0) {
+    const maxId = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
+    const greeting: ChatMsg = {
+      id: maxId + 1,
+      ts: now,
+      role: "bot",
+      text: firstName
+        ? `Hi ${firstName}! What kind of transaction document do you need today?`
+        : "Hi! What kind of transaction document do you need today?",
+    }
+    return { ...saved, messages: [greeting], chatBreakId: null }
+  }
+  if (kept.length === saved.messages.length && kept.every((m, i) => m === saved.messages[i])) return saved
+
+  // A break marker pointing into the removed range no longer separates anything real.
+  const chatBreakId = saved.chatBreakId != null && saved.chatBreakId < kept[0].id ? null : saved.chatBreakId
+  return { ...saved, messages: kept, chatBreakId }
 }
 
 export function TransactionsOnboarding({
@@ -132,9 +177,13 @@ export function TransactionsOnboarding({
   const liveFieldPromptIdsRef = useRef<number[]>([])
   const messagesRef = useRef<ChatMsg[]>([])
 
+  // Every message gets a fresh id and creation timestamp — the `ts` is what lets
+  // applyChatRetention age old scrollback out of the persisted transcript on load.
+  const newMsg = useCallback(() => ({ id: ++idRef.current, ts: Date.now() }), [])
+
   const pushBot = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: ++idRef.current, role: "bot", text }])
-  }, [])
+    setMessages((m) => [...m, { ...newMsg(), role: "bot", text }])
+  }, [newMsg])
 
   // Repeated mode toggling with nothing else happening in between (see requestSetInputMode)
   // shouldn't stack up a growing list of these — replace the trailing note in place instead.
@@ -142,29 +191,32 @@ export function TransactionsOnboarding({
     setMessages((m) => {
       const last = m[m.length - 1]
       if (last?.role === "note") return [...m.slice(0, -1), { ...last, text }]
-      return [...m, { id: ++idRef.current, role: "note", text }]
+      return [...m, { ...newMsg(), role: "note", text }]
     })
-  }, [])
+  }, [newMsg])
 
   const pushUser = useCallback((text: string) => {
-    setMessages((m) => [...m, { id: ++idRef.current, role: "user", text }])
-  }, [])
+    setMessages((m) => [...m, { ...newMsg(), role: "user", text }])
+  }, [newMsg])
 
   const pushBotTyped = useCallback(async (text: string) => {
     setIsTyping(true)
     await delay(typingTime(text))
     setIsTyping(false)
-    const id = ++idRef.current
-    setMessages((m) => [...m, { id, role: "bot", text }])
+    const msg = newMsg()
+    setMessages((m) => [...m, { ...msg, role: "bot", text }])
     await delay(150)
-    return id
-  }, [])
+    return msg.id
+  }, [newMsg])
 
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
 
-  const applyState = useCallback((saved: TransactionsPersisted) => {
+  const applyState = useCallback((savedRaw: TransactionsPersisted) => {
+    // Age old scrollback out of the transcript before restoring it (prepared docs, History,
+    // and progress are all left intact).
+    const saved = applyChatRetention(savedRaw, user?.firstName)
     idRef.current = saved.messages.reduce((max, m) => Math.max(max, m.id), 0)
     // A "doc" message's card reads its field values from `activeFiling.values` (restored below),
     // not from re-running prefill — so keeping it here just resumes the in-progress form where
@@ -189,7 +241,7 @@ export function TransactionsOnboarding({
     setActiveFiling(saved.activeFiling ?? null)
     setChatBreakId(saved.chatBreakId ?? null)
     setShowEarlier(false)
-  }, [])
+  }, [user])
 
   useEffect(() => {
     if (startedRef.current) return
@@ -298,9 +350,9 @@ export function TransactionsOnboarding({
       messagesRef.current.find((m) => m.role === "fieldChoices" && m.item.id === item.id && m.fieldIndex === fieldIndex)?.id
     if (field.type === "select") {
       if (addChoices) {
-        const choicesId = ++idRef.current
-        setMessages((m) => [...m, { id: choicesId, role: "fieldChoices", item, groupTitle, fieldIndex }])
-        liveIds.push(choicesId)
+        const choices = newMsg()
+        setMessages((m) => [...m, { ...choices, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        liveIds.push(choices.id)
       } else {
         const existing = existingChoicesId()
         if (existing != null) liveIds.push(existing)
@@ -313,16 +365,16 @@ export function TransactionsOnboarding({
       if (prefilled) {
         setValue(prefilled)
       } else if (addChoices) {
-        const choicesId = ++idRef.current
-        setMessages((m) => [...m, { id: choicesId, role: "fieldChoices", item, groupTitle, fieldIndex }])
-        liveIds.push(choicesId)
+        const choices = newMsg()
+        setMessages((m) => [...m, { ...choices, role: "fieldChoices", item, groupTitle, fieldIndex }])
+        liveIds.push(choices.id)
       } else {
         const existing = existingChoicesId()
         if (existing != null) liveIds.push(existing)
       }
     }
     liveFieldPromptIdsRef.current = liveIds
-  }, [pushBotTyped, prefill])
+  }, [pushBotTyped, newMsg, prefill])
 
   const openItem = useCallback((item: TransactionItem, groupTitle: string) => {
     setMessages([])
@@ -342,9 +394,9 @@ export function TransactionsOnboarding({
       })()
     } else {
       pushBot(`Let's prepare the ${item.title}. Fill out the form below — feel free to ask me any questions as you go.`)
-      setMessages((m) => [...m, { id: ++idRef.current, role: "doc", item, groupTitle }])
+      setMessages((m) => [...m, { ...newMsg(), role: "doc", item, groupTitle }])
     }
-  }, [pushBot, pushUser, pushBotTyped, promptField, inputMode, prefill])
+  }, [pushBot, pushUser, pushBotTyped, promptField, newMsg, inputMode, prefill])
 
   const handleDocComplete = useCallback((item: TransactionItem, groupTitle: string, values: Record<string, string>, lastUserText?: string) => {
     const ceoName = answers.officers.find((o) => o.title === "CEO")?.name
@@ -354,8 +406,8 @@ export function TransactionsOnboarding({
     // the caller reaches this synchronously right after calling pushUser for it, so that
     // setMessages update hasn't landed in this callback's `messages` closure yet. Appending it
     // here, atomically with the drafted-card message, keeps it from being dropped from history.
-    const lastUserMsg: ChatMsg | null = lastUserText != null ? { id: ++idRef.current, role: "user", text: lastUserText } : null
-    const docDraftedMsg: ChatMsg = { id: ++idRef.current, role: "docDrafted", item, groupTitle }
+    const lastUserMsg: ChatMsg | null = lastUserText != null ? { ...newMsg(), role: "user", text: lastUserText } : null
+    const docDraftedMsg: ChatMsg = { ...newMsg(), role: "docDrafted", item, groupTitle }
     const trailingMessages = lastUserMsg ? [lastUserMsg, docDraftedMsg] : [docDraftedMsg]
     const entry: ConversationEntry = {
       id: item.id,
@@ -376,10 +428,10 @@ export function TransactionsOnboarding({
     setMessages((m) => [
       ...m,
       ...trailingMessages,
-      { id: ++idRef.current, role: "bot", text: "Select another document from the right to continue, or ask me anything." },
+      { ...newMsg(), role: "bot", text: "Select another document from the right to continue, or ask me anything." },
     ])
     onDocumentReady?.(doc)
-  }, [messages, onDocumentReady, answers.directors, answers.officers])
+  }, [messages, newMsg, onDocumentReady, answers.directors, answers.officers])
 
   const handleFieldSubmit = useCallback((raw: string) => {
     if (!activeFiling || inputMode !== "chat") return
@@ -497,7 +549,7 @@ export function TransactionsOnboarding({
       setMessages((m) =>
         m.some((msg) => msg.role === "doc" && msg.item.id === item.id)
           ? m
-          : [...m, { id: ++idRef.current, role: "doc", item, groupTitle }]
+          : [...m, { ...newMsg(), role: "doc", item, groupTitle }]
       )
       return
     }
@@ -522,7 +574,7 @@ export function TransactionsOnboarding({
       )
       liveFieldPromptIdsRef.current = existingChoices ? [lastBotMessage.id, existingChoices.id] : [lastBotMessage.id]
     }
-  }, [activeFiling, promptField, messages, pushNote, inputMode])
+  }, [activeFiling, promptField, messages, pushNote, newMsg, inputMode])
 
   // Switching Chat/Questionnaire mode mid-filing keeps the same document open — nothing is lost,
   // so this just swaps which mode renders the current question (see reinitFilingForMode).
