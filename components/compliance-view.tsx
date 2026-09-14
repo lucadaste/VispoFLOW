@@ -228,10 +228,12 @@ const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
 const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 
 // Shown as the post-incorporation welcome's follow-up bubble, arriving straight from
-// Incorporation completion — points the user at EIN by name instead of leaving a filing
-// pre-highlighted in the sidebar for them to notice on their own.
+// Incorporation completion — points the user at EIN by name, paired with highlighting the
+// EIN row itself (see openPostIncorporation) so the recommendation and the sidebar agree.
 const POST_INCORPORATION_INTRO =
   "I'd recommend starting with the EIN — Employer Identification Number, then working through all 7 Post-Incorporation filings in order. Click EIN on the right to get started, and I'll guide you through each one after that."
+
+const EIN_ITEM_ID = "ein"
 
 // Prunes stale scrollback from a restored transcript:
 //  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
@@ -421,16 +423,17 @@ export function ComplianceView({
     }
   }, [isSignedIn])
 
+  // Only called at the two places the user has just clicked "continue to Compliance" at the end
+  // of the Incorporation flow (see startExpanded below) — everywhere else (resuming a session,
+  // the nav pill), a row highlighting itself with no click behind it would look like stale state
+  // rather than a recommendation, so this pairing is deliberately scoped to that one moment.
   const openPostIncorporation = useCallback(() => {
     const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
     if (initialCategory) {
       setActiveCategory(initialCategory)
       setExpandedCategoryId(initialCategory.id)
     }
-    // A stale activeItemId (e.g. restored from a prior session) shouldn't make a filing look
-    // pre-selected on a fresh arrival from Incorporation — the greeting recommends EIN in words
-    // instead, so no row should already read as "selected" before the user has clicked anything.
-    setActiveItemId(null)
+    setActiveItemId(EIN_ITEM_ID)
   }, [])
 
   // Arriving straight from incorporation completion (startExpanded) always gets the fresh,
@@ -467,13 +470,30 @@ export function ComplianceView({
     }
 
     // Left alone for more than a day — reopen from the opening greeting rather than resuming a
-    // half-finished filing. Completed items, docs, History, and progress still carry over.
+    // half-finished filing. Completed items, docs, History, and progress still carry over, so if
+    // they'd made a dent in a category, say so and offer to pick it back up instead of acting
+    // like nothing happened.
     if (savedRaw.savedAt != null && Date.now() - savedRaw.savedAt > SESSION_RESUME_MS) {
       const name = user?.firstName
+      const inProgress = COMPLIANCE_CATEGORIES.map((cat) => {
+        const items = cat.groups.flatMap((g) => g.items)
+        const doneCount = items.filter((i) => saved.completed[i.id]).length
+        return { cat, doneCount, total: items.length }
+      }).filter(({ doneCount, total }) => doneCount > 0 && doneCount < total)
+
+      const greeting =
+        inProgress.length === 1
+          ? `Welcome back${name ? `, ${name}` : ""}! You're partway through ${inProgress[0].cat.label} (${inProgress[0].doneCount}/${inProgress[0].total} done) — want to pick up where you left off, or start something else?`
+          : inProgress.length > 1
+            ? `Welcome back${name ? `, ${name}` : ""}! You've got a few filings in progress — want to pick up where you left off, or start something else?`
+            : name
+              ? `Hi ${name}! Let's get your compliance started.`
+              : "Hi! Let's get your compliance started."
+
       let nextId = 0
       const now = Date.now()
       const freshMessages: ChatMsg[] = [
-        { id: ++nextId, ts: now, role: "bot", text: name ? `Hi ${name}! Let's get your compliance started.` : "Hi! Let's get your compliance started." },
+        { id: ++nextId, ts: now, role: "bot", text: greeting },
         { id: ++nextId, ts: now, role: "categories" },
       ]
       applyState({
