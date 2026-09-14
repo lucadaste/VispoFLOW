@@ -36,6 +36,7 @@ export type AuditAction =
   | "sensitive_value_requested"
   | "sensitive_value_revealed"
   | "access_denied"
+  | "deadline_reminder_sent"
 
 export type AuditEntry = {
   action: AuditAction

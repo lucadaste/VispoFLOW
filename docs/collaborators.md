@@ -147,7 +147,20 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
       - **Remaining:** (1) client's scoped filing experience (an accepted client fills in their
         83(b) through the normal `/app` compliance flow — works, just not visually distinct from a
         founder's own flow); (2) status-change buttons in the dashboard (API done, no UI).
-- [ ] **Phase 6** — notifications (deadline reminders are the priority).
+- [x] **Phase 6** — notifications.
+      - `lib/notifications.ts` `sendDeadlineReminders()` — the priority per the plan. Scans every
+        document with a real `deadlineDate` not yet `signed`/`filed`; two windows (≤7 days, ≤2
+        days, ranges not exact-day so a missed run still catches up); dedup tracked via an
+        `audit_log` row (`deadline_reminder_sent`, `metadata.window`) rather than a new column.
+        Emails the data subject + (for a firm doc) the assigned attorney or firm owner.
+      - `app/api/cron/deadline-reminders` + `vercel.json`'s `crons` (daily, 13:00 UTC). Checks
+        `Authorization: Bearer $CRON_SECRET` when that env var is set (add it in Vercel once
+        deployed — Vercel signs its own cron calls with it automatically).
+      - "Invite accepted" email back to the inviter (`lib/invitations.ts`) and "client completed
+        their portion" email to the assigned attorney/owner on the `awaiting_review` transition
+        (`lib/documents.ts`) — both best-effort, never block the action they're attached to.
+      - Skipped per-edit notifications (a collaborator editing a field) — the plan flagged this as
+        optional and likely too noisy; not built.
 - [ ] **Phase 7** — dedicated testing/edge-case pass.
 
 ## Applying the migration

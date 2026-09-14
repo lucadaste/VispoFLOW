@@ -2,7 +2,7 @@ import { randomUUID } from "crypto"
 import { and, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { userState } from "@/lib/db-schema"
-import { documents } from "@/lib/collab-schema"
+import { documents, accounts, accountMemberships } from "@/lib/collab-schema"
 import { ensureIndividualAccount } from "@/lib/accounts"
 import { logAudit } from "@/lib/audit"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
@@ -246,6 +246,7 @@ export async function transitionDocumentStatus(
   actorUserId: string,
   documentId: string,
   to: DocumentStatus,
+  origin?: string,
 ): Promise<{ from: DocumentStatus; to: DocumentStatus }> {
   const [doc] = await db.select().from(documents).where(eq(documents.id, documentId)).limit(1)
   if (!doc) throw new Error("Document not found")
@@ -263,8 +264,44 @@ export async function transitionDocumentStatus(
       documentId,
       metadata: { from, to },
     })
+    if (to === "awaiting_review" && doc.clientUserId) {
+      notifyClientCompleted(doc, origin).catch((err) => console.error("[documents] client-completed email failed", err))
+    }
   }
   return { from, to }
+}
+
+/** A firm's client just moved their filing to "awaiting_review" — tell whoever's responsible
+ *  for it (the assigned attorney, or the firm owner if unassigned). Individual filings have no
+ *  one to notify here (the account holder is the one making the transition). Best-effort. */
+async function notifyClientCompleted(doc: DocumentRow, origin?: string): Promise<void> {
+  const [account] = await db.select().from(accounts).where(eq(accounts.id, doc.accountId)).limit(1)
+  if (!account || account.type !== "firm") return
+
+  let recipientId = doc.assignedToUserId
+  if (!recipientId) {
+    const [owner] = await db
+      .select()
+      .from(accountMemberships)
+      .where(and(eq(accountMemberships.accountId, doc.accountId), eq(accountMemberships.role, "owner")))
+      .limit(1)
+    recipientId = owner?.userId ?? null
+  }
+  if (!recipientId || recipientId === doc.clientUserId) return
+
+  const { getUsers, displayName } = await import("@/lib/users")
+  const { sendClientCompletedEmail } = await import("@/lib/email")
+  const usersById = await getUsers([recipientId, doc.clientUserId!])
+  const recipient = usersById.get(recipientId)
+  if (!recipient?.email) return
+
+  await sendClientCompletedEmail({
+    to: recipient.email,
+    recipientName: displayName(recipient),
+    clientName: displayName(usersById.get(doc.clientUserId!)),
+    docTitle: doc.title,
+    appUrl: `${origin ?? ""}/firm`,
+  })
 }
 
 /* ------------------------------------------------------------------ *

@@ -109,6 +109,91 @@ export async function sendSensitiveRequestNudgeEmail({
   })
 }
 
+/** An owner/inviter is told someone accepted their invite. */
+export async function sendInviteAcceptedEmail({
+  to,
+  inviterName,
+  accepterName,
+  target,
+  subjectTitle,
+}: {
+  to: string
+  inviterName?: string
+  accepterName: string
+  target: "document" | "account"
+  subjectTitle: string
+}) {
+  const greeting = inviterName ? `Hi ${inviterName},` : "Hi,"
+  const what = target === "document" ? `"${subjectTitle}"` : `the ${subjectTitle} workspace`
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${accepterName} accepted your invite`,
+    text: `${greeting}\n\n${accepterName} accepted your invite to ${what}.`,
+    html: `<p>${greeting}</p><p>${escapeHtml(accepterName)} accepted your invite to ${escapeHtml(what)}.</p>`,
+  })
+}
+
+/** A firm's assigned attorney/staff is told a client finished their portion of a filing. */
+export async function sendClientCompletedEmail({
+  to,
+  recipientName,
+  clientName,
+  docTitle,
+  appUrl,
+}: {
+  to: string
+  recipientName?: string
+  clientName: string
+  docTitle: string
+  appUrl: string
+}) {
+  const greeting = recipientName ? `Hi ${recipientName},` : "Hi,"
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${clientName} finished their part of "${docTitle}"`,
+    text: `${greeting}\n\n${clientName} completed their portion of "${docTitle}" — it's ready for your review.\n\nOpen it: ${appUrl}`,
+    html: `<p>${greeting}</p><p>${escapeHtml(clientName)} completed their portion of <strong>${escapeHtml(docTitle)}</strong> — it's ready for your review.</p><p><a href="${appUrl}">Open it</a></p>`,
+  })
+}
+
+/** The 83(b) 30-day deadline can't be extended, so this is the highest-value email in the whole
+ *  notifications set. Sent at both the 7-day and 2-day windows (see lib/notifications.ts) to the
+ *  data subject and, for a firm filing, the assigned attorney/staff too. */
+export async function sendDeadlineReminderEmail({
+  to,
+  recipientName,
+  docTitle,
+  deadlineDate,
+  daysLeft,
+  appUrl,
+}: {
+  to: string
+  recipientName?: string
+  docTitle: string
+  deadlineDate: string
+  daysLeft: number
+  appUrl: string
+}) {
+  const greeting = recipientName ? `Hi ${recipientName},` : "Hi,"
+  const deadline = new Date(deadlineDate).toLocaleDateString("en-US", { dateStyle: "long" })
+  const urgency =
+    daysLeft <= 0
+      ? "This deadline has passed or is today — file immediately if you haven't."
+      : `You have ${daysLeft} day${daysLeft === 1 ? "" : "s"} left, and this deadline cannot be extended for any reason.`
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${daysLeft <= 0 ? "Overdue" : `${daysLeft}-day reminder`}: "${docTitle}" is due ${deadline}`,
+    text: `${greeting}\n\n"${docTitle}" must be filed by ${deadline}. ${urgency}\n\nOpen it: ${appUrl}`,
+    html: `<p>${greeting}</p><p><strong>${escapeHtml(docTitle)}</strong> must be filed by <strong>${deadline}</strong>. ${escapeHtml(urgency)}</p><p><a href="${appUrl}">Open it</a></p>`,
+  })
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }

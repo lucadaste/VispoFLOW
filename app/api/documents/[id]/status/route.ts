@@ -20,7 +20,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     try {
-      const result = await transitionDocumentStatus(userId, id, status)
+      const result = await transitionDocumentStatus(userId, id, status, req.nextUrl.origin)
       return NextResponse.json(result)
     } catch (e) {
       return NextResponse.json({ error: e instanceof Error ? e.message : "Invalid transition" }, { status: 409 })

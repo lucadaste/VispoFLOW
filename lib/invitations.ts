@@ -12,7 +12,7 @@ import { logAudit } from "@/lib/audit"
 import { assertDocumentAccess, getDocumentRow } from "@/lib/permissions"
 import { getMembership } from "@/lib/accounts"
 import { syncCurrentUser, upsertUser, getUsers, displayName } from "@/lib/users"
-import { sendInvitationEmail } from "@/lib/email"
+import { sendInvitationEmail, sendInviteAcceptedEmail } from "@/lib/email"
 
 export type InvitationRow = typeof invitations.$inferSelect
 
@@ -309,6 +309,8 @@ export async function acceptInvitation(
     metadata: { role: row.role, invitedEmail: row.email },
   })
 
+  notifyInviteAccepted(row, accepting.userId).catch((err) => console.error("[invitations] accepted-email failed", err))
+
   return {
     target: row.documentId ? "document" : "account",
     documentId: row.documentId,
@@ -470,6 +472,31 @@ async function emailAlreadyHasAccountAccess(accountId: string, email: string): P
   if (!rows.length) return false
   const usersById = await getUsers(rows.map((r) => r.userId))
   return rows.some((r) => usersById.get(r.userId)?.email === email)
+}
+
+/** Best-effort "X accepted your invite" nudge back to whoever sent it — never blocks acceptance. */
+async function notifyInviteAccepted(row: InvitationRow, accepterId: string): Promise<void> {
+  const ids = [row.invitedByUserId, accepterId]
+  const usersById = await getUsers(ids)
+  const inviter = usersById.get(row.invitedByUserId)
+  if (!inviter?.email) return
+
+  let subjectTitle = ""
+  if (row.documentId) {
+    const { getDocumentRow } = await import("@/lib/permissions")
+    subjectTitle = (await getDocumentRow(row.documentId))?.title ?? "the filing"
+  } else if (row.accountId) {
+    const [account] = await db.select().from(accounts).where(eq(accounts.id, row.accountId)).limit(1)
+    subjectTitle = account?.name ?? "the workspace"
+  }
+
+  await sendInviteAcceptedEmail({
+    to: inviter.email,
+    inviterName: displayName(inviter),
+    accepterName: displayName(usersById.get(accepterId)),
+    target: row.documentId ? "document" : "account",
+    subjectTitle,
+  })
 }
 
 function statusMessage(status: InvitationRow["status"]): string {
