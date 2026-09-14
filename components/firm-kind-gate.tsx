@@ -8,21 +8,22 @@ import { useAccountKind } from "@/lib/use-account-kind"
 import { AccountKindChooser } from "@/components/account-kind-chooser"
 
 /**
- * Guards /app: the founder side of the product. A "firm" account is redirected to /firm and never
- * shown this UI at all — not just nudged there once. A brand-new user with no answer yet sees the
- * one-time chooser first; picking "firm" here sends them straight to /firm instead of rendering.
+ * Guards /firm: the mirror of account-kind-gate.tsx. A "founder" account is redirected to /app
+ * and never shown any of the firm setup/dashboard UI — a founder can't create or fall into a firm
+ * workspace through the product at all. A brand-new user who lands here first (e.g. a bookmark)
+ * sees the same one-time chooser; picking "founder" sends them to /app instead of rendering.
  */
-export function AccountKindGate({ children }: { children: React.ReactNode }) {
+export function FirmKindGate({ children }: { children: React.ReactNode }) {
   const { isLoaded, isSignedIn } = useAuth()
   const router = useRouter()
   const { kind, loading, choose } = useAccountKind()
 
   useEffect(() => {
-    if (kind === "firm") router.replace("/firm")
+    if (kind === "founder") router.replace("/app")
   }, [kind, router])
 
   if (!isLoaded || !isSignedIn) return <>{children}</>
-  if (loading || kind === "firm") {
+  if (loading || kind === "founder") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -34,7 +35,7 @@ export function AccountKindGate({ children }: { children: React.ReactNode }) {
       <AccountKindChooser
         onChoose={(k) => {
           choose(k)
-          if (k === "firm") router.replace("/firm")
+          if (k === "founder") router.replace("/app")
         }}
       />
     )

@@ -6,6 +6,7 @@ import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 import type { UserProfile } from "@/lib/profile"
 import { ProfileForm } from "@/components/profile-form"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useAccountKind } from "@/lib/use-account-kind"
 
 const navIconLink =
   "relative inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -41,12 +42,15 @@ function SharedWithMeLink() {
   )
 }
 
-/** Link to /firm — shown only once a user has actually, deliberately set up a firm workspace
- *  (see lib/firm.ts's requireFirmContext vs. provisionFirmContext). Just belonging to *some*
- *  Clerk organization isn't enough on its own — that would surface this for every founder who
- *  happens to be in any org for unrelated reasons. Checked read-only, no side effects. */
+/** Link to /firm — shown only for a "firm"-kind account that has actually, deliberately set up a
+ *  firm workspace (see lib/firm.ts's requireFirmContext vs. provisionFirmContext, and
+ *  lib/use-account-kind.ts). This only ever renders on the founder side (a firm-kind account is
+ *  redirected out of /app entirely — see account-kind-gate.tsx), but a founder account can still
+ *  have a leftover firm membership from before that split was enforced, so the kind check stays
+ *  here too — a founder should never see a link that would just bounce them back on click. */
 function FirmDashboardLink() {
   const { isSignedIn, orgId } = useAuth()
+  const { kind } = useAccountKind()
   const [hasFirm, setHasFirm] = useState(false)
 
   useEffect(() => {
@@ -59,7 +63,7 @@ function FirmDashboardLink() {
       .catch(() => setHasFirm(false))
   }, [isSignedIn, orgId])
 
-  if (!hasFirm) return null
+  if (kind === "founder" || !hasFirm) return null
   return (
     <a href="/firm" title="Firm Dashboard" className={navIconLink}>
       <Building2 className="h-4 w-4" />

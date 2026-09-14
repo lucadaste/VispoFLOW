@@ -175,16 +175,24 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
         `POST /api/firm/setup` action, reached only via an explicit confirm screen on `/firm`
         ("Use '{org}' as your firm?"). The nav link and the Clerk webhook's membership sync both
         follow the same rule — an org only becomes a firm workspace on purpose, never ambiently.
-      - **Explicit dual-function choice at first use** (`components/account-kind-gate.tsx`, wired
-        into `app/app/page.tsx`): a genuinely new signed-in user sees a one-time, full-screen
-        choice — "I'm a founder" vs. "I'm a lawyer or firm" — before anything else. Founder
-        dismisses it and continues into the normal app (still able to invite collaborators per
-        filing, not part of any firm). Firm routes straight to `/firm`'s setup flow. An *existing*
-        user with prior incorporation activity is silently backfilled as "founder" and never
-        asked. Accepting an invite (`app/invite/[token]`) also backfills the answer from context
-        (an attorney/staff account invite → firm, anything else → founder) so it's never asked
-        twice — but never overrides a choice the user already made themselves. Persisted via the
-        existing `user_state` key/value store (`STORAGE_KEYS.accountKind`), no schema change.
+      - **Hard-enforced founder/firm split** (not just a one-time nudge): `lib/use-account-kind.ts`
+        is the shared hook; `components/account-kind-gate.tsx` guards `/app` and
+        `components/firm-kind-gate.tsx` guards `/firm`. A "firm"-kind account is redirected out of
+        `/app` on every visit, not just asked once; a "founder"-kind account is redirected out of
+        `/firm` the same way — neither can reach the other side through the product at all. A
+        brand-new user sees the same one-time chooser (`components/account-kind-chooser.tsx`)
+        whichever of the two pages they land on first. An *existing* user with prior incorporation
+        activity is silently backfilled as "founder." Accepting an invite (`app/invite/[token]`)
+        backfills the answer from context (an attorney/staff account invite → firm, anything else
+        → founder) without overriding a choice already made. Persisted via the existing
+        `user_state` key/value store (`STORAGE_KEYS.accountKind`), no schema change. A founder can
+        still invite a specific person to one filing (the collaborators feature) — that's
+        document-level sharing, unrelated to this account-level split.
+      - Note: an account that was provisioned as a firm *before* this split existed (e.g. from the
+        earlier ambient-org-membership bug) keeps that firm membership even if its `accountKind`
+        later resolves to "founder" — the Firm Dashboard nav link explicitly hides for a
+        founder-kind account to avoid a confusing bounce-back, but the underlying membership row
+        isn't cleaned up automatically. Leaving/deleting the stray organization in Clerk removes it.
       - **Remaining:** (1) client's scoped filing experience (an accepted client fills in their
         83(b) through the normal `/app` compliance flow — works, just not visually distinct from a
         founder's own flow); (2) status-change buttons in the dashboard (API done, no UI).
