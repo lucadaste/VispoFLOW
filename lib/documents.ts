@@ -9,11 +9,19 @@ import { STORAGE_KEYS } from "@/lib/storage-keys"
 
 export type DocumentRow = typeof documents.$inferSelect
 
-/** Which persisted blob a surface's filings live in. */
+/** Which persisted blob a surface's filings live in.
+ *
+ *  Not a 1:1 map of surface name to a same-named key: a compliance filing's rendered content
+ *  lives inside `vispo-compliance-state`'s own `docs` map (keyed by catalog id), but a completed
+ *  *transaction* document's rendered content is cached in the Document Library's blob
+ *  (`vispo-library-state`'s `transactionDocs` array) — `vispo-transactions-state` only holds that
+ *  flow's in-progress chat/answers, not a finished doc's text. Readers must branch on `surface`
+ *  to know which shape (map vs. array) to expect inside the key it points to — see
+ *  app/api/documents/[id]/content/route.ts. */
 const SURFACE_STORAGE_KEY: Record<DocumentSurface, string> = {
   incorporation: STORAGE_KEYS.incorporation,
   compliance: STORAGE_KEYS.compliance,
-  transactions: STORAGE_KEYS.transactions,
+  transactions: STORAGE_KEYS.library,
 }
 
 export type DocumentSurface = "incorporation" | "compliance" | "transactions"
@@ -345,13 +353,6 @@ type PersistedBlob = {
   completed?: Record<string, boolean>
 }
 
-const BLOB_SURFACE: Record<string, DocumentSurface> = {
-  [STORAGE_KEYS.incorporation]: "incorporation",
-  [STORAGE_KEYS.compliance]: "compliance",
-  [STORAGE_KEYS.transactions]: "transactions",
-  [STORAGE_KEYS.library]: "compliance",
-}
-
 function statusFromDoc(d: { signed?: boolean; filed?: boolean }, completed: boolean): DocumentStatus {
   if (d.filed) return "filed"
   if (d.signed) return "signed"
@@ -359,31 +360,40 @@ function statusFromDoc(d: { signed?: boolean; filed?: boolean }, completed: bool
   return "draft"
 }
 
+type LibraryBlob = { transactionDocs?: { id: string; title?: string; values?: Record<string, string>; signed?: boolean; filed?: boolean }[] }
+
 /**
  * Creates `documents` rows for every filing already sitting in a user's persisted blobs, so
  * in-progress work can be shared without the user having to reopen each filing. Safe to re-run.
+ *
+ * Two different shapes to read, matching where each surface actually keeps its content (see
+ * SURFACE_STORAGE_KEY's comment): compliance filings are a map inside their own flow-state blob;
+ * completed transaction documents are an array cached in the Document Library's blob.
+ * Incorporation documents aren't backfilled — they're rebuilt live from `answers`, never stored
+ * as a finished doc anywhere, and aren't shareable yet (see docs/collaborators.md).
  */
 export async function backfillDocumentsForUser(userId: string): Promise<number> {
   const rows = await db.select().from(userState).where(eq(userState.userId, userId))
   let created = 0
 
   for (const row of rows) {
-    const surface = BLOB_SURFACE[row.key]
-    if (!surface) continue
-    const blob = row.value as PersistedBlob
-    if (!blob?.docs) continue
-
-    for (const [catalogId, d] of Object.entries(blob.docs)) {
-      const doc = await ensureDocument({
-        userId,
-        catalogId,
-        surface,
-        title: d.title || catalogId,
-        values: d.values ?? null,
-      })
-      const status = statusFromDoc(d, !!blob.completed?.[catalogId])
-      await syncDocumentFromFiling({ documentId: doc.id, actorUserId: userId, values: d.values ?? null, status })
-      created++
+    if (row.key === STORAGE_KEYS.compliance) {
+      const blob = row.value as PersistedBlob
+      if (!blob?.docs) continue
+      for (const [catalogId, d] of Object.entries(blob.docs)) {
+        const doc = await ensureDocument({ userId, catalogId, surface: "compliance", title: d.title || catalogId, values: d.values ?? null })
+        const status = statusFromDoc(d, !!blob.completed?.[catalogId])
+        await syncDocumentFromFiling({ documentId: doc.id, actorUserId: userId, values: d.values ?? null, status })
+        created++
+      }
+    } else if (row.key === STORAGE_KEYS.library) {
+      const blob = row.value as LibraryBlob
+      for (const d of blob?.transactionDocs ?? []) {
+        const doc = await ensureDocument({ userId, catalogId: d.id, surface: "transactions", title: d.title || d.id })
+        const status = statusFromDoc(d, true) // present in the library at all means it's a finished document
+        await syncDocumentFromFiling({ documentId: doc.id, actorUserId: userId, status })
+        created++
+      }
     }
   }
   return created

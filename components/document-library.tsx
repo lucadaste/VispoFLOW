@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
 import { getSignerSlots, type SignerSlot } from "@/lib/document-signers"
-import { findComplianceItem, type FlowAnswers } from "@/lib/flow"
+import { findComplianceItem, findTransactionItem, type FlowAnswers } from "@/lib/flow"
 import { renderComplianceDocument } from "@/lib/compliance-templates"
 import { buildEinPdfBytes, type EinSignature } from "@/lib/ein-document"
 import { buildEightyThreeBPdfBytes, type EightyThreeBSignature } from "@/lib/83b-document"
@@ -2340,20 +2340,23 @@ function DocViewerMoreMenu({
  *  or before the row resolves. */
 function ViewerCollaborators({ doc }: { doc: LibraryDoc }) {
   const { isSignedIn } = useUser()
-  const isComplianceFiling = !!findComplianceItem(doc.id)
+  // Compliance filings and completed transaction documents are both shareable; incorporation
+  // documents aren't (they're rebuilt live from `answers`, never stored as a finished doc — see
+  // docs/collaborators.md).
+  const surface = findComplianceItem(doc.id) ? "compliance" : findTransactionItem(doc.id) ? "transactions" : null
   const [documentId, setDocumentId] = useState<string | null>(null)
   const [count, setCount] = useState(0)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (!isSignedIn || !isComplianceFiling) return
+    if (!isSignedIn || !surface) return
     let cancelled = false
     ;(async () => {
       try {
         const ensured = await fetch("/api/documents/ensure", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ catalogId: doc.id, surface: "compliance", title: doc.title }),
+          body: JSON.stringify({ catalogId: doc.id, surface, title: doc.title }),
         })
         if (!ensured.ok) return
         const { document } = await ensured.json()
@@ -2370,9 +2373,9 @@ function ViewerCollaborators({ doc }: { doc: LibraryDoc }) {
     return () => {
       cancelled = true
     }
-  }, [isSignedIn, isComplianceFiling, doc.id, doc.title])
+  }, [isSignedIn, surface, doc.id, doc.title])
 
-  if (!isSignedIn || !isComplianceFiling || !documentId) return null
+  if (!isSignedIn || !surface || !documentId) return null
 
   return (
     <div className="border-b border-border bg-secondary/20 px-5 py-3">

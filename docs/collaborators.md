@@ -69,11 +69,25 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
       the fields they need" — this is clear framing without restricting navigation; full scoping
       would mean hiding Incorporation/Transactions and the rest of the compliance catalog for a
       client, a larger change not done here.
-- [ ] **Sharing beyond compliance filings** — collaborators/firm-clients only work for compliance
-      items (83b, EIN, etc.) today; incorporation and transaction documents aren't shareable.
-      `/api/documents/ensure` is already surface-agnostic, but there's no `findTransactionItem`-
-      style lookup or confirmed blob-shape match for those surfaces to wire the UI trigger up
-      safely — still open.
+- [x] **Sharing extended to Transaction Center documents** (incorporation documents remain out of
+      scope — see below).
+      - `lib/flow.ts` `findTransactionItem` — the missing lookup helper, mirrors `findComplianceItem`.
+      - `lib/documents.ts`: fixed `SURFACE_STORAGE_KEY` — a transaction document's rendered content
+        isn't in `vispo-transactions-state` (that only holds the in-progress chat/answers); it's
+        cached as an array in the Document Library's blob (`vispo-library-state`'s
+        `transactionDocs`), unlike compliance's map-shaped `docs`. `backfillDocumentsForUser` and
+        `/api/documents/[id]/content`'s new `extractFiling` helper both branch on `doc.surface` to
+        read the right shape.
+      - Transaction documents never have a `sensitive` field (`TransactionField` has no such
+        property) — the existing masking logic naturally no-ops for them, no separate code path
+        needed.
+      - `ViewerCollaborators` (document-library.tsx) now triggers for either surface;
+        `incorporation-app.tsx` mirrors compliance-view.tsx's ensure/backfill effects for
+        `transactionDocs`.
+      - **Incorporation documents intentionally stay out of scope** — they're rebuilt live from
+        `answers` on every render, never persisted as a finished document anywhere, so sharing them
+        would require replicating that rendering server-side. Larger, riskier change to the core
+        formation flow for a surface least likely to need outside review after formation.
 - [ ] **Real email delivery** — blocked on the user's GoDaddy domain being verified in Resend.
 - [ ] **Clerk webhook** — not yet configured in the Clerk dashboard (`CLERK_WEBHOOK_SIGNING_SECRET`
       unset); the lazy-provisioning-on-deliberate-action fallback covers this in the meantime.

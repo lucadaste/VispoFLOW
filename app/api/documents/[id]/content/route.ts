@@ -12,6 +12,19 @@ import { errorResponse } from "@/lib/api-errors"
 
 const HIDDEN = "•••••••••"
 
+type FilingRecord = { content?: string; values?: Record<string, string> } | undefined
+
+/** Pulls one filing's rendered content out of whichever blob shape its surface actually uses —
+ *  see lib/documents.ts's SURFACE_STORAGE_KEY comment for why these differ. */
+function extractFiling(surface: string, blobValue: unknown, catalogId: string): FilingRecord {
+  if (surface === "transactions") {
+    const docs = (blobValue as { transactionDocs?: (FilingRecord & { id: string })[] } | null)?.transactionDocs ?? []
+    return docs.find((d) => d.id === catalogId)
+  }
+  const docs = (blobValue as { docs?: Record<string, FilingRecord> } | null)?.docs
+  return docs?.[catalogId]
+}
+
 /**
  * GET /api/documents/:id/content — the rendered filing, for anyone with `view` access who isn't
  * the owner (a collaborator, or a firm reviewing a client's filing).
@@ -57,13 +70,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .where(and(eq(userState.userId, doc.ownerUserId), eq(userState.key, doc.storageKey)))
       .limit(1)
 
-    const blob = (row?.value ?? {}) as { docs?: Record<string, { content?: string; values?: Record<string, string> }> }
-    const filing = blob.docs?.[doc.catalogId]
+    const filing = extractFiling(doc.surface, row?.value, doc.catalogId)
 
     if (!filing) {
       return NextResponse.json({ ...header, started: false, content: null, values: {}, hiddenFieldLabels: [] })
     }
 
+    // Only a compliance filing can have a `sensitive` field (an SSN/ITIN) — transaction documents
+    // never collect one, so this naturally comes back empty for that surface.
     const item = findComplianceItem(doc.catalogId)
     const sensitiveNames = new Set((item?.fields ?? []).filter((f) => f.sensitive).map((f) => f.name))
     const values: Record<string, string> = {}

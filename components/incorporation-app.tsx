@@ -23,6 +23,7 @@ import {
 } from "@/components/document-library"
 import { getSignerSlots } from "@/lib/document-signers"
 import { primaryOfficerTitle } from "@/lib/signature"
+import { ensureDocumentRow, backfillDocumentRows } from "@/lib/sync-documents"
 import { Landing } from "@/components/landing"
 import { HomeChat } from "@/components/home-chat"
 import {
@@ -354,6 +355,20 @@ export function IncorporationApp() {
     savePersisted<LibraryPersisted>(STORAGE_KEYS.library, snapshot)
     if (isSignedIn) saveToServer(STORAGE_KEYS.library, snapshot)
   }, [complianceDocs, transactionDocs, hiddenDocIds, signedDocs, isSignedIn, libraryLoaded, libraryServerLoaded])
+
+  // Mirror each finished transaction document into its relational `documents` row (see
+  // lib/sync-documents.ts) so it can be shared with a collaborator, same as compliance filings
+  // (see compliance-view.tsx's identical effect). Idempotent server-side, fire-and-forget. Also
+  // triggers the one-time backfill here (not only from ComplianceView) so it still runs for
+  // someone who only ever opens Transactions in a session — the guard inside backfillDocumentRows
+  // makes calling it from both places harmless.
+  useEffect(() => {
+    if (!isSignedIn) return
+    backfillDocumentRows()
+    for (const doc of transactionDocs) {
+      ensureDocumentRow({ catalogId: doc.id, surface: "transactions", title: doc.title })
+    }
+  }, [isSignedIn, transactionDocs])
 
   // Refresh outstanding "sent to sign" requests while signed in, so a document signed
   // elsewhere (by the recipient) shows up without a manual reload. Not scoped to the

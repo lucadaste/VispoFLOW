@@ -1260,6 +1260,16 @@ export const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   },
 ]
 
+export function findTransactionItem(id: string): TransactionItem | undefined {
+  for (const category of TRANSACTION_CATEGORIES) {
+    for (const group of category.groups) {
+      const item = group.items.find((i) => i.id === id)
+      if (item) return item
+    }
+  }
+  return undefined
+}
+
 /* ---------------- Answers captured through the flow ---------------- */
 
 export type Officer = { title: string; name: string }
