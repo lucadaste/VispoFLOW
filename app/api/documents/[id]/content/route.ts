@@ -2,7 +2,8 @@ import { auth } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
 import { eq, and } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { userState } from "@/lib/db-schema"
+import { userState, sensitiveFieldValues } from "@/lib/db-schema"
+import { decryptSensitive } from "@/lib/crypto"
 import { assertDocumentAccess, recordDocumentView } from "@/lib/permissions"
 import { getUsers, displayName } from "@/lib/users"
 import { findComplianceItem } from "@/lib/flow"
@@ -68,11 +69,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const values: Record<string, string> = {}
     const hiddenFieldLabels: string[] = []
 
+    // The persisted blob never holds a real sensitive value (see redactSensitiveDocValues) — it's
+    // stored encrypted, separately, keyed by the owner. Decrypt from there for whoever is actually
+    // allowed to see it; everyone else gets the mask, never the literal placeholder string.
+    const encryptedByField = header.canViewSensitive
+      ? new Map(
+          (
+            await db
+              .select()
+              .from(sensitiveFieldValues)
+              .where(and(eq(sensitiveFieldValues.userId, doc.ownerUserId), eq(sensitiveFieldValues.docId, doc.catalogId)))
+          ).map((r) => [r.fieldName, r.encryptedValue]),
+        )
+      : null
+
     for (const [name, value] of Object.entries(filing.values ?? {})) {
       if (sensitiveNames.has(name)) {
         const provided = !!value && value !== SENSITIVE_FIELD_PLACEHOLDER
-        values[name] = header.canViewSensitive ? value : provided ? HIDDEN : ""
-        if (!header.canViewSensitive) {
+        if (header.canViewSensitive) {
+          const encrypted = encryptedByField?.get(name)
+          values[name] = encrypted ? decryptSensitive(encrypted) : ""
+        } else {
+          values[name] = provided ? HIDDEN : ""
           const label = item?.fields.find((f) => f.name === name)?.label ?? name
           hiddenFieldLabels.push(label)
         }

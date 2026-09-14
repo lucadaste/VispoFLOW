@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from "crypto"
-import { and, desc, eq, or } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 import { db } from "@/lib/db"
 import {
   invitations,
@@ -38,9 +38,12 @@ const DAY_MS = 24 * 60 * 60 * 1000
 /**
  * Link expiry:
  *   - plain collaborator / firm-team invite → 7 days.
- *   - client invite on a filing that carries a real deadline → 2 days before that deadline,
- *     clamped to [1 day from now, 7 days from now] and never past the deadline itself, so the
- *     link can't outlive the thing it exists for.
+ *   - client invite on a filing that carries a real, still-future deadline → 2 days before that
+ *     deadline, clamped to [1 day from now, 7 days from now] and never past the deadline itself,
+ *     so the link can't outlive the thing it exists for.
+ *   - a deadline that's already passed (a client onboarded late) falls back to the plain 7 days
+ *     instead of minting a link that's expired the moment it's created — a missed 83(b) window
+ *     doesn't mean the client should be locked out of ever opening the invite.
  */
 export function computeExpiry(deadlineDate: string | Date | null | undefined): Date {
   const now = Date.now()
@@ -48,7 +51,7 @@ export function computeExpiry(deadlineDate: string | Date | null | undefined): D
   if (!deadlineDate) return sevenDays
 
   const deadline = new Date(deadlineDate).getTime()
-  if (Number.isNaN(deadline)) return sevenDays
+  if (Number.isNaN(deadline) || deadline <= now) return sevenDays
 
   const target = deadline - 2 * DAY_MS
   const clamped = Math.max(now + DAY_MS, Math.min(target, now + 7 * DAY_MS))
@@ -159,21 +162,43 @@ export async function createInvitation(input: CreateInput): Promise<CreatedInvit
       .where(eq(invitations.id, existing.id))
       .returning()
   } else {
-    ;[invitation] = await db
-      .insert(invitations)
-      .values({
-        id: randomUUID(),
-        email,
-        invitedByUserId: input.inviterUserId,
-        accountId,
-        documentId,
-        role: input.role,
-        scope,
-        token,
-        status: "pending",
-        expiresAt,
-      })
-      .returning()
+    try {
+      ;[invitation] = await db
+        .insert(invitations)
+        .values({
+          id: randomUUID(),
+          email,
+          invitedByUserId: input.inviterUserId,
+          accountId,
+          documentId,
+          role: input.role,
+          scope,
+          token,
+          status: "pending",
+          expiresAt,
+        })
+        .returning()
+    } catch {
+      // Lost a race with a concurrent invite for the same (email, target) — the partial unique
+      // index rejected the second insert. Fall back to updating whichever row won.
+      const [winner] = await db
+        .select()
+        .from(invitations)
+        .where(
+          and(
+            eq(invitations.email, email),
+            eq(invitations.status, "pending"),
+            documentId ? eq(invitations.documentId, documentId) : eq(invitations.accountId, accountId!),
+          ),
+        )
+        .limit(1)
+      if (!winner) throw new InvitationError(409, "Couldn't create the invite — try again")
+      ;[invitation] = await db
+        .update(invitations)
+        .set({ token, role: input.role, scope, invitedByUserId: input.inviterUserId, expiresAt, createdAt: new Date() })
+        .where(eq(invitations.id, winner.id))
+        .returning()
+    }
   }
 
   await logAudit({

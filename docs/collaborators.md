@@ -161,7 +161,29 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
         (`lib/documents.ts`) — both best-effort, never block the action they're attached to.
       - Skipped per-edit notifications (a collaborator editing a field) — the plan flagged this as
         optional and likely too noisy; not built.
-- [ ] **Phase 7** — dedicated testing/edge-case pass.
+- [x] **Phase 7** — dedicated testing/edge-case pass.
+      - **Found & fixed:** `computeExpiry` could mint an *already-expired* invite link when a
+        firm onboarded a client after the 83(b) deadline had already passed (grant date + 30d in
+        the past) — now falls back to the plain 7-day window instead of locking them out on
+        arrival. Covered by `scripts/test-invitations.ts`.
+      - **Found & fixed:** `/api/documents/[id]/content` could show the literal placeholder
+        string (`"(not saved — reopen this filing to re-enter)"`) as if it were a real value to
+        someone *correctly* granted `view_sensitive` (the data subject viewing their own filing
+        through the shared route) — it now decrypts from the existing encrypted per-user store
+        for that case, same as the rest of the app; everyone else still only ever gets the mask.
+      - **Found & fixed:** a race between two concurrent invites for the same (email, target)
+        could throw on the partial-unique index instead of resolving to one row — now retries as
+        an update, matching the pattern already used for account/document creation.
+      - Verified by code review: sensitive values never enter audit metadata or error logs (grepped
+        every `logAudit`/`console.error` call site); revoked access/membership rows are never
+        deleted (only status-flipped) so audit history survives removal; SSN placeholder text
+        never reaches a non-owner.
+      - New test suites: `scripts/test-invitations.ts` (expiry, incl. the past-deadline case),
+        `scripts/test-documents.ts` (status-pipeline transitions + deadline computation). Run all
+        three with `npm run test:collab`.
+      - Not independently re-verified (would need a live DB / multi-session run, not available
+        here): the actual duplicate-invite-email UI flow, firm-webhook end-to-end sync, and the
+        cron job's real Vercel invocation — these are exercised at the unit/logic level only.
 
 ## Applying the migration
 

@@ -9,6 +9,9 @@
     "lint": "next lint",
     "check:templates": "tsx scripts/check-templates.ts",
     "test:permissions": "tsx scripts/test-permissions.ts",
+    "test:invitations": "tsx scripts/test-invitations.ts",
+    "test:documents": "tsx scripts/test-documents.ts",
+    "test:collab": "npm run test:permissions && npm run test:invitations && npm run test:documents",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push"
