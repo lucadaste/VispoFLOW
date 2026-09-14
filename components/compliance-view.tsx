@@ -19,6 +19,7 @@ import {
 import { renderComplianceDocument, hasComplianceTemplate } from "@/lib/compliance-templates"
 import { cn } from "@/lib/utils"
 import { loadPersisted, savePersisted, loadFromServer, saveToServer } from "@/lib/persist"
+import { ensureDocumentRow, backfillDocumentRows } from "@/lib/sync-documents"
 import { STORAGE_KEYS } from "@/lib/storage-keys"
 import {
   DocumentViewer,
@@ -226,6 +227,12 @@ const CHAT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000
 // category, chat transcript) is reset.
 const SESSION_RESUME_MS = 24 * 60 * 60 * 1000
 
+// Shown as the post-incorporation welcome's follow-up bubble, arriving straight from
+// Incorporation completion — points the user at EIN by name instead of leaving a filing
+// pre-highlighted in the sidebar for them to notice on their own.
+const POST_INCORPORATION_INTRO =
+  "I'd recommend starting with the EIN — Employer Identification Number, then working through all 7 Post-Incorporation filings in order. Click EIN on the right to get started, and I'll guide you through each one after that."
+
 // Prunes stale scrollback from a restored transcript:
 //  - a message with a `ts` older than CHAT_RETENTION_MS is dropped;
 //  - a message with no `ts` (written before this field existed) is kept but stamped `now`, so
@@ -420,6 +427,10 @@ export function ComplianceView({
       setActiveCategory(initialCategory)
       setExpandedCategoryId(initialCategory.id)
     }
+    // A stale activeItemId (e.g. restored from a prior session) shouldn't make a filing look
+    // pre-selected on a fresh arrival from Incorporation — the greeting recommends EIN in words
+    // instead, so no row should already read as "selected" before the user has clicked anything.
+    setActiveItemId(null)
   }, [])
 
   // Arriving straight from incorporation completion (startExpanded) always gets the fresh,
@@ -447,7 +458,7 @@ export function ComplianceView({
             : "Hi! Let's get your post-incorporation compliance started.",
         },
       ]
-      if (initialCategory) freshMessages.push({ id: ++nextId, ts: now, pinned: true, role: "bot", text: initialCategory.chatResponse })
+      if (initialCategory) freshMessages.push({ id: ++nextId, ts: now, pinned: true, role: "bot", text: POST_INCORPORATION_INTRO })
       // The welcome is the whole transcript here — a stale break marker from a prior compliance
       // session must not collapse it behind "Show earlier messages".
       applyState({ ...saved, messages: freshMessages, chatBreakId: null })
@@ -499,8 +510,7 @@ export function ComplianceView({
           : "Hi! Let's get your post-incorporation compliance started.",
         true,
       )
-      const initialCategory = COMPLIANCE_CATEGORIES.find((c) => c.id === "post-incorporation")
-      if (initialCategory) pushBot(initialCategory.chatResponse, true)
+      pushBot(POST_INCORPORATION_INTRO, true)
       openPostIncorporation()
       return
     }
@@ -545,6 +555,36 @@ export function ComplianceView({
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [messages])
+
+  // Mirror each filing into its relational `documents` row (lib/sync-documents.ts) so it can be
+  // shared with a collaborator. Idempotent server-side, fire-and-forget. Only the grant date is
+  // sent — sensitive field values stay on the client.
+  useEffect(() => {
+    if (!isSignedIn) return
+    backfillDocumentRows()
+  }, [isSignedIn])
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    for (const [id, doc] of Object.entries(docs)) {
+      ensureDocumentRow({
+        catalogId: id,
+        surface: "compliance",
+        title: doc.title || findComplianceItem(id)?.title || id,
+        grantDate: doc.values?.grantDate,
+        status: doc.filed ? "filed" : doc.signed ? "signed" : completed[id] ? "ready_to_sign" : "draft",
+      })
+    }
+    if (activeFiling && !docs[activeFiling.item.id]) {
+      ensureDocumentRow({
+        catalogId: activeFiling.item.id,
+        surface: "compliance",
+        title: activeFiling.item.title,
+        grantDate: activeFiling.values?.grantDate,
+        status: "draft",
+      })
+    }
+  }, [isSignedIn, docs, completed, activeFiling])
 
   // Same polling pattern as incorporation-app.tsx's own copy — see the `InfoRequest` doc comment
   // above for why this component needs an independent poll rather than relying on that one.

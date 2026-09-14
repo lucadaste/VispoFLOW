@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check:templates": "tsx scripts/check-templates.ts"
+    "check:templates": "tsx scripts/check-templates.ts",
+    "test:permissions": "tsx scripts/test-permissions.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.112.4",

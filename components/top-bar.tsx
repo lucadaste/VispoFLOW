@@ -1,11 +1,56 @@
 "use client"
 
-import { useState } from "react"
-import { Menu, X, Settings, Building2 } from "lucide-react"
-import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
+import { useEffect, useState } from "react"
+import { Menu, X, Settings, Building2, Users } from "lucide-react"
+import { SignInButton, UserButton, useAuth, useOrganizationList } from "@clerk/nextjs"
 import type { UserProfile } from "@/lib/profile"
 import { ProfileForm } from "@/components/profile-form"
 import { ThemeToggle } from "@/components/theme-toggle"
+
+const navIconLink =
+  "relative inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+
+/** Link to /shared (filings someone invited this user to) — only reachable otherwise via a
+ *  fresh invite link or direct URL. Badge count is fetched once on sign-in, not polled. */
+function SharedWithMeLink() {
+  const { isSignedIn } = useAuth()
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    fetch("/api/documents")
+      .then((r) => (r.ok ? r.json() : { documents: [] }))
+      .then((data) => {
+        type Row = { isOwnFiling: boolean; mySource: string | null }
+        const rows: Row[] = data.documents ?? []
+        setCount(rows.filter((d) => !d.isOwnFiling && (d.mySource === "collaborator" || d.mySource === "client")).length)
+      })
+      .catch(() => {})
+  }, [isSignedIn])
+
+  if (!isSignedIn) return null
+  return (
+    <a href="/shared" title="Shared with me" className={navIconLink}>
+      <Users className="h-4 w-4" />
+      {count > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+          {count}
+        </span>
+      )}
+    </a>
+  )
+}
+
+/** Link to /firm — shown only to users who belong to at least one firm (Clerk organization). */
+function FirmDashboardLink() {
+  const { isLoaded, userMemberships } = useOrganizationList({ userMemberships: true })
+  if (!isLoaded || !userMemberships?.data?.length) return null
+  return (
+    <a href="/firm" title="Firm Dashboard" className={navIconLink}>
+      <Building2 className="h-4 w-4" />
+    </a>
+  )
+}
 
 function AuthControls({ profile, onSaveProfile }: { profile: UserProfile; onSaveProfile: (profile: UserProfile) => void }) {
   const { isSignedIn, isLoaded } = useAuth()
@@ -118,6 +163,8 @@ export function TopBar({
             </button>
           )}
 
+          <FirmDashboardLink />
+          <SharedWithMeLink />
           <ThemeToggle />
 
           <AuthControls profile={profile} onSaveProfile={onSaveProfile} />

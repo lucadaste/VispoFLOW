@@ -1,7 +1,9 @@
 "use client"
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react"
-import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, ChevronLeft, PenLine, Mail, MoreVertical, CheckSquare, Share } from "lucide-react"
+import { Building2, ShieldCheck, ArrowLeftRight, FileText, Check, X, Landmark, Download, Trash2, RotateCcw, ChevronDown, ChevronLeft, PenLine, Mail, MoreVertical, CheckSquare, Share, Users } from "lucide-react"
+import { useUser } from "@clerk/nextjs"
+import { CollaboratorsPanel } from "@/components/collaborators-panel"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { signatureBlockText, resolveSignatureLines, fillCompanyExecutionBlock, fillPrintedNameBlank, fillSignedDateLine, findBlankFieldLabels, formatSignedDate } from "@/lib/signature"
@@ -2332,6 +2334,75 @@ function DocViewerMoreMenu({
   )
 }
 
+/** Owner-side sharing strip in the document viewer: a persistent "Shared with N people" banner
+ *  plus a collapsible panel to invite/manage collaborators. Compliance filings only for now
+ *  (they're the ones with a relational `documents` row wired up). Renders nothing when signed out
+ *  or before the row resolves. */
+function ViewerCollaborators({ doc }: { doc: LibraryDoc }) {
+  const { isSignedIn } = useUser()
+  const isComplianceFiling = !!findComplianceItem(doc.id)
+  const [documentId, setDocumentId] = useState<string | null>(null)
+  const [count, setCount] = useState(0)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isSignedIn || !isComplianceFiling) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const ensured = await fetch("/api/documents/ensure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ catalogId: doc.id, surface: "compliance", title: doc.title }),
+        })
+        if (!ensured.ok) return
+        const { document } = await ensured.json()
+        if (cancelled || !document?.id) return
+        setDocumentId(document.id)
+        const res = await fetch(`/api/documents/${document.id}/collaborators`)
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        setCount((data.collaborators?.length ?? 0) + (data.pending?.length ?? 0))
+      } catch {
+        /* sharing just stays hidden */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [isSignedIn, isComplianceFiling, doc.id, doc.title])
+
+  if (!isSignedIn || !isComplianceFiling || !documentId) return null
+
+  return (
+    <div className="border-b border-border bg-secondary/20 px-5 py-3">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span
+          className={cn(
+            "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide",
+            count > 0 ? "text-primary" : "text-muted-foreground",
+          )}
+        >
+          <Users className="h-3.5 w-3.5" />
+          {count > 0 ? `Shared with ${count} ${count === 1 ? "person" : "people"}` : "Not shared"}
+        </span>
+        <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+          {open ? "Hide" : "Manage"}
+          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+        </span>
+      </button>
+      {open && (
+        <div className="mt-3">
+          <CollaboratorsPanel documentId={documentId} bare />
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function DocumentViewer({
   doc,
   answers,
@@ -2468,6 +2539,7 @@ export function DocumentViewer({
             </button>
           </div>
         </div>
+        <ViewerCollaborators doc={doc} />
         {doc.signatures && doc.signatures.length > 0 && (
           <div className="border-b border-border bg-secondary/20 px-5 py-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Signatures</p>

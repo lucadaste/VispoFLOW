@@ -1,9 +1,10 @@
 import { Resend } from "resend"
 
-/** No verified sending domain yet — Resend's sandbox sender only delivers to the Resend
- *  account's own verified email until one is added. Switch this to an address on a verified
- *  domain once available. */
-const FROM_ADDRESS = "VispoFLOW <onboarding@resend.dev>"
+/** Sender address. Until a domain is verified in Resend, the default sandbox sender only delivers
+ *  to the Resend account's own email — set `RESEND_FROM_ADDRESS` (e.g. "VispoFLOW
+ *  <notifications@yourdomain.com>") once the GoDaddy domain is verified and every flow here starts
+ *  delivering to outside recipients. */
+const FROM_ADDRESS = process.env.RESEND_FROM_ADDRESS || "VispoFLOW <onboarding@resend.dev>"
 
 export async function sendSignatureRequestEmail({
   to,
@@ -77,8 +78,77 @@ export async function sendInfoRequestEmail({
   })
 }
 
+/** A collaborator viewing a filing hit "Request" on a masked field (e.g. the SSN) — this just
+ *  nudges the owner by email; it doesn't move any value automatically. The owner shares it
+ *  through whatever channel they choose (e.g. reading it out, or the existing info-request link
+ *  for a third party's own number). */
+export async function sendSensitiveRequestNudgeEmail({
+  to,
+  ownerName,
+  requesterName,
+  docTitle,
+  fieldLabels,
+  appUrl,
+}: {
+  to: string
+  ownerName?: string
+  requesterName: string
+  docTitle: string
+  fieldLabels: string[]
+  appUrl: string
+}) {
+  const greeting = ownerName ? `Hi ${ownerName},` : "Hi,"
+  const fields = fieldLabels.join(", ")
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${requesterName} asked about a hidden field on "${docTitle}"`,
+    text: `${greeting}\n\n${requesterName} is viewing "${docTitle}" and asked whether you could share: ${fields}. They can't see this value — VispoFLOW never shows it to anyone but you.\n\nOpen your document: ${appUrl}`,
+    html: `<p>${greeting}</p><p>${escapeHtml(requesterName)} is viewing <strong>${escapeHtml(docTitle)}</strong> and asked whether you could share: ${escapeHtml(fields)}. They can't see this value — VispoFLOW never shows it to anyone but you.</p><p><a href="${appUrl}">Open your document</a></p>`,
+  })
+}
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+/** Invites someone to collaborate on a single filing, or to join a firm/account workspace. The
+ *  accept link carries a one-time token (see lib/invitations.ts); it's also shown as a copy-able
+ *  link in the app, so an invite still works before a sending domain is verified. */
+export async function sendInvitationEmail({
+  to,
+  inviterName,
+  target,
+  subjectTitle,
+  role,
+  acceptUrl,
+  expiresAt,
+}: {
+  to: string
+  inviterName: string
+  target: "document" | "account"
+  subjectTitle: string
+  role: string
+  acceptUrl: string
+  expiresAt: Date
+}) {
+  const what =
+    target === "document"
+      ? `collaborate on "${subjectTitle}"`
+      : `join the ${subjectTitle} workspace`
+  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1)
+  const expires = expiresAt.toLocaleDateString("en-US", { dateStyle: "long" })
+  const sentAt = new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
+
+  const resend = new Resend(process.env.RESEND_API_KEY)
+  await resend.emails.send({
+    from: FROM_ADDRESS,
+    to,
+    subject: `${inviterName} invited you to ${target === "document" ? `"${subjectTitle}"` : subjectTitle}`,
+    text: `${inviterName} has invited you to ${what} on VispoFLOW as ${roleLabel}.\n\nAccept the invite: ${acceptUrl}\n\nThis link is unique to you — please don't forward it. It expires on ${expires}.\n\nSent ${sentAt}`,
+    html: `<p>${escapeHtml(inviterName)} has invited you to ${escapeHtml(what)} on VispoFLOW as <strong>${escapeHtml(roleLabel)}</strong>.</p><p><a href="${acceptUrl}">Accept the invite</a></p><p style="color:#666;font-size:13px">This link is unique to you — please don't forward it. It expires on ${expires}.</p><p style="color:#999;font-size:12px">Sent ${sentAt}</p>`,
+  })
 }
 
 /** A plain, one-off share of one or more document copies as email attachments — distinct from
