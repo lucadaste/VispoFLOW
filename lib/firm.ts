@@ -2,7 +2,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server"
 import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { documents, accountMemberships } from "@/lib/collab-schema"
-import { ensureFirmAccount, getMembership, type Account, type AccountMembership } from "@/lib/accounts"
+import { ensureFirmAccount, getFirmAccountByClerkOrg, getMembership, type Account, type AccountMembership } from "@/lib/accounts"
 import { syncCurrentUser } from "@/lib/users"
 import { AccessError } from "@/lib/permissions"
 
@@ -15,11 +15,42 @@ export type FirmContext = {
 
 /**
  * Resolves the firm the caller is currently acting in, from Clerk's active organization
- * (`auth().orgId`). Creates the mirroring `accounts` row + the caller's membership on first hit,
- * so the dashboard works even before the Clerk webhook is configured. Throws `AccessError` if the
- * caller has no active org or isn't a member of the firm.
+ * (`auth().orgId`). Read-only — never creates an `accounts` row. Belonging to a Clerk
+ * organization is not by itself "being a firm": that would let *any* org someone happens to be
+ * in (a stray test org, an unrelated Clerk org they were added to for something else) silently
+ * unlock the firm dashboard. Becoming a firm is a deliberate action — see `provisionFirmContext`,
+ * called only from the explicit "set up your firm" confirmation, or the Clerk webhook syncing an
+ * organization actually created through that flow.
+ *
+ * Throws `AccessError` if the caller has no active org, or has an active org that was never set
+ * up as a firm workspace here, or isn't a member of the firm it resolves to.
  */
 export async function requireFirmContext(): Promise<FirmContext> {
+  const { userId, orgId } = await auth()
+  if (!userId) throw new AccessError(403, "Sign in")
+  if (!orgId) throw new AccessError(403, "Switch to your firm to view this")
+
+  const account = await getFirmAccountByClerkOrg(orgId)
+  if (!account) throw new AccessError(403, "This organization hasn't been set up as a firm workspace yet")
+
+  const membership = await getMembership(account.id, userId)
+  if (!membership) throw new AccessError(403, "You're not a member of this firm")
+
+  return {
+    account,
+    membership,
+    canManage: membership.role === "owner" || membership.role === "attorney",
+  }
+}
+
+/**
+ * The deliberate "yes, use this organization as my firm workspace" action. Creates the mirroring
+ * `accounts` row (if this org has never been set up before) and makes the caller its owner. Call
+ * this ONLY in direct response to the user explicitly confirming on the /firm setup screen — never
+ * from a passive page load, so a stray or unrelated Clerk org membership can't silently turn into
+ * a firm account.
+ */
+export async function provisionFirmContext(): Promise<FirmContext> {
   const { userId, orgId } = await auth()
   if (!userId) throw new AccessError(403, "Sign in")
   if (!orgId) throw new AccessError(403, "Switch to your firm to view this")

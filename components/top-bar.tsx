@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Menu, X, Settings, Building2, Users } from "lucide-react"
-import { SignInButton, UserButton, useAuth, useOrganizationList } from "@clerk/nextjs"
+import { SignInButton, UserButton, useAuth } from "@clerk/nextjs"
 import type { UserProfile } from "@/lib/profile"
 import { ProfileForm } from "@/components/profile-form"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -41,10 +41,25 @@ function SharedWithMeLink() {
   )
 }
 
-/** Link to /firm — shown only to users who belong to at least one firm (Clerk organization). */
+/** Link to /firm — shown only once a user has actually, deliberately set up a firm workspace
+ *  (see lib/firm.ts's requireFirmContext vs. provisionFirmContext). Just belonging to *some*
+ *  Clerk organization isn't enough on its own — that would surface this for every founder who
+ *  happens to be in any org for unrelated reasons. Checked read-only, no side effects. */
 function FirmDashboardLink() {
-  const { isLoaded, userMemberships } = useOrganizationList({ userMemberships: true })
-  if (!isLoaded || !userMemberships?.data?.length) return null
+  const { isSignedIn, orgId } = useAuth()
+  const [hasFirm, setHasFirm] = useState(false)
+
+  useEffect(() => {
+    if (!isSignedIn || !orgId) {
+      setHasFirm(false)
+      return
+    }
+    fetch("/api/firm")
+      .then((r) => setHasFirm(r.ok))
+      .catch(() => setHasFirm(false))
+  }, [isSignedIn, orgId])
+
+  if (!hasFirm) return null
   return (
     <a href="/firm" title="Firm Dashboard" className={navIconLink}>
       <Building2 className="h-4 w-4" />

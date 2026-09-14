@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { SignInButton, useAuth } from "@clerk/nextjs"
+import { updateServerValue } from "@/lib/persist"
+import { STORAGE_KEYS } from "@/lib/storage-keys"
+
+const FIRM_ROLES = new Set(["attorney", "staff"])
 
 type Details = {
   email: string
@@ -61,6 +65,15 @@ export function InviteClient({ token }: { token: string }) {
         return
       }
       setDone("accepted")
+
+      // Accepting an invite already tells us which side of the product this person is on — an
+      // account-scoped attorney/staff invite means "firm", anything else (a document
+      // collaborator, or a firm's client completing their own filing) means "founder". Backfill
+      // it so they never hit the /app onboarding chooser redundantly, but only if they haven't
+      // already answered it themselves (never override an explicit choice).
+      const kind = data.target === "account" && FIRM_ROLES.has(details?.role ?? "") ? "firm" : "founder"
+      updateServerValue<{ kind: string }>(STORAGE_KEYS.accountKind, (current) => (current ? null : { kind }))
+
       const destination = data.target === "document" && data.documentId ? `/shared/${data.documentId}` : "/firm"
       setTimeout(() => router.push(destination), 1500)
     } finally {

@@ -93,12 +93,11 @@ export async function POST(req: NextRequest) {
       case "organizationMembership.created":
       case "organizationMembership.updated": {
         const d = evt.data
-        const account = await getFirmAccountByClerkOrg(d.organization.id)
-        if (!account) {
-          // Org exists in Clerk but not here yet — create it, then the membership.
-          await ensureFirmAccount({ clerkOrgId: d.organization.id, name: d.organization.name })
-        }
-        const acct = account ?? (await getFirmAccountByClerkOrg(d.organization.id))
+        // Only sync membership into a firm that's *already* been deliberately set up here (via
+        // organization.created below, or the explicit /api/firm/setup confirmation) — never
+        // auto-create a firm account just because someone joined some Clerk organization. That
+        // would let any unrelated org membership silently open a firm dashboard for its members.
+        const acct = await getFirmAccountByClerkOrg(d.organization.id)
         if (!acct) break
 
         const userId = d.public_user_data?.user_id

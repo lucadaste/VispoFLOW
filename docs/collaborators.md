@@ -142,8 +142,24 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
         same screen serves both. Invite acceptance now routes here (`/shared/[documentId]`) or to
         `/firm` for account invites; firm roster rows link to it too.
       - Nav ✓: `components/top-bar.tsx` — a "Shared with me" icon-link (badge = count, fetched once
-        on sign-in) and a "Firm Dashboard" icon-link (shown only when `useOrganizationList` says the
-        user belongs to a firm) sit next to the theme toggle.
+        on sign-in) and a "Firm Dashboard" icon-link sit next to the theme toggle.
+      - **Corrected after initial ship:** being a member of *any* Clerk organization was being
+        treated as "is a firm" — a stray/unrelated org membership silently unlocked the full firm
+        dashboard for a plain founder. Fixed: `lib/firm.ts`'s `requireFirmContext` is now
+        read-only (never creates an `accounts` row); becoming a firm requires the deliberate
+        `POST /api/firm/setup` action, reached only via an explicit confirm screen on `/firm`
+        ("Use '{org}' as your firm?"). The nav link and the Clerk webhook's membership sync both
+        follow the same rule — an org only becomes a firm workspace on purpose, never ambiently.
+      - **Explicit dual-function choice at first use** (`components/account-kind-gate.tsx`, wired
+        into `app/app/page.tsx`): a genuinely new signed-in user sees a one-time, full-screen
+        choice — "I'm a founder" vs. "I'm a lawyer or firm" — before anything else. Founder
+        dismisses it and continues into the normal app (still able to invite collaborators per
+        filing, not part of any firm). Firm routes straight to `/firm`'s setup flow. An *existing*
+        user with prior incorporation activity is silently backfilled as "founder" and never
+        asked. Accepting an invite (`app/invite/[token]`) also backfills the answer from context
+        (an attorney/staff account invite → firm, anything else → founder) so it's never asked
+        twice — but never overrides a choice the user already made themselves. Persisted via the
+        existing `user_state` key/value store (`STORAGE_KEYS.accountKind`), no schema change.
       - **Remaining:** (1) client's scoped filing experience (an accepted client fills in their
         83(b) through the normal `/app` compliance flow — works, just not visually distinct from a
         founder's own flow); (2) status-change buttons in the dashboard (API done, no UI).

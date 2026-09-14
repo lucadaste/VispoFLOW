@@ -71,6 +71,8 @@ export function FirmDashboard() {
   const [members, setMembers] = useState<Member[]>([])
   const [pendingTeam, setPendingTeam] = useState<PendingTeamInvite[]>([])
   const [loading, setLoading] = useState(true)
+  const [settingUp, setSettingUp] = useState(false)
+  const [setupError, setSetupError] = useState<string | null>(null)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -101,6 +103,22 @@ export function FirmDashboard() {
     else if (isLoaded) setLoading(false)
   }, [isLoaded, isSignedIn, orgId, loadAll])
 
+  const confirmSetup = async () => {
+    setSettingUp(true)
+    setSetupError(null)
+    try {
+      const res = await fetch("/api/firm/setup", { method: "POST" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setSetupError(data.error ?? "Couldn't set up your firm")
+        return
+      }
+      await loadAll()
+    } finally {
+      setSettingUp(false)
+    }
+  }
+
   if (!isLoaded || loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -113,13 +131,14 @@ export function FirmDashboard() {
     return <Centered>Sign in to view your firm dashboard.</Centered>
   }
 
-  if (!orgId || (ctxError && !ctx)) {
+  if (!orgId) {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
         <h1 className="text-lg font-semibold text-foreground">Set up your firm</h1>
         <p className="text-sm text-muted-foreground">
-          A firm workspace lets you manage every client&apos;s filing and deadline in one place. Create one, or switch
-          to an existing firm.
+          A firm workspace lets you manage every client&apos;s filing and deadline in one place — this is only for
+          lawyers/firms managing clients, not for filing your own company&apos;s paperwork. Create one, or switch to an
+          existing firm.
         </p>
         <div className="flex items-center gap-3">
           <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
@@ -127,6 +146,34 @@ export function FirmDashboard() {
         <div className="mt-2">
           <CreateOrganization afterCreateOrganizationUrl="/firm" skipInvitationScreen />
         </div>
+      </div>
+    )
+  }
+
+  // Has an active Clerk organization, but it's never explicitly been set up as a firm workspace
+  // here — require a deliberate confirmation rather than silently provisioning one. This is what
+  // stops an unrelated organization someone happens to belong to from quietly turning into a
+  // full firm dashboard.
+  if (ctxError && !ctx) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
+        <h1 className="text-lg font-semibold text-foreground">Use &ldquo;{organization?.name ?? "this organization"}&rdquo; as your firm?</h1>
+        <p className="text-sm text-muted-foreground">
+          You&apos;re currently in an organization that hasn&apos;t been set up as a VispoFLOW firm workspace. Only
+          confirm this if you&apos;re a lawyer or firm managing clients — an individual founder filing their own
+          paperwork doesn&apos;t need this.
+        </p>
+        {setupError && <p className="text-xs text-destructive">{setupError}</p>}
+        <div className="flex items-center gap-3">
+          <button className={primaryBtn} onClick={confirmSetup} disabled={settingUp}>
+            {settingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Yes, set up my firm here
+          </button>
+          <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
+        </div>
+        <Link href="/app" className="text-xs font-medium text-muted-foreground hover:text-foreground">
+          Not a firm — take me back to the app
+        </Link>
       </div>
     )
   }
