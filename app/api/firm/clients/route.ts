@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
 import { findComplianceItem } from "@/lib/flow"
 import { requireFirmContext, listFirmDocuments, daysUntil, deadlineUrgency } from "@/lib/firm"
-import { createClientDocument } from "@/lib/documents"
+import { createClientDocument, nextStatusOptions, type DocumentStatus } from "@/lib/documents"
 import { createInvitation } from "@/lib/invitations"
 import { getUsers, displayName } from "@/lib/users"
 import { getMembership } from "@/lib/accounts"
@@ -37,6 +37,7 @@ export async function GET() {
           daysToDeadline: days,
           urgency: deadlineUrgency(days),
           status: d.status,
+          nextStatuses: nextStatusOptions(d.status as DocumentStatus),
           assignedToUserId: d.assignedToUserId,
           assignedToName: d.assignedToUserId ? displayName(usersById.get(d.assignedToUserId)) : null,
           updatedAt: d.updatedAt,

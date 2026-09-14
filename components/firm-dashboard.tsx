@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization } from "@clerk/nextjs"
-import { AlertTriangle, Check, Copy, Loader2, Plus, Users } from "lucide-react"
+import { AlertTriangle, Check, Copy, Loader2, Plus, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ConfirmModal } from "@/components/confirm-modal"
 
 type FirmCtx = { firm: { accountId: string; name: string }; role: string; scope: string; canManage: boolean }
 type ClientRow = {
@@ -18,6 +19,7 @@ type ClientRow = {
   daysToDeadline: number | null
   urgency: "none" | "overdue" | "urgent" | "soon" | "ok"
   status: string
+  nextStatuses: string[]
   assignedToName: string | null
 }
 type Member = { userId: string; name: string; email: string; role: string; scope: string; isSelf: boolean }
@@ -59,6 +61,88 @@ function DeadlinePill({ row }: { row: ClientRow }) {
       {label}
       {row.deadlineDate ? ` · ${new Date(row.deadlineDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : ""}
     </span>
+  )
+}
+
+/** The status column: a plain label for anyone without manage access, or a select offering
+ *  exactly the transitions the server allows (see lib/documents.ts's nextStatusOptions) for
+ *  attorneys/owners. Never lets the client invent a transition the server wouldn't accept. */
+function StatusCell({ row, canManage, onChanged }: { row: ClientRow; canManage: boolean; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false)
+
+  if (!canManage || row.nextStatuses.length === 0) {
+    return <span className="text-muted-foreground">{STATUS_LABEL[row.status] ?? row.status}</span>
+  }
+
+  const change = async (status: string) => {
+    if (status === row.status) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/documents/${row.documentId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) onChanged()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <select
+      value={row.status}
+      disabled={busy}
+      onChange={(e) => change(e.target.value)}
+      className="rounded-md border border-border bg-background px-1.5 py-1 text-xs text-foreground outline-none focus:border-primary disabled:opacity-50"
+    >
+      <option value={row.status}>{STATUS_LABEL[row.status] ?? row.status}</option>
+      {row.nextStatuses.map((s) => (
+        <option key={s} value={s}>
+          → {STATUS_LABEL[s] ?? s}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+/** Removes a client from the roster (with a confirmation, since it's not undoable from the UI).
+ *  Doesn't touch the client's own filing data — see lib/documents.ts's removeClientDocument. */
+function RemoveClientButton({ row, onRemoved }: { row: ClientRow; onRemoved: () => void }) {
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const remove = async () => {
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/firm/clients/${row.documentId}`, { method: "DELETE" })
+      if (res.ok) onRemoved()
+    } finally {
+      setBusy(false)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setConfirming(true)}
+        title="Remove from roster"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+      {confirming && (
+        <ConfirmModal
+          title={`Remove ${row.clientName || row.clientEmail} from your roster?`}
+          description="This stops the firm from tracking this filing and its deadline. If they've already started filling it in, their work isn't deleted — you just won't see it here anymore."
+          confirmLabel={busy ? "Removing…" : "Remove"}
+          danger
+          onConfirm={remove}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
+    </>
   )
 }
 
@@ -222,12 +306,13 @@ export function FirmDashboard() {
                 <th className="px-3 py-2 font-medium">Deadline</th>
                 <th className="px-3 py-2 font-medium">Status</th>
                 <th className="px-3 py-2 font-medium">Assigned</th>
+                {ctx?.canManage && <th className="px-3 py-2 font-medium" />}
               </tr>
             </thead>
             <tbody>
               {clients.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
+                  <td colSpan={ctx?.canManage ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">
                     No clients yet. Add one above to start tracking a deadline.
                   </td>
                 </tr>
@@ -249,8 +334,15 @@ export function FirmDashboard() {
                   <td className="px-3 py-2.5">
                     <DeadlinePill row={c} />
                   </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{STATUS_LABEL[c.status] ?? c.status}</td>
+                  <td className="px-3 py-2.5">
+                    <StatusCell row={c} canManage={ctx?.canManage ?? false} onChanged={loadAll} />
+                  </td>
                   <td className="px-3 py-2.5 text-muted-foreground">{c.assignedToName ?? "—"}</td>
+                  {ctx?.canManage && (
+                    <td className="px-3 py-2.5 text-right">
+                      <RemoveClientButton row={c} onRemoved={loadAll} />
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

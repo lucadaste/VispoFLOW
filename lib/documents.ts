@@ -214,6 +214,32 @@ export async function attachClientToDocument(documentId: string, clientUserId: s
     .where(eq(documents.id, documentId))
 }
 
+/**
+ * Removes a client from the firm's roster: deletes the `documents` row (and any pending invite
+ * for it) so it stops being tracked here. Doesn't touch the client's actual filing data — that
+ * lives in their own `user_state` blob regardless of this row, so if they'd already started, they
+ * keep it; they just stop being visible to the firm. Kept simple (a hard delete, not a status)
+ * since a `documents` row is a pointer/tracker, not the filing itself. Audit row records what was
+ * removed, since the row itself won't exist to look up afterward.
+ */
+export async function removeClientDocument(actorUserId: string, doc: DocumentRow): Promise<void> {
+  const { invitations } = await import("@/lib/collab-schema")
+  await db
+    .update(invitations)
+    .set({ status: "revoked" })
+    .where(and(eq(invitations.documentId, doc.id), eq(invitations.status, "pending")))
+
+  await db.delete(documents).where(eq(documents.id, doc.id))
+
+  await logAudit({
+    action: "document_deleted",
+    actorUserId,
+    accountId: doc.accountId,
+    documentId: doc.id,
+    metadata: { catalogId: doc.catalogId, clientEmail: doc.clientEmail, title: doc.title },
+  })
+}
+
 /* ------------------------------------------------------------------ *
  *  Status transitions
  * ------------------------------------------------------------------ */
@@ -240,6 +266,12 @@ const ALLOWED_TRANSITIONS: Record<DocumentStatus, DocumentStatus[]> = {
 
 export function canTransition(from: DocumentStatus, to: DocumentStatus): boolean {
   return from === to || ALLOWED_TRANSITIONS[from]?.includes(to) === true
+}
+
+/** The next states a UI should offer buttons for, given the current one — the single source of
+ *  truth for what's allowed, so the client never has to duplicate the pipeline rules. */
+export function nextStatusOptions(from: DocumentStatus): DocumentStatus[] {
+  return ALLOWED_TRANSITIONS[from] ?? []
 }
 
 export async function transitionDocumentStatus(

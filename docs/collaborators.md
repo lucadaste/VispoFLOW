@@ -53,6 +53,31 @@ work without email. Fix = verify a GoDaddy domain in Resend, move the sender to
   invited emails, render names without per-row API calls, and keep audit actor names after a
   user is removed.
 
+## Post-Phase-7 polish (from the "what would make it better" list)
+
+- [x] **Status buttons in the dashboard** — `lib/documents.ts`'s `nextStatusOptions` (server-side
+      source of truth for allowed transitions) is now returned per row from `GET
+      /api/firm/clients`; `components/firm-dashboard.tsx`'s `StatusCell` renders a select offering
+      exactly those options for owners/attorneys, plain text for everyone else.
+- [x] **Remove a client from the roster** — `lib/documents.ts`'s `removeClientDocument` +
+      `DELETE /api/firm/clients/[documentId]`. Deletes the `documents` pointer/invite, never the
+      client's actual filing data (that lives in their own `user_state` blob regardless). Confirmed
+      via `ConfirmModal` in the UI.
+- [x] **Client-side framing** — `components/client-context-banner.tsx`, mounted above
+      `IncorporationApp` in `app/app/page.tsx`: a firm's client sees "You're completing X for your
+      law firm — N days left" right at the top. Lighter than the plan's full "scoped view, only
+      the fields they need" — this is clear framing without restricting navigation; full scoping
+      would mean hiding Incorporation/Transactions and the rest of the compliance catalog for a
+      client, a larger change not done here.
+- [ ] **Sharing beyond compliance filings** — collaborators/firm-clients only work for compliance
+      items (83b, EIN, etc.) today; incorporation and transaction documents aren't shareable.
+      `/api/documents/ensure` is already surface-agnostic, but there's no `findTransactionItem`-
+      style lookup or confirmed blob-shape match for those surfaces to wire the UI trigger up
+      safely — still open.
+- [ ] **Real email delivery** — blocked on the user's GoDaddy domain being verified in Resend.
+- [ ] **Clerk webhook** — not yet configured in the Clerk dashboard (`CLERK_WEBHOOK_SIGNING_SECRET`
+      unset); the lazy-provisioning-on-deliberate-action fallback covers this in the meantime.
+
 ## Phases
 
 - [x] **Phase 0** — discovery (see findings in chat history / this file).
