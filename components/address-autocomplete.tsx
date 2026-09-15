@@ -6,7 +6,12 @@ import { cn } from "@/lib/utils"
 
 type Suggestion = { formatted: string; placeId: string }
 
-/** A textarea that suggests full addresses as the user types, backed by Geoapify autocomplete. */
+/** A textarea that suggests full addresses as the user types, backed by Geoapify autocomplete.
+ *  `geoType` narrows this to a state or county typeahead instead of a full street address — see
+ *  app/api/geocode/autocomplete/route.ts for how each is queried — and strips the trailing
+ *  ", United States[ of America]" off the picked suggestion, since a governing-law or county field
+ *  wants "Delaware" / "New Castle County, Delaware", not the full geocode-formatted string a real
+ *  street address field wants kept as-is. */
 export function AddressAutocomplete({
   value,
   onChange,
@@ -14,6 +19,7 @@ export function AddressAutocomplete({
   placeholder,
   className,
   rows = 2,
+  geoType,
 }: {
   value: string
   onChange: (value: string) => void
@@ -22,6 +28,7 @@ export function AddressAutocomplete({
   placeholder?: string
   className?: string
   rows?: number
+  geoType?: "state" | "county"
 }) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(false)
@@ -49,7 +56,8 @@ export function AddressAutocomplete({
     const controller = new AbortController()
     setLoading(true)
     const timer = setTimeout(() => {
-      fetch(`/api/geocode/autocomplete?text=${encodeURIComponent(text)}`, { signal: controller.signal })
+      const typeParam = geoType ? `&type=${geoType}` : ""
+      fetch(`/api/geocode/autocomplete?text=${encodeURIComponent(text)}${typeParam}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
           setSuggestions(data.suggestions ?? [])
@@ -66,7 +74,7 @@ export function AddressAutocomplete({
       clearTimeout(timer)
       controller.abort()
     }
-  }, [value])
+  }, [value, geoType])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -79,7 +87,7 @@ export function AddressAutocomplete({
   }, [])
 
   const select = (s: Suggestion) => {
-    onChange(s.formatted)
+    onChange(geoType ? s.formatted.replace(/,\s*United States(?: of America)?$/i, "") : s.formatted)
     setSuggestions([])
     setOpen(false)
   }

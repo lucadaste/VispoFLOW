@@ -1213,7 +1213,7 @@ export function ComplianceView({
               <span className="hidden sm:inline">New chat</span>
             </button>
             <div className="flex flex-1 items-end gap-2 rounded-xl border border-border bg-card p-1.5 shadow-sm">
-              {activeFiling && inputMode === "chat" && !isDelegatingActiveField && activeFiling.item.fields[activeFiling.fieldIndex].type === "address" ? (
+              {activeFiling && inputMode === "chat" && !isDelegatingActiveField && ["address", "state", "county"].includes(activeFiling.item.fields[activeFiling.fieldIndex].type ?? "") ? (
                 <div className="flex-1">
                   <AddressAutocomplete
                     value={value}
@@ -1222,6 +1222,12 @@ export function ComplianceView({
                     placeholder="Type your answer, or ask a question…"
                     className="w-full bg-transparent px-2.5 py-1.5 text-sm outline-none placeholder:text-muted-foreground/60"
                     rows={1}
+                    geoType={
+                      activeFiling.item.fields[activeFiling.fieldIndex].type === "state" ||
+                      activeFiling.item.fields[activeFiling.fieldIndex].type === "county"
+                        ? (activeFiling.item.fields[activeFiling.fieldIndex].type as "state" | "county")
+                        : undefined
+                    }
                   />
                 </div>
               ) : (
@@ -1761,13 +1767,14 @@ function FilingFormCard({
                 onChange={(e) => set(f.name, e.target.value)}
                 className={cn(inputClass, "resize-none")}
               />
-            ) : f.type === "address" ? (
+            ) : f.type === "address" || f.type === "state" || f.type === "county" ? (
               <AddressAutocomplete
                 value={values[f.name] ?? ""}
                 onChange={(v) => set(f.name, v)}
                 placeholder={f.placeholder}
                 className={inputClass}
                 rows={3}
+                geoType={f.type === "state" || f.type === "county" ? f.type : undefined}
               />
             ) : (
               <input

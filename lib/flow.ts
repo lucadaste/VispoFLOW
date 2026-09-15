@@ -4,7 +4,7 @@ export const AUTHORIZED_SHARES = 10_000_000
 export type ChatField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "state" | "county" | "number"
   options?: string[]
   placeholder?: string
   hint?: string
@@ -124,7 +124,7 @@ export type ComplianceField = {
   label: string
   /** How this field is asked in chat mode — a natural question. Falls back to `label` if omitted. */
   question?: string
-  type?: "text" | "date" | "textarea" | "select" | "address" | "number" | "ssn"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "state" | "county" | "number" | "ssn"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -194,7 +194,7 @@ const EIN: ComplianceItem = {
     { name: "companyName", label: "Legal name of entity (Line 1)", question: "What's the official legal name of your entity?", prefillKey: "companyName", placeholder: "e.g. Acme Technologies, Inc." },
     { name: "tradeName", label: "Trade name / DBA, if different (Line 2)", question: "Does the business go by a trade name or DBA that's different from its legal name?", placeholder: "e.g. Acme", optional: true },
     { name: "mailingAddress", label: "Mailing address (Lines 4a–4b)", question: "What's the mailing address for the entity?", type: "address", prefillKey: "corpAddress", placeholder: "Street, City, State, ZIP" },
-    { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", placeholder: "e.g. New Castle County, Delaware" },
+    { name: "county", label: "County and state of principal business (Line 6)", question: "Which county and state is the principal place of business in?", type: "county", placeholder: "e.g. New Castle County, Delaware" },
     { name: "responsible", label: "Responsible party — full legal name (Line 7a)", question: "Who's the responsible party — what's their full legal name?", prefillKey: "incorporatorName", placeholder: "e.g. Jane Founder" },
     { name: "ssn", label: "Responsible party SSN or ITIN (Line 7b)", question: "What's the responsible party's Social Security Number or ITIN?", type: "ssn", placeholder: "XXX-XX-XXXX", sensitive: true, delegatable: { nameField: "responsible" } },
     { name: "reason", label: "Reason for applying (Line 10)", question: "Why are you applying for an EIN?", type: "select", options: ["Started new business", "Banking purpose", "Hired employees", "Changed type of organization", "Other"] },
@@ -496,7 +496,7 @@ export function findComplianceItem(id: string): ComplianceItem | undefined {
 export type TransactionField = {
   name: string
   label: string
-  type?: "text" | "date" | "textarea" | "select" | "address" | "number"
+  type?: "text" | "date" | "textarea" | "select" | "address" | "state" | "county" | "number"
   options?: string[]
   prefillKey?: keyof FlowAnswers | "computed"
   placeholder?: string
@@ -578,7 +578,7 @@ const SAFE_CAP: TransactionItem = {
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
     { name: "valuationCap", label: "Post-money valuation cap", type: "number", question: "What's the post-money valuation cap?", placeholder: "e.g. 8,000,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -592,7 +592,7 @@ const SAFE_MFN: TransactionItem = {
     companyNameField,
     { name: "investorName", label: "Investor name", question: "Who's the Investor purchasing this SAFE?", placeholder: "e.g. Jane Ventures", shared: true },
     { name: "purchaseAmount", label: "Purchase amount", type: "number", question: "How much is the Investor paying for this SAFE?", placeholder: "e.g. 100,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -613,7 +613,7 @@ const SAFE_DISCOUNT: TransactionItem = {
       placeholder: "e.g. 20",
       hint: "The document's Discount Rate is shown as 100 minus this number (a 20% discount becomes an 80% Discount Rate).",
     },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -653,8 +653,8 @@ const FOUNDER_LOAN: TransactionItem = {
       placeholder: "e.g. 0.05",
       hint: "5% would be 0.05.",
     },
-    { name: "choiceOfLaw", label: "Choice of law", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
-    { name: "venue", label: "Venue", question: "And which state should be the venue for resolving any disputes?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
+    { name: "choiceOfLaw", type: "state", label: "Choice of law", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
+    { name: "venue", type: "state", label: "Venue", question: "And which state should be the venue for resolving any disputes?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation" },
   ],
 }
 
@@ -693,6 +693,7 @@ const SERVICES_AGREEMENT: TransactionItem = {
       name: "choiceOfLawState",
       label: "Choice of law and venue state",
       question: "Which state should govern this agreement, and be the venue for any disputes?",
+      type: "state",
       placeholder: "e.g. Delaware",
       prefillKey: "stateOfIncorporation",
     },
@@ -786,7 +787,7 @@ const OFFER_LETTER: TransactionItem = {
       hint: "Only needed if you're including the salary increase clause.",
     },
     { name: "numberOfOptions", label: "Number of stock options", type: "number", question: "How many stock options will they be granted?", placeholder: "e.g. 40,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this letter?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this letter?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
     { name: "signatureDate", label: "Signature date", question: "What's the signature date?", type: "date" },
   ],
 }
@@ -837,7 +838,7 @@ const CONSULTING_AGREEMENT: TransactionItem = {
       optional: true,
       hint: "Leave blank if none.",
     },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
     { name: "signatureDate", label: "Signature date", question: "What's the signature date?", type: "date" },
     {
       name: "letterDate",
@@ -868,7 +869,7 @@ const ADVISOR_AGREEMENT: TransactionItem = {
       placeholder: "e.g. Go-to-market strategy and introductions to potential customers.",
     },
     { name: "numberOfOptions", label: "Number of stock options (Exhibit B)", type: "number", question: "How many stock options will the advisor be granted?", placeholder: "e.g. 10,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
     { name: "signatureDate", label: "Signature date", question: "What's the signature date?", type: "date" },
   ],
 }
@@ -918,7 +919,7 @@ const PILOT_AGREEMENT: TransactionItem = {
     { name: "customerSignerName", label: "Customer signer name", question: "Who's signing on behalf of the Customer?", placeholder: "e.g. Jane Smith" },
     { name: "customerSignerTitle", label: "Customer signer title", question: "What's their title?", placeholder: "e.g. VP of Operations" },
     { name: "customerEmail", label: "Customer signer email", question: "What's their email address?", placeholder: "e.g. jane@acmecorp.com" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -944,7 +945,7 @@ const USER_AGREEMENT: TransactionItem = {
       options: ["Yes", "No"],
       question: "Does the product actually use LLMs or other AI features (e.g. a Document Check, Co-Pilot, or Automated Transactions tool)? If not, I'll leave out the AI disclosure sections.",
     },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -977,6 +978,7 @@ const NDA: TransactionItem = {
       name: "choiceOfLawState",
       label: "Choice of law and venue state",
       question: "Which state should govern this agreement, and be the venue for any disputes?",
+      type: "state",
       placeholder: "e.g. Delaware",
       prefillKey: "stateOfIncorporation",
     },
@@ -1029,7 +1031,7 @@ const IP_LICENSE: TransactionItem = {
     { name: "licensingFee", label: "Licensing fee (Schedule 3)", question: "What's the licensing fee?", placeholder: "e.g. $10,000 upfront, plus 5% royalty on net revenue" },
     { name: "geography", label: "Geographic scope (Schedule 3)", question: "What's the geographic scope of the license?", placeholder: "e.g. Worldwide" },
     { name: "exclusivity", label: "Exclusive or non-exclusive? (Schedule 3)", question: "Is this an exclusive or non-exclusive license?", type: "select", options: ["Exclusive", "Non-exclusive"] },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -1047,7 +1049,7 @@ const AGENT_MARKETING_AGREEMENT: TransactionItem = {
     { name: "companyServiceDescription", label: "Description of the Company's service", type: "textarea", placeholder: "e.g. a mobile app for tracking fitness goals" },
     { name: "servicesDescription", label: "Services / deliverables the Agent will provide (Exhibit A)", type: "textarea", placeholder: "e.g. 4 sponsored Instagram posts per month promoting the Company Service" },
     { name: "compensationTerms", label: "Compensation terms (Exhibit B)", type: "textarea", placeholder: "e.g. $2,000 per month, paid net 30 following invoice" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -1067,7 +1069,7 @@ const SAAS_RESELLER_AGREEMENT: TransactionItem = {
     { name: "territory", label: "Territory", placeholder: "e.g. North America" },
     { name: "commissionRate", label: "Commission rate on identified direct sales", placeholder: "e.g. 20%" },
     { name: "reportCardDeadline", label: "Report-card / customer-identification deadline", placeholder: "e.g. 15 days" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement, and be the venue for any disputes?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement, and be the venue for any disputes?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -1080,11 +1082,11 @@ const DISTRIBUTION_AGREEMENT: TransactionItem = {
     companyNameField,
     { name: "date", label: "Effective date", type: "date", question: "What's the effective date of this agreement?" },
     { name: "distributorName", label: "Distributor's full legal name", placeholder: "e.g. Acme Distribution, Inc." },
-    { name: "distributorStateOfIncorporation", label: "Distributor's state of incorporation", question: "What state is the Distributor incorporated in?", placeholder: "e.g. California" },
+    { name: "distributorStateOfIncorporation", type: "state", label: "Distributor's state of incorporation", question: "What state is the Distributor incorporated in?", placeholder: "e.g. California" },
     { name: "territory", label: "Territory", type: "textarea", placeholder: "e.g. North America" },
     { name: "fieldDefinition", label: "Field (permitted product / use scope)", type: "textarea", placeholder: "e.g. use in consumer electronics" },
     { name: "terminationDate", label: "Initial term end date", type: "date", question: "What date does the initial term end, before auto-renewal kicks in?" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -1104,7 +1106,7 @@ const FOUNDER_SEPARATION_AGREEMENT: TransactionItem = {
     { name: "vestedSharesCancelled", label: "Vested shares being cancelled", type: "number", question: "How many vested shares of common stock will be cancelled?", placeholder: "e.g. 600,000" },
     { name: "unvestedSharesRepurchased", label: "Unvested shares being repurchased", type: "number", question: "How many unvested shares of common stock will the Company repurchase?", placeholder: "e.g. 400,000" },
     { name: "repurchaseAmount", label: "Aggregate repurchase payment", type: "number", question: "What's the aggregate dollar amount the Company will pay for the repurchase?", placeholder: "e.g. 1,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 
@@ -1123,7 +1125,7 @@ const FOUNDERS_REORGANIZATION_AGREEMENT: TransactionItem = {
     { name: "founder1SharesAfter", label: "Founder 1's shares after the transfer", type: "number", question: "How many shares will Founder 1 hold after the transfer?", placeholder: "e.g. 1,000,000" },
     { name: "founder2SharesAfter", label: "Founder 2's shares after the transfer", type: "number", question: "How many shares will Founder 2 hold after the transfer?", placeholder: "e.g. 2,000,000" },
     { name: "paymentAmount", label: "Payment from Founder 2 to Founder 1", type: "number", question: "How much will Founder 2 pay Founder 1 for the transferred shares?", placeholder: "e.g. 10,000" },
-    { name: "governingLaw", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
+    { name: "governingLaw", type: "state", label: "Governing law jurisdiction", question: "Which state's law should govern this agreement?", placeholder: "e.g. Delaware", prefillKey: "stateOfIncorporation", shared: true },
   ],
 }
 

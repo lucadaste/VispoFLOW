@@ -49,7 +49,7 @@ export function FieldComposer({
             onChange={(e) => setValue(e.target.value)}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
           />
-        ) : field.type === "address" ? (
+        ) : field.type === "address" || field.type === "state" || field.type === "county" ? (
           <AddressAutocomplete
             value={value}
             onChange={setValue}
@@ -57,6 +57,7 @@ export function FieldComposer({
             placeholder={placeholder}
             rows={1}
             className="w-full resize-none bg-transparent py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground/60"
+            geoType={field.type === "state" || field.type === "county" ? field.type : undefined}
           />
         ) : (
           <input

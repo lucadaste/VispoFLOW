@@ -1263,13 +1263,14 @@ function TransactionFormCard({
                 onChange={(e) => set(f.name, e.target.value)}
                 className={cn(inputClass, "resize-none")}
               />
-            ) : f.type === "address" ? (
+            ) : f.type === "address" || f.type === "state" || f.type === "county" ? (
               <AddressAutocomplete
                 value={values[f.name] ?? ""}
                 onChange={(v) => set(f.name, v)}
                 placeholder={f.placeholder}
                 className={inputClass}
                 rows={3}
+                geoType={f.type === "state" || f.type === "county" ? f.type : undefined}
               />
             ) : (
               <input
