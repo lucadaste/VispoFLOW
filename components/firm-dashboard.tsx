@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization } from "@clerk/nextjs"
+import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization, UserButton } from "@clerk/nextjs"
 import { AlertTriangle, Check, Copy, Loader2, Plus, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmModal } from "@/components/confirm-modal"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { COMPLIANCE_CATEGORIES } from "@/lib/flow"
 
 type FirmCtx = { firm: { accountId: string; name: string }; role: string; scope: string; canManage: boolean }
@@ -162,6 +163,7 @@ export function FirmDashboard() {
   const [addFilingFor, setAddFilingFor] = useState<{ name: string; email: string; assignedToUserId: string | null } | null>(
     null,
   )
+  const [inviteOpen, setInviteOpen] = useState(false)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -210,32 +212,43 @@ export function FirmDashboard() {
 
   if (!isLoaded || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
+      <>
+        <BrandHeader />
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </>
     )
   }
 
   if (!isSignedIn) {
-    return <Centered>Sign in to view your firm dashboard.</Centered>
+    return (
+      <>
+        <BrandHeader />
+        <Centered>Sign in to view your firm dashboard.</Centered>
+      </>
+    )
   }
 
   if (!orgId) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
-        <h1 className="text-lg font-semibold text-foreground">Set up your firm</h1>
-        <p className="text-sm text-muted-foreground">
-          A firm workspace lets you manage every client&apos;s filing and deadline in one place — this is only for
-          lawyers/firms managing clients, not for filing your own company&apos;s paperwork. Create one, or switch to an
-          existing firm.
-        </p>
-        <div className="flex items-center gap-3">
-          <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
+      <>
+        <BrandHeader />
+        <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
+          <h1 className="text-lg font-semibold text-foreground">Set up your firm</h1>
+          <p className="text-sm text-muted-foreground">
+            A firm workspace lets you manage every client&apos;s filing and deadline in one place — this is only for
+            lawyers/firms managing clients, not for filing your own company&apos;s paperwork. Create one, or switch to
+            an existing firm.
+          </p>
+          <div className="flex items-center gap-3">
+            <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
+          </div>
+          <div className="mt-2">
+            <CreateOrganization afterCreateOrganizationUrl="/firm" skipInvitationScreen />
+          </div>
         </div>
-        <div className="mt-2">
-          <CreateOrganization afterCreateOrganizationUrl="/firm" skipInvitationScreen />
-        </div>
-      </div>
+      </>
     )
   }
 
@@ -245,28 +258,28 @@ export function FirmDashboard() {
   // full firm dashboard.
   if (ctxError && !ctx) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
-        <h1 className="text-lg font-semibold text-foreground">
-          Set up &ldquo;{organization?.name ?? "this organization"}&rdquo; as a firm workspace?
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          This turns &ldquo;{organization?.name ?? "this organization"}&rdquo; into a VispoFLOW firm workspace — a
-          client roster, deadline tracking, and client invitations. It&apos;s for lawyers and firms managing multiple
-          clients, not for filing your own company&apos;s paperwork under this organization.
-        </p>
-        {setupError && <p className="text-xs text-destructive">{setupError}</p>}
-        <button className={primaryBtn} onClick={confirmSetup} disabled={settingUp}>
-          {settingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          Yes, set up this workspace
-        </button>
-        <div className="flex flex-col items-center gap-1.5">
-          <p className="text-[11px] text-muted-foreground">Wrong organization?</p>
-          <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
+      <>
+        <BrandHeader />
+        <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
+          <h1 className="text-lg font-semibold text-foreground">
+            Set up &ldquo;{organization?.name ?? "this organization"}&rdquo; as a firm workspace?
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            This turns &ldquo;{organization?.name ?? "this organization"}&rdquo; into a VispoFLOW firm workspace — a
+            client roster, deadline tracking, and client invitations. It&apos;s for lawyers and firms managing
+            multiple clients, not for filing your own company&apos;s paperwork under this organization.
+          </p>
+          {setupError && <p className="text-xs text-destructive">{setupError}</p>}
+          <button className={primaryBtn} onClick={confirmSetup} disabled={settingUp}>
+            {settingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Yes, set up this workspace
+          </button>
+          <div className="flex flex-col items-center gap-1.5">
+            <p className="text-[11px] text-muted-foreground">Wrong organization?</p>
+            <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
+          </div>
         </div>
-        <Link href="/app" className="text-xs font-medium text-muted-foreground hover:text-foreground">
-          Skip — take me back to the app
-        </Link>
-      </div>
+      </>
     )
   }
 
@@ -289,25 +302,37 @@ export function FirmDashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-foreground">{ctx?.firm.name ?? organization?.name}</h1>
-          <p className="text-xs text-muted-foreground">
-            {clientGroups.length} client{clientGroups.length === 1 ? "" : "s"} · {clients.length} filing
-            {clients.length === 1 ? "" : "s"} · you&apos;re {ctx?.role}
-            {ctx?.scope === "assigned_only" ? " (your assigned clients only)" : ""}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/firm" afterCreateOrganizationUrl="/firm" />
-          <Link href="/app" className="text-xs font-medium text-muted-foreground hover:text-foreground">
-            ← Back to app
-          </Link>
-        </div>
-      </header>
+    <>
+      <BrandHeader />
+      <div className="mx-auto max-w-5xl px-4 py-8">
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">{ctx?.firm.name ?? organization?.name}</h1>
+            <p className="text-xs text-muted-foreground">
+              {clientGroups.length} client{clientGroups.length === 1 ? "" : "s"} · {clients.length} filing
+              {clients.length === 1 ? "" : "s"} · you&apos;re {ctx?.role}
+              {ctx?.scope === "assigned_only" ? " (your assigned clients only)" : ""}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {ctx?.canManage && (
+              <button className={primaryBtn} onClick={() => setInviteOpen((o) => !o)}>
+                <Plus className="h-3.5 w-3.5" /> Invite to firm
+              </button>
+            )}
+            <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/firm" afterCreateOrganizationUrl="/firm" />
+          </div>
+        </header>
 
-      {overdueOrUrgent.length > 0 && (
+        {inviteOpen && ctx?.canManage && (
+          <InviteTeamMember
+            accountId={ctx.firm.accountId}
+            onInvited={loadAll}
+            onClose={() => setInviteOpen(false)}
+          />
+        )}
+
+        {overdueOrUrgent.length > 0 && (
         <div className="mb-5 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
           <p className="text-xs text-destructive">
@@ -402,14 +427,9 @@ export function FirmDashboard() {
         </div>
       </section>
 
-      <TeamSection
-        members={members}
-        pending={pendingTeam}
-        canManage={ctx?.canManage ?? false}
-        accountId={ctx?.firm.accountId ?? ""}
-        onChange={loadAll}
-      />
-    </div>
+        <TeamSection members={members} pending={pendingTeam} />
+      </div>
+    </>
   )
 }
 
@@ -447,8 +467,6 @@ function ShareLink({ url }: { url: string }) {
   )
 }
 
-const DEFAULT_CATALOG_ID = "83b"
-
 function AddClient({
   members,
   onAdded,
@@ -465,7 +483,7 @@ function AddClient({
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [catalogId, setCatalogId] = useState(DEFAULT_CATALOG_ID)
+  const [catalogId, setCatalogId] = useState("")
   const [grantDate, setGrantDate] = useState("")
   const [assignedToUserId, setAssignedToUserId] = useState("")
   const [busy, setBusy] = useState(false)
@@ -479,7 +497,7 @@ function AddClient({
     setName(prefill.name)
     setEmail(prefill.email)
     setAssignedToUserId(prefill.assignedToUserId ?? "")
-    setCatalogId(DEFAULT_CATALOG_ID)
+    setCatalogId("")
     setGrantDate("")
     setError(null)
     setLink(null)
@@ -489,7 +507,7 @@ function AddClient({
     setOpen(false)
     setName("")
     setEmail("")
-    setCatalogId(DEFAULT_CATALOG_ID)
+    setCatalogId("")
     setGrantDate("")
     setAssignedToUserId("")
     setError(null)
@@ -524,7 +542,7 @@ function AddClient({
         setName("")
         setEmail("")
       }
-      setCatalogId(DEFAULT_CATALOG_ID)
+      setCatalogId("")
       setGrantDate("")
       if (!data.invite?.emailed) setLink(data.invite?.acceptUrl ?? null)
       onAdded()
@@ -565,6 +583,9 @@ function AddClient({
         <label className="text-[11px] text-muted-foreground sm:col-span-2">
           Filing
           <select className={inputCls} value={catalogId} onChange={(e) => setCatalogId(e.target.value)}>
+            <option value="" disabled>
+              Select desired filing
+            </option>
             {COMPLIANCE_CATEGORIES.map((category) => (
               <optgroup key={category.id} label={category.label}>
                 {category.groups.flatMap((group) =>
@@ -610,7 +631,7 @@ function AddClient({
       {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
       {link && <ShareLink url={link} />}
       <div className="mt-3 flex gap-2">
-        <button className={primaryBtn} onClick={submit} disabled={busy || !name.trim() || !email.trim()}>
+        <button className={primaryBtn} onClick={submit} disabled={busy || !name.trim() || !email.trim() || !catalogId}>
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
           Add & invite
         </button>
@@ -625,18 +646,50 @@ function AddClient({
   )
 }
 
-function TeamSection({
-  members,
-  pending,
-  canManage,
+function TeamSection({ members, pending }: { members: Member[]; pending: PendingTeamInvite[] }) {
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <Users className="h-3.5 w-3.5" /> Team
+      </h2>
+      <div className={card}>
+        <ul className="space-y-1.5">
+          {members.map((m) => (
+            <li key={m.userId} className="flex items-center justify-between gap-2 text-xs">
+              <span className="truncate text-foreground">
+                {m.name} <span className="text-muted-foreground">· {m.email}</span>
+              </span>
+              <span className="capitalize text-muted-foreground">
+                {m.role}
+                {m.scope === "assigned_only" ? " · assigned only" : ""}
+              </span>
+            </li>
+          ))}
+          {pending.map((p) => (
+            <li key={p.invitationId} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="truncate">{p.email} · invited</span>
+              <span className="capitalize">{p.role}</span>
+            </li>
+          ))}
+          {members.length === 0 && pending.length === 0 && (
+            <li className="py-1 text-xs text-muted-foreground">No team members yet.</li>
+          )}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+/** Opened from the "Invite to firm" button in the dashboard header (kept next to the firm name,
+ *  not buried in the Team section below) — adds an attorney/staff member to the firm account. */
+function InviteTeamMember({
   accountId,
-  onChange,
+  onInvited,
+  onClose,
 }: {
-  members: Member[]
-  pending: PendingTeamInvite[]
-  canManage: boolean
   accountId: string
-  onChange: () => void
+  onInvited: () => void
+  onClose: () => void
 }) {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<"attorney" | "staff">("staff")
@@ -662,70 +715,85 @@ function TeamSection({
       }
       setEmail("")
       if (!data.emailed) setLink(data.acceptUrl)
-      onChange()
+      onInvited()
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <section className="mt-6">
-      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <Users className="h-3.5 w-3.5" /> Team
-      </h2>
-      <div className={card}>
-        <ul className="space-y-1.5">
-          {members.map((m) => (
-            <li key={m.userId} className="flex items-center justify-between gap-2 text-xs">
-              <span className="truncate text-foreground">
-                {m.name} <span className="text-muted-foreground">· {m.email}</span>
-              </span>
-              <span className="capitalize text-muted-foreground">
-                {m.role}
-                {m.scope === "assigned_only" ? " · assigned only" : ""}
-              </span>
-            </li>
-          ))}
-          {pending.map((p) => (
-            <li key={p.invitationId} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="truncate">{p.email} · invited</span>
-              <span className="capitalize">{p.role}</span>
-            </li>
-          ))}
-        </ul>
-
-        {canManage && (
-          <div className="mt-3 border-t border-border pt-3">
-            <div className="grid gap-2 sm:grid-cols-3">
-              <input
-                className={inputCls}
-                type="email"
-                placeholder="colleague@firm.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as "attorney" | "staff")}>
-                <option value="staff">Staff</option>
-                <option value="attorney">Attorney</option>
-              </select>
-              <select
-                className={inputCls}
-                value={scope}
-                onChange={(e) => setScope(e.target.value as "all_clients" | "assigned_only")}
-              >
-                <option value="all_clients">All clients</option>
-                <option value="assigned_only">Assigned only</option>
-              </select>
-            </div>
-            {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-            {link && <ShareLink url={link} />}
-            <button className={cn(primaryBtn, "mt-2")} onClick={invite} disabled={busy || !email.trim()}>
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Invite to firm
-            </button>
-          </div>
-        )}
+    <div className={cn(card, "mb-5")}>
+      <p className="mb-2.5 text-xs font-semibold text-foreground">Invite to firm</p>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <input
+          className={inputCls}
+          type="email"
+          placeholder="colleague@firm.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as "attorney" | "staff")}>
+          <option value="staff">Staff</option>
+          <option value="attorney">Attorney</option>
+        </select>
+        <select
+          className={inputCls}
+          value={scope}
+          onChange={(e) => setScope(e.target.value as "all_clients" | "assigned_only")}
+        >
+          <option value="all_clients">All clients</option>
+          <option value="assigned_only">Assigned only</option>
+        </select>
       </div>
-    </section>
+      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+      {link && <ShareLink url={link} />}
+      <div className="mt-3 flex gap-2">
+        <button className={primaryBtn} onClick={invite} disabled={busy || !email.trim()}>
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          Send invite
+        </button>
+        <button
+          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+          onClick={onClose}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Shared chrome so the firm dashboard doesn't feel like a walled-off tool with no way back to
+ *  the rest of the product — same brand mark as the founder-side TopBar (components/top-bar.tsx),
+ *  trimmed to what applies here (no founder-only phase nav, since those routes redirect a
+ *  firm-kind account straight back to /firm anyway — see components/account-kind-gate.tsx). */
+function BrandHeader() {
+  const { isSignedIn } = useAuth()
+  return (
+    <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <a href="/site" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
+          <div className="text-left leading-tight">
+            <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
+            <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
+          </div>
+        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          {isSignedIn && (
+            <a
+              href="/shared"
+              title="Shared with me"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <Users className="h-4 w-4" />
+            </a>
+          )}
+          <ThemeToggle />
+          {isSignedIn && <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />}
+        </div>
+      </div>
+    </header>
   )
 }
