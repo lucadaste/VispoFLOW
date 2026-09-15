@@ -2,6 +2,8 @@ import { auth, clerkClient } from "@clerk/nextjs/server"
 import { and, eq, inArray } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { documents, accountMemberships } from "@/lib/collab-schema"
+import { userState } from "@/lib/db-schema"
+import { STORAGE_KEYS } from "@/lib/storage-keys"
 import { ensureFirmAccount, getFirmAccountByClerkOrg, getMembership, type Account, type AccountMembership } from "@/lib/accounts"
 import { syncCurrentUser } from "@/lib/users"
 import { AccessError } from "@/lib/permissions"
@@ -94,6 +96,27 @@ export async function listFirmMembers(ctx: FirmContext): Promise<AccountMembersh
     .select()
     .from(accountMemberships)
     .where(and(eq(accountMemberships.accountId, ctx.account.id), eq(accountMemberships.status, "active")))
+}
+
+/** Best-effort company name for each given (registered) client, read from their own incorporation
+ *  answers — not every client has gone through Vispo's incorporation flow (some are added just for
+ *  a standalone filing on a company formed elsewhere), so a missing entry just means "unknown",
+ *  not an error. Batched into one query rather than per-client. */
+export async function getClientCompanyNames(userIds: string[]): Promise<Map<string, string>> {
+  const ids = [...new Set(userIds)]
+  const map = new Map<string, string>()
+  if (ids.length === 0) return map
+
+  const rows = await db
+    .select()
+    .from(userState)
+    .where(and(inArray(userState.userId, ids), eq(userState.key, STORAGE_KEYS.incorporation)))
+
+  for (const row of rows) {
+    const name = (row.value as { answers?: { companyName?: string } } | null)?.answers?.companyName
+    if (name) map.set(row.userId, name)
+  }
+  return map
 }
 
 export function deadlineUrgency(daysToDeadline: number | null): "none" | "overdue" | "urgent" | "soon" | "ok" {

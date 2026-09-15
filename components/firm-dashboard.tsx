@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization, UserButton } from "@clerk/nextjs"
-import { AlertTriangle, Check, Copy, Loader2, Plus, Users, X } from "lucide-react"
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Copy, Loader2, Plus, Share2, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { SharedDocuments } from "@/components/shared-documents"
 import { COMPLIANCE_CATEGORIES } from "@/lib/flow"
 
 type FirmCtx = { firm: { accountId: string; name: string }; role: string; scope: string; canManage: boolean }
@@ -15,6 +16,7 @@ type ClientRow = {
   title: string
   clientName: string | null
   clientEmail: string | null
+  clientCompanyName: string | null
   clientRegistered: boolean
   grantDate: string | null
   deadlineDate: string | null
@@ -164,6 +166,16 @@ export function FirmDashboard() {
     null,
   )
   const [teamOpen, setTeamOpen] = useState(false)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set())
+
+  const toggleClientExpanded = (key: string) => {
+    setExpandedClients((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -358,75 +370,107 @@ export function FirmDashboard() {
 
       <section className="mt-5">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client roster</h2>
-        <div className={cn(card, "overflow-x-auto p-0")}>
-          <table className="w-full min-w-[640px] text-left text-xs">
-            <thead className="border-b border-border text-[11px] uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">Client</th>
-                <th className="px-3 py-2 font-medium">Filing</th>
-                <th className="px-3 py-2 font-medium">Grant date</th>
-                <th className="px-3 py-2 font-medium">Deadline</th>
-                <th className="px-3 py-2 font-medium">Status</th>
-                <th className="px-3 py-2 font-medium">Assigned</th>
-                {ctx?.canManage && <th className="px-3 py-2 font-medium" />}
-              </tr>
-            </thead>
-            <tbody>
-              {clients.length === 0 && (
-                <tr>
-                  <td colSpan={ctx?.canManage ? 7 : 6} className="px-3 py-6 text-center text-muted-foreground">
-                    No clients yet. Add one above to start tracking a deadline.
-                  </td>
-                </tr>
-              )}
-              {clientGroups.flatMap((group) =>
-                group.rows.map((c, i) => (
-                  <tr key={c.documentId} className="border-b border-border last:border-0">
-                    {i === 0 && (
-                      <td className="px-3 py-2.5 align-top" rowSpan={group.rows.length}>
-                        <div className="font-medium text-foreground">{c.clientName || c.clientEmail}</div>
-                        {!c.clientRegistered && <div className="text-[11px] text-muted-foreground">invite pending</div>}
-                        {ctx?.canManage && (
-                          <button
-                            className="mt-1 text-[11px] font-medium text-primary hover:underline"
-                            onClick={() =>
-                              setAddFilingFor({
-                                name: c.clientName ?? "",
-                                email: c.clientEmail ?? "",
-                                assignedToUserId: c.assignedToUserId,
-                              })
-                            }
-                          >
-                            + Add filing
-                          </button>
-                        )}
-                      </td>
+        <div className={cn(card, "divide-y divide-border p-0")}>
+          {clientGroups.length === 0 && (
+            <p className="px-4 py-6 text-center text-xs text-muted-foreground">
+              No clients yet. Add one above to start tracking a deadline.
+            </p>
+          )}
+          {clientGroups.map((group) => {
+            const first = group.rows[0]
+            const key = first.documentId
+            const expanded = expandedClients.has(key)
+            const groupUrgent = group.rows.filter((r) => r.urgency === "overdue" || r.urgency === "urgent")
+            return (
+              <div key={key}>
+                <button
+                  onClick={() => toggleClientExpanded(key)}
+                  className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-xs hover:bg-secondary/40"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {expanded ? (
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     )}
-                    <td className="px-3 py-2.5 text-muted-foreground">
-                      <Link href={`/shared/${c.documentId}`} className="hover:text-primary hover:underline">
-                        {c.title}
-                      </Link>
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">
-                      {c.grantDate ? new Date(c.grantDate).toLocaleDateString("en-US", { dateStyle: "medium" }) : "—"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <DeadlinePill row={c} />
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <StatusCell row={c} canManage={ctx?.canManage ?? false} onChanged={loadAll} />
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground">{c.assignedToName ?? "—"}</td>
+                    <div className="min-w-0">
+                      <div className="font-medium text-foreground">{first.clientName || first.clientEmail}</div>
+                      <div className="truncate text-[11px] text-muted-foreground">
+                        {first.clientCompanyName ?? "—"} · {first.clientEmail}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+                    {!first.clientRegistered && <span>invite pending</span>}
+                    {groupUrgent.length > 0 && (
+                      <span className="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 font-medium text-destructive">
+                        {groupUrgent.length} urgent
+                      </span>
+                    )}
+                    <span>
+                      {group.rows.length} filing{group.rows.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                </button>
+                {expanded && (
+                  <div className="border-t border-border bg-secondary/20 px-4 py-3">
+                    <table className="w-full min-w-[560px] text-left text-xs">
+                      <thead className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                        <tr>
+                          <th className="py-1.5 pr-3 font-medium">Filing</th>
+                          <th className="py-1.5 pr-3 font-medium">Grant date</th>
+                          <th className="py-1.5 pr-3 font-medium">Deadline</th>
+                          <th className="py-1.5 pr-3 font-medium">Status</th>
+                          <th className="py-1.5 pr-3 font-medium">Assigned</th>
+                          {ctx?.canManage && <th className="py-1.5 font-medium" />}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.rows.map((c) => (
+                          <tr key={c.documentId} className="border-t border-border/60 first:border-0">
+                            <td className="py-2 pr-3 text-muted-foreground">
+                              <Link href={`/shared/${c.documentId}`} className="hover:text-primary hover:underline">
+                                {c.title}
+                              </Link>
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">
+                              {c.grantDate ? new Date(c.grantDate).toLocaleDateString("en-US", { dateStyle: "medium" }) : "—"}
+                            </td>
+                            <td className="py-2 pr-3">
+                              <DeadlinePill row={c} />
+                            </td>
+                            <td className="py-2 pr-3">
+                              <StatusCell row={c} canManage={ctx?.canManage ?? false} onChanged={loadAll} />
+                            </td>
+                            <td className="py-2 pr-3 text-muted-foreground">{c.assignedToName ?? "—"}</td>
+                            {ctx?.canManage && (
+                              <td className="py-2 text-right">
+                                <RemoveClientButton row={c} onRemoved={loadAll} />
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     {ctx?.canManage && (
-                      <td className="px-3 py-2.5 text-right">
-                        <RemoveClientButton row={c} onRemoved={loadAll} />
-                      </td>
+                      <button
+                        className="mt-2 text-[11px] font-medium text-primary hover:underline"
+                        onClick={() =>
+                          setAddFilingFor({
+                            name: first.clientName ?? "",
+                            email: first.clientEmail ?? "",
+                            assignedToUserId: first.assignedToUserId,
+                          })
+                        }
+                      >
+                        + Add filing
+                      </button>
                     )}
-                  </tr>
-                )),
-              )}
-            </tbody>
-          </table>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </section>
       </div>
@@ -757,34 +801,60 @@ function TeamPanel({
 /** Shared chrome so the firm dashboard doesn't feel like a walled-off tool with no way back to
  *  the rest of the product — same brand mark as the founder-side TopBar (components/top-bar.tsx),
  *  trimmed to what applies here (no founder-only phase nav, since those routes redirect a
- *  firm-kind account straight back to /firm anyway — see components/account-kind-gate.tsx). */
+ *  firm-kind account straight back to /firm anyway — see components/account-kind-gate.tsx).
+ *  "Shared with me" opens as a popup rather than navigating to /shared — that page has no way
+ *  back to whichever dashboard screen you were on, and its icon (also Users) sat right next to the
+ *  Team button's, which used the same icon; this uses Share2 instead so the two are distinguishable. */
 function BrandHeader() {
   const { isSignedIn } = useAuth()
+  const [sharedOpen, setSharedOpen] = useState(false)
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <a href="/site" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
-          <div className="text-left leading-tight">
-            <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
-            <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
+    <>
+      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+          <a href="/site" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
+            <div className="text-left leading-tight">
+              <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
+              <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
+            </div>
+          </a>
+          <div className="flex shrink-0 items-center gap-2">
+            {isSignedIn && (
+              <button
+                type="button"
+                onClick={() => setSharedOpen(true)}
+                title="Shared with me"
+                className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+            )}
+            <ThemeToggle />
+            {isSignedIn && <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />}
           </div>
-        </a>
-        <div className="flex shrink-0 items-center gap-2">
-          {isSignedIn && (
-            <a
-              href="/shared"
-              title="Shared with me"
-              className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-            >
-              <Users className="h-4 w-4" />
-            </a>
-          )}
-          <ThemeToggle />
-          {isSignedIn && <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />}
         </div>
-      </div>
-    </header>
+      </header>
+      {sharedOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10 sm:py-16">
+          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setSharedOpen(false)} />
+          <div className="relative w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
+            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
+              <h2 className="text-sm font-semibold text-foreground">Shared with me</h2>
+              <button
+                onClick={() => setSharedOpen(false)}
+                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="max-h-[70vh] overflow-y-auto p-5">
+              <SharedDocuments bare />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

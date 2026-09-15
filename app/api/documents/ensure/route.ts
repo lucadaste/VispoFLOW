@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         actorUserId: userId,
         values,
         status: status as DocumentStatus | undefined,
+        origin: req.nextUrl.origin,
       })
     }
 

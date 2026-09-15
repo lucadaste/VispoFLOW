@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server"
 import { NextRequest, NextResponse } from "next/server"
 import { findComplianceItem } from "@/lib/flow"
-import { requireFirmContext, listFirmDocuments, daysUntil, deadlineUrgency } from "@/lib/firm"
+import { requireFirmContext, listFirmDocuments, daysUntil, deadlineUrgency, getClientCompanyNames } from "@/lib/firm"
 import { createClientDocument, nextStatusOptions, type DocumentStatus } from "@/lib/documents"
 import { createInvitation } from "@/lib/invitations"
 import { getUsers, displayName } from "@/lib/users"
@@ -21,6 +21,7 @@ export async function GET() {
       if (d.assignedToUserId) userIds.add(d.assignedToUserId)
     })
     const usersById = await getUsers([...userIds])
+    const companyNames = await getClientCompanyNames(docs.map((d) => d.clientUserId).filter((id): id is string => !!id))
 
     const rows = docs
       .map((d) => {
@@ -31,6 +32,7 @@ export async function GET() {
           title: d.title,
           clientName: d.clientUserId ? displayName(usersById.get(d.clientUserId)) : null,
           clientEmail: d.clientEmail,
+          clientCompanyName: d.clientUserId ? (companyNames.get(d.clientUserId) ?? null) : null,
           clientRegistered: !!d.clientUserId,
           grantDate: d.grantDate,
           deadlineDate: d.deadlineDate,

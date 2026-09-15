@@ -27,7 +27,10 @@ const STATUS_LABEL: Record<string, string> = {
   filed: "Filed",
 }
 
-export function SharedDocuments() {
+/** `bare` drops the full-page chrome (min-height centering, page padding, the "Shared with me"
+ *  heading) so this can be embedded in something else's container — e.g. a modal — instead of
+ *  only ever being its own page. See app/shared/page.tsx for the standalone usage. */
+export function SharedDocuments({ bare = false }: { bare?: boolean } = {}) {
   const { isLoaded, isSignedIn } = useAuth()
   const [rows, setRows] = useState<Row[] | null>(null)
 
@@ -45,7 +48,7 @@ export function SharedDocuments() {
 
   if (!isLoaded || (isSignedIn && rows === null)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className={cn("flex items-center justify-center", bare ? "py-10" : "min-h-screen bg-background")}>
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     )
@@ -53,25 +56,29 @@ export function SharedDocuments() {
 
   if (!isSignedIn) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className={cn("flex items-center justify-center px-4", bare ? "py-10" : "min-h-screen bg-background")}>
         <p className="text-sm text-muted-foreground">Sign in to see filings shared with you.</p>
       </div>
     )
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <h1 className="text-lg font-semibold text-foreground">Shared with me</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Filings someone invited you to view or work on.</p>
+    <div className={bare ? "" : "mx-auto max-w-2xl px-4 py-10"}>
+      {!bare && (
+        <>
+          <h1 className="text-lg font-semibold text-foreground">Shared with me</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Filings someone invited you to view or work on.</p>
+        </>
+      )}
 
       {rows && rows.length === 0 && (
-        <div className="mt-6 rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+        <div className={cn("rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground", !bare && "mt-6")}>
           <Users className="mx-auto mb-2 h-5 w-5" />
           Nothing shared with you yet. When someone invites you to a filing, it'll show up here.
         </div>
       )}
 
-      <ul className="mt-6 space-y-2">
+      <ul className={cn("space-y-2", !bare && "mt-6")}>
         {rows?.map((r) => (
           <li key={r.id}>
             <Link

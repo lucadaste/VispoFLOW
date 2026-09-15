@@ -153,6 +153,7 @@ export async function syncDocumentFromFiling(input: {
   actorUserId: string
   values?: Record<string, string> | null
   status?: DocumentStatus
+  origin?: string
 }): Promise<void> {
   const [doc] = await db.select().from(documents).where(eq(documents.id, input.documentId)).limit(1)
   if (!doc) return
@@ -178,6 +179,13 @@ export async function syncDocumentFromFiling(input: {
       documentId: doc.id,
       metadata: { from: doc.status, to: nextStatus },
     })
+    // Mirrors the notification transitionDocumentStatus fires for the same transition made
+    // through the dashboard's status dropdown — this is the other path to "awaiting_review": the
+    // client finishing their filing through the normal compliance flow (see
+    // components/compliance-view.tsx's ensureDocumentRow effect).
+    if (nextStatus === "awaiting_review" && doc.clientUserId) {
+      notifyClientCompleted(doc, input.origin).catch((err) => console.error("[documents] client-completed email failed", err))
+    }
   }
 }
 
@@ -367,7 +375,7 @@ type PersistedBlob = {
 function statusFromDoc(d: { signed?: boolean; filed?: boolean }, completed: boolean): DocumentStatus {
   if (d.filed) return "filed"
   if (d.signed) return "signed"
-  if (completed) return "ready_to_sign"
+  if (completed) return "awaiting_review"
   return "draft"
 }
 

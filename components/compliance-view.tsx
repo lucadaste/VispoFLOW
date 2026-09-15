@@ -596,7 +596,7 @@ export function ComplianceView({
         surface: "compliance",
         title: doc.title || findComplianceItem(id)?.title || id,
         grantDate: doc.values?.grantDate,
-        status: doc.filed ? "filed" : doc.signed ? "signed" : completed[id] ? "ready_to_sign" : "draft",
+        status: doc.filed ? "filed" : doc.signed ? "signed" : completed[id] ? "awaiting_review" : "draft",
       })
     }
     if (activeFiling && !docs[activeFiling.item.id]) {
