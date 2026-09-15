@@ -74,7 +74,16 @@ export function InviteClient({ token }: { token: string }) {
       const kind = data.target === "account" && FIRM_ROLES.has(details?.role ?? "") ? "firm" : "founder"
       updateServerValue<{ kind: string }>(STORAGE_KEYS.accountKind, (current) => (current ? null : { kind }))
 
-      const destination = data.target === "document" && data.documentId ? `/shared/${data.documentId}` : "/firm"
+      // A client accepting their own filing goes straight into that filing's flow (currently only
+      // wired for the Compliance Center — see incorporation-app.tsx's initialComplianceItemId).
+      // Any other document invite (a plain collaborator reviewing someone else's filing) still
+      // goes to the read-only shared viewer.
+      const destination =
+        data.role === "client" && data.surface === "compliance" && data.catalogId
+          ? `/app?open=${encodeURIComponent(data.catalogId)}`
+          : data.target === "document" && data.documentId
+            ? `/shared/${data.documentId}`
+            : "/firm"
       setTimeout(() => router.push(destination), 1500)
     } finally {
       setBusy(false)

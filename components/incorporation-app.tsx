@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useRouter } from "next/navigation"
 import { FileText, RotateCcw } from "lucide-react"
 import { useUser } from "@clerk/nextjs"
 import { MobileSidebarTab } from "@/components/mobile-sidebar-tab"
@@ -230,7 +231,8 @@ const looksLikeQuestion = (text: string) =>
   /\?\s*$/.test(text) ||
   /^(what|why|who|when|where|how|is|are|do|does|can|could|should|will|explain|tell me)\b/i.test(text.trim())
 
-export function IncorporationApp() {
+export function IncorporationApp({ initialComplianceItemId = null }: { initialComplianceItemId?: string | null }) {
+  const router = useRouter()
   const { user, isSignedIn } = useUser()
   const { profile, setProfile } = useProfile()
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -271,8 +273,17 @@ export function IncorporationApp() {
   const [incorporationHydrated, setIncorporationHydrated] = useState(false)
   const [incorporationServerLoaded, setIncorporationServerLoaded] = useState(false)
 
-  // Restore saved view after mount so there is no SSR flash
+  // Restore saved view after mount so there is no SSR flash. A deep link from accepting a firm's
+  // filing invite (?open=<catalogId>, see app/app/page.tsx + ComplianceView's initialItemId)
+  // overrides whatever was saved — the whole point is to land the client on that specific filing,
+  // not wherever they last left off.
   useEffect(() => {
+    if (initialComplianceItemId) {
+      setComplianceFromFlow(false)
+      setView("compliance")
+      router.replace("/app")
+      return
+    }
     try {
       const saved = sessionStorage.getItem(STORAGE_KEYS.view) as View | null
       if (saved && VALID_VIEWS.includes(saved)) { setView(saved); return }
@@ -1412,6 +1423,7 @@ export function IncorporationApp() {
             onItemDeleted={handleComplianceDocDeleted}
             onSoftDeleteDoc={handleDeleteLibraryDoc}
             startExpanded={complianceFromFlow}
+            initialItemId={initialComplianceItemId}
             onGoToLibrary={() => handlePhaseClick("documents")}
           />
         </SignedOutGate>

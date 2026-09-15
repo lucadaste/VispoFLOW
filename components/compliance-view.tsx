@@ -284,6 +284,7 @@ export function ComplianceView({
   onItemDeleted,
   onSoftDeleteDoc,
   startExpanded = false,
+  initialItemId = null,
   onGoToLibrary,
 }: {
   answers: FlowAnswers
@@ -294,6 +295,9 @@ export function ComplianceView({
    *  restarting the questions — the counterpart to onItemDeleted's "delete & restart". */
   onSoftDeleteDoc?: (doc: LibraryDoc) => void
   startExpanded?: boolean
+  /** Deep-link from accepting a firm's filing invite — opens straight into this catalog item's
+   *  flow after the normal restore/greeting runs, instead of showing the category picker. */
+  initialItemId?: string | null
   onGoToLibrary?: () => void
 }) {
   const { user, isSignedIn } = useUser()
@@ -913,6 +917,23 @@ export function ComplianceView({
     if (!fromItem) return openItem(item, groupTitle)
     setSwitchConfirm({ mode: "abandon", fromItem, item, groupTitle })
   }, [activeItemId, allItems, openItem])
+
+  // Deep link from accepting a firm's filing invite: jump straight into that item's flow once,
+  // right after the normal restore/greeting effect above has run (startedRef is set there first).
+  // Bypasses the abandon-confirmation above deliberately — arriving here is a deliberate top-level
+  // navigation, not an in-app click that should second-guess interrupting something else.
+  const deepLinkAppliedRef = useRef(false)
+  useEffect(() => {
+    if (!initialItemId || deepLinkAppliedRef.current || !startedRef.current) return
+    const item = allItems.find((i) => i.id === initialItemId)
+    if (!item) return
+    deepLinkAppliedRef.current = true
+    const category = COMPLIANCE_CATEGORIES.find((c) => c.groups.some((g) => g.items.some((i) => i.id === initialItemId)))
+    const group = category?.groups.find((g) => g.items.some((i) => i.id === initialItemId))
+    setActiveCategory(category ?? null)
+    setExpandedCategoryId(category?.id ?? null)
+    openItem(item, group?.title ?? "")
+  }, [initialItemId, allItems, openItem])
 
   // Re-renders the in-progress filing's current question under a newly selected mode, without
   // losing what's already been answered — mirrors incorporation-app.tsx's `reinitStepForMode`.

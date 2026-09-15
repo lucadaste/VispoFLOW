@@ -276,7 +276,14 @@ export async function getInvitationDetails(token: string): Promise<InvitationDet
 export async function acceptInvitation(
   token: string,
   accepting: { userId: string; email: string; firstName?: string | null; lastName?: string | null; imageUrl?: string | null },
-): Promise<{ target: "document" | "account"; documentId: string | null; accountId: string | null }> {
+): Promise<{
+  target: "document" | "account"
+  documentId: string | null
+  accountId: string | null
+  role: string
+  catalogId: string | null
+  surface: string | null
+}> {
   const row = await loadAndMaybeExpire(token)
   if (row.status !== "pending") {
     throw new InvitationError(410, statusMessage(row.status))
@@ -290,9 +297,17 @@ export async function acceptInvitation(
     imageUrl: accepting.imageUrl,
   })
 
+  // A client accepting their own filing invite: the catalogId/surface let the caller send them
+  // straight into that filing's flow instead of the generic shared-document viewer.
+  let catalogId: string | null = null
+  let surface: string | null = null
+
   if (row.documentId && row.role === "client") {
     const { attachClientToDocument } = await import("@/lib/documents")
     await attachClientToDocument(row.documentId, accepting.userId)
+    const doc = await getDocumentRow(row.documentId)
+    catalogId = doc?.catalogId ?? null
+    surface = doc?.surface ?? null
   } else if (row.documentId) {
     await db
       .insert(documentCollaborators)
@@ -345,6 +360,9 @@ export async function acceptInvitation(
     target: row.documentId ? "document" : "account",
     documentId: row.documentId,
     accountId: row.accountId,
+    role: row.role,
+    catalogId,
+    surface,
   }
 }
 

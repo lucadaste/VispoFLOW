@@ -90,6 +90,17 @@ export async function ensureDocument(input: {
     .limit(1)
   if (existing[0]) return existing[0]
 
+  // A firm may have already created this filing on the user's behalf (createClientDocument +
+  // attachClientToDocument on invite acceptance) — that row lives under the firm's account, not
+  // this user's individual one. Reuse it instead of creating a second, disconnected row that the
+  // firm's dashboard would never see updates to.
+  const [firmLinked] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.ownerUserId, input.userId), eq(documents.catalogId, input.catalogId)))
+    .limit(1)
+  if (firmLinked) return firmLinked
+
   const grantDate = grantDateFor(input.catalogId, input.values)
   const deadlineDate = computeDeadlineDate(input.catalogId, input.values)
 
