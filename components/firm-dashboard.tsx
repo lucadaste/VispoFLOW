@@ -2,12 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization, UserButton } from "@clerk/nextjs"
-import { AlertTriangle, Check, ChevronDown, ChevronRight, Copy, Loader2, Plus, Share2, Users, X } from "lucide-react"
+import { useAuth, useOrganization, useOrganizationList, OrganizationSwitcher, CreateOrganization, UserButton } from "@clerk/nextjs"
+import { AlertTriangle, Check, ChevronDown, ChevronRight, Copy, Loader2, Plus, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmModal } from "@/components/confirm-modal"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { SharedDocuments } from "@/components/shared-documents"
 import { COMPLIANCE_CATEGORIES } from "@/lib/flow"
 
 type FirmCtx = { firm: { accountId: string; name: string }; role: string; scope: string; canManage: boolean }
@@ -333,7 +332,7 @@ export function FirmDashboard() {
             >
               <Users className="h-3.5 w-3.5" /> Team
             </button>
-            <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/firm" afterCreateOrganizationUrl="/firm" />
+            <FirmOrgSwitcher />
           </div>
         </header>
 
@@ -798,63 +797,82 @@ function TeamPanel({
   )
 }
 
+/** Replaces Clerk's <OrganizationSwitcher> in the main dashboard header. That component always
+ *  renders the current org's name on its own trigger — redundant here since the firm's name is
+ *  already the page's <h1> — and always offers "Create organization", which doesn't fit this
+ *  product's model: a firm's org is set up once, deliberately, via the "Set up your firm" confirm
+ *  screen (see lib/firm.ts's provisionFirmContext), not spun up casually from a header menu. A
+ *  lawyer who only belongs to their own firm (the common case) sees nothing here at all; someone
+ *  who happens to belong to more than one (e.g. consulting for a second firm) gets a plain list to
+ *  switch between them — no name repeated, no way to create another. */
+function FirmOrgSwitcher() {
+  const { isLoaded, userMemberships, setActive } = useOrganizationList({ userMemberships: true })
+  const [open, setOpen] = useState(false)
+
+  if (!isLoaded) return null
+  const memberships = userMemberships.data ?? []
+  if (memberships.length <= 1) return null
+
+  const switchTo = async (organizationId: string) => {
+    await setActive?.({ organization: organizationId })
+    window.location.href = "/firm"
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex items-center gap-1 rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary"
+      >
+        Switch firm <ChevronDown className="h-3.5 w-3.5" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <ul className="absolute right-0 z-50 mt-1 w-56 overflow-hidden rounded-lg border border-border bg-card py-1 shadow-lg">
+            {memberships.map((m) => (
+              <li key={m.organization.id}>
+                <button
+                  onClick={() => switchTo(m.organization.id)}
+                  className="block w-full truncate px-3 py-2 text-left text-xs text-foreground hover:bg-secondary"
+                >
+                  {m.organization.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  )
+}
+
 /** Shared chrome so the firm dashboard doesn't feel like a walled-off tool with no way back to
  *  the rest of the product — same brand mark as the founder-side TopBar (components/top-bar.tsx),
  *  trimmed to what applies here (no founder-only phase nav, since those routes redirect a
- *  firm-kind account straight back to /firm anyway — see components/account-kind-gate.tsx).
- *  "Shared with me" opens as a popup rather than navigating to /shared — that page has no way
- *  back to whichever dashboard screen you were on, and its icon (also Users) sat right next to the
- *  Team button's, which used the same icon; this uses Share2 instead so the two are distinguishable. */
+ *  firm-kind account straight back to /firm anyway — see components/account-kind-gate.tsx). No
+ *  "Shared with me" here: on the firm side that surface is for "someone invited me to their one
+ *  filing," which is backwards from how a firm normally works — a firm invites its own clients,
+ *  it isn't the one being invited. It also duplicated the Team button's icon and, as a page
+ *  navigation, had no way back to this dashboard. */
 function BrandHeader() {
   const { isSignedIn } = useAuth()
-  const [sharedOpen, setSharedOpen] = useState(false)
   return (
-    <>
-      <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <a href="/site" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
-            <div className="text-left leading-tight">
-              <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
-              <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
-            </div>
-          </a>
-          <div className="flex shrink-0 items-center gap-2">
-            {isSignedIn && (
-              <button
-                type="button"
-                onClick={() => setSharedOpen(true)}
-                title="Shared with me"
-                className="inline-flex items-center justify-center rounded-md border border-border bg-background p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <Share2 className="h-4 w-4" />
-              </button>
-            )}
-            <ThemeToggle />
-            {isSignedIn && <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />}
+    <header className="sticky top-0 z-30 border-b border-border bg-card/90 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <a href="/site" className="flex shrink-0 items-center gap-2.5 whitespace-nowrap transition-opacity hover:opacity-80">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/beaker.png" alt="" className="h-8 w-8 shrink-0 object-contain" />
+          <div className="text-left leading-tight">
+            <p className="font-serif text-sm font-semibold tracking-tight">Vispo Labs</p>
+            <p className="text-[11px] text-muted-foreground">Startup Legal Studio</p>
           </div>
+        </a>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          {isSignedIn && <UserButton appearance={{ elements: { avatarBox: "h-8 w-8" } }} />}
         </div>
-      </header>
-      {sharedOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto px-4 py-10 sm:py-16">
-          <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm" onClick={() => setSharedOpen(false)} />
-          <div className="relative w-full max-w-lg rounded-xl border border-border bg-card shadow-xl">
-            <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-foreground">Shared with me</h2>
-              <button
-                onClick={() => setSharedOpen(false)}
-                className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="max-h-[70vh] overflow-y-auto p-5">
-              <SharedDocuments bare />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      </div>
+    </header>
   )
 }
