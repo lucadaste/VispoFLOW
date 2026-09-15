@@ -6,6 +6,7 @@ import { useAuth, useOrganization, OrganizationSwitcher, CreateOrganization } fr
 import { AlertTriangle, Check, Copy, Loader2, Plus, Users, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConfirmModal } from "@/components/confirm-modal"
+import { COMPLIANCE_CATEGORIES } from "@/lib/flow"
 
 type FirmCtx = { firm: { accountId: string; name: string }; role: string; scope: string; canManage: boolean }
 type ClientRow = {
@@ -20,6 +21,7 @@ type ClientRow = {
   urgency: "none" | "overdue" | "urgent" | "soon" | "ok"
   status: string
   nextStatuses: string[]
+  assignedToUserId: string | null
   assignedToName: string | null
 }
 type Member = { userId: string; name: string; email: string; role: string; scope: string; isSelf: boolean }
@@ -157,6 +159,9 @@ export function FirmDashboard() {
   const [loading, setLoading] = useState(true)
   const [settingUp, setSettingUp] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
+  const [addFilingFor, setAddFilingFor] = useState<{ name: string; email: string; assignedToUserId: string | null } | null>(
+    null,
+  )
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -241,22 +246,25 @@ export function FirmDashboard() {
   if (ctxError && !ctx) {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-4 py-12 text-center">
-        <h1 className="text-lg font-semibold text-foreground">Use &ldquo;{organization?.name ?? "this organization"}&rdquo; as your firm?</h1>
+        <h1 className="text-lg font-semibold text-foreground">
+          Set up &ldquo;{organization?.name ?? "this organization"}&rdquo; as a firm workspace?
+        </h1>
         <p className="text-sm text-muted-foreground">
-          You&apos;re currently in an organization that hasn&apos;t been set up as a VispoFLOW firm workspace. Only
-          confirm this if you&apos;re a lawyer or firm managing clients — an individual founder filing their own
-          paperwork doesn&apos;t need this.
+          This turns &ldquo;{organization?.name ?? "this organization"}&rdquo; into a VispoFLOW firm workspace — a
+          client roster, deadline tracking, and client invitations. It&apos;s for lawyers and firms managing multiple
+          clients, not for filing your own company&apos;s paperwork under this organization.
         </p>
         {setupError && <p className="text-xs text-destructive">{setupError}</p>}
-        <div className="flex items-center gap-3">
-          <button className={primaryBtn} onClick={confirmSetup} disabled={settingUp}>
-            {settingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-            Yes, set up my firm here
-          </button>
+        <button className={primaryBtn} onClick={confirmSetup} disabled={settingUp}>
+          {settingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          Yes, set up this workspace
+        </button>
+        <div className="flex flex-col items-center gap-1.5">
+          <p className="text-[11px] text-muted-foreground">Wrong organization?</p>
           <OrganizationSwitcher hidePersonal afterCreateOrganizationUrl="/firm" afterSelectOrganizationUrl="/firm" />
         </div>
         <Link href="/app" className="text-xs font-medium text-muted-foreground hover:text-foreground">
-          Not a firm — take me back to the app
+          Skip — take me back to the app
         </Link>
       </div>
     )
@@ -264,13 +272,30 @@ export function FirmDashboard() {
 
   const overdueOrUrgent = clients.filter((c) => c.urgency === "overdue" || c.urgency === "urgent")
 
+  // One client can have several filings (documents rows); group rows sharing a client email so
+  // the roster shows one entry per person with their filings nested underneath, instead of a
+  // duplicate "client" row per filing.
+  const clientGroups: { key: string; rows: ClientRow[] }[] = []
+  const groupIndex = new Map<string, number>()
+  for (const c of clients) {
+    const key = c.clientEmail ?? c.documentId
+    const idx = groupIndex.get(key)
+    if (idx === undefined) {
+      groupIndex.set(key, clientGroups.length)
+      clientGroups.push({ key, rows: [c] })
+    } else {
+      clientGroups[idx].rows.push(c)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-foreground">{ctx?.firm.name ?? organization?.name}</h1>
           <p className="text-xs text-muted-foreground">
-            {clients.length} filing{clients.length === 1 ? "" : "s"} · you&apos;re {ctx?.role}
+            {clientGroups.length} client{clientGroups.length === 1 ? "" : "s"} · {clients.length} filing
+            {clients.length === 1 ? "" : "s"} · you&apos;re {ctx?.role}
             {ctx?.scope === "assigned_only" ? " (your assigned clients only)" : ""}
           </p>
         </div>
@@ -292,7 +317,16 @@ export function FirmDashboard() {
         </div>
       )}
 
-      {ctx?.canManage && <AddClient members={members} onAdded={loadAll} />}
+      {ctx?.canManage && (
+        <AddClient
+          members={members}
+          onAdded={() => {
+            loadAll()
+          }}
+          prefill={addFilingFor}
+          onClose={() => setAddFilingFor(null)}
+        />
+      )}
 
       <section className="mt-5">
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client roster</h2>
@@ -317,34 +351,52 @@ export function FirmDashboard() {
                   </td>
                 </tr>
               )}
-              {clients.map((c) => (
-                <tr key={c.documentId} className="border-b border-border last:border-0">
-                  <td className="px-3 py-2.5">
-                    <div className="font-medium text-foreground">{c.clientName || c.clientEmail}</div>
-                    {!c.clientRegistered && <div className="text-[11px] text-muted-foreground">invite pending</div>}
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">
-                    <Link href={`/shared/${c.documentId}`} className="hover:text-primary hover:underline">
-                      {c.title}
-                    </Link>
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">
-                    {c.grantDate ? new Date(c.grantDate).toLocaleDateString("en-US", { dateStyle: "medium" }) : "—"}
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <DeadlinePill row={c} />
-                  </td>
-                  <td className="px-3 py-2.5">
-                    <StatusCell row={c} canManage={ctx?.canManage ?? false} onChanged={loadAll} />
-                  </td>
-                  <td className="px-3 py-2.5 text-muted-foreground">{c.assignedToName ?? "—"}</td>
-                  {ctx?.canManage && (
-                    <td className="px-3 py-2.5 text-right">
-                      <RemoveClientButton row={c} onRemoved={loadAll} />
+              {clientGroups.flatMap((group) =>
+                group.rows.map((c, i) => (
+                  <tr key={c.documentId} className="border-b border-border last:border-0">
+                    {i === 0 && (
+                      <td className="px-3 py-2.5 align-top" rowSpan={group.rows.length}>
+                        <div className="font-medium text-foreground">{c.clientName || c.clientEmail}</div>
+                        {!c.clientRegistered && <div className="text-[11px] text-muted-foreground">invite pending</div>}
+                        {ctx?.canManage && (
+                          <button
+                            className="mt-1 text-[11px] font-medium text-primary hover:underline"
+                            onClick={() =>
+                              setAddFilingFor({
+                                name: c.clientName ?? "",
+                                email: c.clientEmail ?? "",
+                                assignedToUserId: c.assignedToUserId,
+                              })
+                            }
+                          >
+                            + Add filing
+                          </button>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-3 py-2.5 text-muted-foreground">
+                      <Link href={`/shared/${c.documentId}`} className="hover:text-primary hover:underline">
+                        {c.title}
+                      </Link>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="px-3 py-2.5 text-muted-foreground">
+                      {c.grantDate ? new Date(c.grantDate).toLocaleDateString("en-US", { dateStyle: "medium" }) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <DeadlinePill row={c} />
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <StatusCell row={c} canManage={ctx?.canManage ?? false} onChanged={loadAll} />
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{c.assignedToName ?? "—"}</td>
+                    {ctx?.canManage && (
+                      <td className="px-3 py-2.5 text-right">
+                        <RemoveClientButton row={c} onRemoved={loadAll} />
+                      </td>
+                    )}
+                  </tr>
+                )),
+              )}
             </tbody>
           </table>
         </div>
@@ -395,15 +447,55 @@ function ShareLink({ url }: { url: string }) {
   )
 }
 
-function AddClient({ members, onAdded }: { members: Member[]; onAdded: () => void }) {
+const DEFAULT_CATALOG_ID = "83b"
+
+function AddClient({
+  members,
+  onAdded,
+  prefill,
+  onClose,
+}: {
+  members: Member[]
+  onAdded: () => void
+  /** Set when "+ Add filing" is clicked on an existing roster entry — locks the identity fields
+   *  so the new document attaches to that same client instead of creating a new one. */
+  prefill: { name: string; email: string; assignedToUserId: string | null } | null
+  onClose: () => void
+}) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [catalogId, setCatalogId] = useState(DEFAULT_CATALOG_ID)
   const [grantDate, setGrantDate] = useState("")
   const [assignedToUserId, setAssignedToUserId] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [link, setLink] = useState<string | null>(null)
+  const locked = !!prefill
+
+  useEffect(() => {
+    if (!prefill) return
+    setOpen(true)
+    setName(prefill.name)
+    setEmail(prefill.email)
+    setAssignedToUserId(prefill.assignedToUserId ?? "")
+    setCatalogId(DEFAULT_CATALOG_ID)
+    setGrantDate("")
+    setError(null)
+    setLink(null)
+  }, [prefill])
+
+  const reset = () => {
+    setOpen(false)
+    setName("")
+    setEmail("")
+    setCatalogId(DEFAULT_CATALOG_ID)
+    setGrantDate("")
+    setAssignedToUserId("")
+    setError(null)
+    setLink(null)
+    onClose()
+  }
 
   const submit = async () => {
     setBusy(true)
@@ -416,17 +508,23 @@ function AddClient({ members, onAdded }: { members: Member[]; onAdded: () => voi
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
+          catalogId,
           grantDate: grantDate || undefined,
           assignedToUserId: assignedToUserId || undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? "Couldn't add the client")
+        setError(data.error ?? "Couldn't add the filing")
         return
       }
-      setName("")
-      setEmail("")
+      // Adding a filing for an existing client: keep their identity filled in so another filing
+      // can be added right after. A brand-new client: clear everything for the next entry.
+      if (!locked) {
+        setName("")
+        setEmail("")
+      }
+      setCatalogId(DEFAULT_CATALOG_ID)
       setGrantDate("")
       if (!data.invite?.emailed) setLink(data.invite?.acceptUrl ?? null)
       onAdded()
@@ -445,20 +543,47 @@ function AddClient({ members, onAdded }: { members: Member[]; onAdded: () => voi
 
   return (
     <div className={card}>
-      <p className="mb-2.5 text-xs font-semibold text-foreground">New client — 83(b) election</p>
+      <p className="mb-2.5 text-xs font-semibold text-foreground">
+        {locked ? `Add a filing for ${name || email}` : "New client"}
+      </p>
       <div className="grid gap-2 sm:grid-cols-2">
-        <input className={inputCls} placeholder="Client name" value={name} onChange={(e) => setName(e.target.value)} />
+        <input
+          className={inputCls}
+          placeholder="Client name"
+          value={name}
+          disabled={locked}
+          onChange={(e) => setName(e.target.value)}
+        />
         <input
           className={inputCls}
           type="email"
           placeholder="client@email.com"
           value={email}
+          disabled={locked}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <label className="text-[11px] text-muted-foreground">
-          Stock grant date
-          <input className={inputCls} type="date" value={grantDate} onChange={(e) => setGrantDate(e.target.value)} />
+        <label className="text-[11px] text-muted-foreground sm:col-span-2">
+          Filing
+          <select className={inputCls} value={catalogId} onChange={(e) => setCatalogId(e.target.value)}>
+            {COMPLIANCE_CATEGORIES.map((category) => (
+              <optgroup key={category.id} label={category.label}>
+                {category.groups.flatMap((group) =>
+                  group.items.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  )),
+                )}
+              </optgroup>
+            ))}
+          </select>
         </label>
+        {catalogId === "83b" && (
+          <label className="text-[11px] text-muted-foreground">
+            Stock grant date
+            <input className={inputCls} type="date" value={grantDate} onChange={(e) => setGrantDate(e.target.value)} />
+          </label>
+        )}
         <label className="text-[11px] text-muted-foreground">
           Assign to
           <select
@@ -477,7 +602,7 @@ function AddClient({ members, onAdded }: { members: Member[]; onAdded: () => voi
           </select>
         </label>
       </div>
-      {grantDate && (
+      {catalogId === "83b" && grantDate && (
         <p className="mt-1.5 text-[11px] text-muted-foreground">
           Deadline: {new Date(new Date(grantDate).getTime() + 30 * 864e5).toLocaleDateString("en-US", { dateStyle: "long" })} (30 days)
         </p>
@@ -491,7 +616,7 @@ function AddClient({ members, onAdded }: { members: Member[]; onAdded: () => voi
         </button>
         <button
           className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
-          onClick={() => setOpen(false)}
+          onClick={reset}
         >
           Cancel
         </button>
