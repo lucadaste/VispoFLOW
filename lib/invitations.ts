@@ -169,7 +169,11 @@ export async function createInvitation(input: CreateInput): Promise<CreatedInvit
           id: randomUUID(),
           email,
           invitedByUserId: input.inviterUserId,
-          accountId,
+          // The row's own accountId/documentId must stay mutually exclusive (see the
+          // invitations_one_target check constraint) — accountId above still gets set for a
+          // document-target invite so the audit log below can record which account it belongs
+          // to, but that value must not also land on this row.
+          accountId: documentId ? null : accountId,
           documentId,
           role: input.role,
           scope,
@@ -178,7 +182,8 @@ export async function createInvitation(input: CreateInput): Promise<CreatedInvit
           expiresAt,
         })
         .returning()
-    } catch {
+    } catch (err) {
+      console.error("createInvitation: initial insert failed", err)
       // Lost a race with a concurrent invite for the same (email, target) — the partial unique
       // index rejected the second insert. Fall back to updating whichever row won.
       const [winner] = await db

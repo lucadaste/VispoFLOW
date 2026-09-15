@@ -163,7 +163,7 @@ export function FirmDashboard() {
   const [addFilingFor, setAddFilingFor] = useState<{ name: string; email: string; assignedToUserId: string | null } | null>(
     null,
   )
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [teamOpen, setTeamOpen] = useState(false)
 
   const loadAll = useCallback(async () => {
     setLoading(true)
@@ -315,20 +315,23 @@ export function FirmDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {ctx?.canManage && (
-              <button className={primaryBtn} onClick={() => setInviteOpen((o) => !o)}>
-                <Plus className="h-3.5 w-3.5" /> Invite to firm
-              </button>
-            )}
+            <button
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary"
+              onClick={() => setTeamOpen((o) => !o)}
+            >
+              <Users className="h-3.5 w-3.5" /> Team
+            </button>
             <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/firm" afterCreateOrganizationUrl="/firm" />
           </div>
         </header>
 
-        {inviteOpen && ctx?.canManage && (
-          <InviteTeamMember
-            accountId={ctx.firm.accountId}
+        {teamOpen && (
+          <TeamPanel
+            members={members}
+            pending={pendingTeam}
+            canManage={ctx?.canManage ?? false}
+            accountId={ctx?.firm.accountId ?? ""}
             onInvited={loadAll}
-            onClose={() => setInviteOpen(false)}
           />
         )}
 
@@ -426,8 +429,6 @@ export function FirmDashboard() {
           </table>
         </div>
       </section>
-
-        <TeamSection members={members} pending={pendingTeam} />
       </div>
     </>
   )
@@ -646,50 +647,21 @@ function AddClient({
   )
 }
 
-function TeamSection({ members, pending }: { members: Member[]; pending: PendingTeamInvite[] }) {
-  return (
-    <section className="mt-6">
-      <h2 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        <Users className="h-3.5 w-3.5" /> Team
-      </h2>
-      <div className={card}>
-        <ul className="space-y-1.5">
-          {members.map((m) => (
-            <li key={m.userId} className="flex items-center justify-between gap-2 text-xs">
-              <span className="truncate text-foreground">
-                {m.name} <span className="text-muted-foreground">· {m.email}</span>
-              </span>
-              <span className="capitalize text-muted-foreground">
-                {m.role}
-                {m.scope === "assigned_only" ? " · assigned only" : ""}
-              </span>
-            </li>
-          ))}
-          {pending.map((p) => (
-            <li key={p.invitationId} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span className="truncate">{p.email} · invited</span>
-              <span className="capitalize">{p.role}</span>
-            </li>
-          ))}
-          {members.length === 0 && pending.length === 0 && (
-            <li className="py-1 text-xs text-muted-foreground">No team members yet.</li>
-          )}
-        </ul>
-      </div>
-    </section>
-  )
-}
-
-/** Opened from the "Invite to firm" button in the dashboard header (kept next to the firm name,
- *  not buried in the Team section below) — adds an attorney/staff member to the firm account. */
-function InviteTeamMember({
+/** Opened from the single "Team" button in the dashboard header — shows the current roster and,
+ *  for owners/attorneys, the invite form in the same place, instead of splitting "who's on the
+ *  team" and "add someone" across two separate sections. */
+function TeamPanel({
+  members,
+  pending,
+  canManage,
   accountId,
   onInvited,
-  onClose,
 }: {
+  members: Member[]
+  pending: PendingTeamInvite[]
+  canManage: boolean
   accountId: string
   onInvited: () => void
-  onClose: () => void
 }) {
   const [email, setEmail] = useState("")
   const [role, setRole] = useState<"attorney" | "staff">("staff")
@@ -723,42 +695,61 @@ function InviteTeamMember({
 
   return (
     <div className={cn(card, "mb-5")}>
-      <p className="mb-2.5 text-xs font-semibold text-foreground">Invite to firm</p>
-      <div className="grid gap-2 sm:grid-cols-3">
-        <input
-          className={inputCls}
-          type="email"
-          placeholder="colleague@firm.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as "attorney" | "staff")}>
-          <option value="staff">Staff</option>
-          <option value="attorney">Attorney</option>
-        </select>
-        <select
-          className={inputCls}
-          value={scope}
-          onChange={(e) => setScope(e.target.value as "all_clients" | "assigned_only")}
-        >
-          <option value="all_clients">All clients</option>
-          <option value="assigned_only">Assigned only</option>
-        </select>
-      </div>
-      {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
-      {link && <ShareLink url={link} />}
-      <div className="mt-3 flex gap-2">
-        <button className={primaryBtn} onClick={invite} disabled={busy || !email.trim()}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-          Send invite
-        </button>
-        <button
-          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium hover:bg-secondary"
-          onClick={onClose}
-        >
-          Cancel
-        </button>
-      </div>
+      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Team</p>
+      <ul className="space-y-1.5">
+        {members.map((m) => (
+          <li key={m.userId} className="flex items-center justify-between gap-2 text-xs">
+            <span className="truncate text-foreground">
+              {m.name} <span className="text-muted-foreground">· {m.email}</span>
+            </span>
+            <span className="capitalize text-muted-foreground">
+              {m.role}
+              {m.scope === "assigned_only" ? " · assigned only" : ""}
+            </span>
+          </li>
+        ))}
+        {pending.map((p) => (
+          <li key={p.invitationId} className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="truncate">{p.email} · invited</span>
+            <span className="capitalize">{p.role}</span>
+          </li>
+        ))}
+        {members.length === 0 && pending.length === 0 && (
+          <li className="py-1 text-xs text-muted-foreground">No team members yet.</li>
+        )}
+      </ul>
+
+      {canManage && (
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <input
+              className={inputCls}
+              type="email"
+              placeholder="colleague@firm.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value as "attorney" | "staff")}>
+              <option value="staff">Staff</option>
+              <option value="attorney">Attorney</option>
+            </select>
+            <select
+              className={inputCls}
+              value={scope}
+              onChange={(e) => setScope(e.target.value as "all_clients" | "assigned_only")}
+            >
+              <option value="all_clients">All clients</option>
+              <option value="assigned_only">Assigned only</option>
+            </select>
+          </div>
+          {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
+          {link && <ShareLink url={link} />}
+          <button className={cn(primaryBtn, "mt-2")} onClick={invite} disabled={busy || !email.trim()}>
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Invite to firm
+          </button>
+        </div>
+      )}
     </div>
   )
 }
